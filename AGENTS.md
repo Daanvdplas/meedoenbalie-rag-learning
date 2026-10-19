@@ -1,16 +1,24 @@
-# COA Meedoenbalie-project
+# Project instructions
 
-Lees eerst [user_journey.md](user_journey.md). Dit document beschrijft de use case, de onderbouwde gebruikersreis en de voorgestelde AI-laag.
-Gebruik voor architectuur- en platformkeuzes ook [agent-harness-landscape.md](agent-harness-landscape.md) als gedateerd startpunt.
+Lees eerst [README.md](README.md) voor de huidige status en besluiten. Lees voor de use case [user_journey.md](user_journey.md). Gebruik [agent-harness-landscape.md](agent-harness-landscape.md) als oriëntatie; verifieer platformkeuzes opnieuw.
 
-## Doel
-Bereid met de architect een kleine, complete agent harness voor die een Meedoenbalie-medewerker helpt passende activiteiten te vinden op basis van bewonersnotities en het activiteitenaanbod. De demo moet laten zien hoe de agent wordt aangestuurd, welke tools en gegevens hij gebruikt, hoe de uitvoering wordt gevolgd en hoe gedrag wordt geëvalueerd.
+## Doel en startpunt
 
-## Afspraken
-- Gebruik uitsluitend verzonnen bewoners- en activiteitendata.
-- Houd de beschreven COA-werkwijze en onze voorgestelde AI-functie duidelijk uit elkaar; uitvoering kan per locatie verschillen.
-- Toon bij elke suggestie de gebruikte bron. Laat ontbrekende of verouderde informatie als onbekend zien.
-- De medewerker bespreekt suggesties met de bewoner; meedoen blijft vrijwillig.
+Het langetermijndoel is een kleine, uitlegbare agent harness voor het vinden van passende activiteiten. De eerste leerstap is een RAG-pipeline met embeddings: eerst retrieval op synthetische documenten beoordelen, daarna eventueel een model koppelen. Dit vervangt het langetermijndoel niet.
+
+**Begin niet met bouwen totdat de gebruiker dit expliciet zegt.** Model, embeddingmodel, opslag, documentverwerking, chunking, retrieval-aanpak en runtime zijn nog niet gekozen.
+
+## Bronnen
+
+Voor keuzes over agentplatforms en AI-engineering: gebruik bronnen die in 2026 zijn gepubliceerd of aantoonbaar bijgewerkt. Vermeld bij iedere bron de publicatie- of updatedatum; laat oudere bronnen weg.
+
+## Grenzen
+
+- Gebruik uitsluitend verzonnen bewoners- en activiteitendata; gebruik alleen openbare COA-informatie als achtergrond. Presenteer het voorstel niet als een bestaand of intern COA-plan; uitvoering kan per locatie verschillen.
+- Toon bij iedere suggestie bron en datum. Laat ontbrekende of verouderde informatie als onbekend zien.
+- Meedoen blijft vrijwillig; de medewerker bespreekt suggesties met de bewoner.
 - De demo schrijft niets naar dossiers, verstuurt geen berichten en meldt niemand aan.
-- Werk met de architect de hele minimale harness uit: agentloop en taakafhandeling, context en state, tools, RAG, bronvermelding, grenzen en foutafhandeling, logging/tracing en evals.
-- Houd de harness klein en uitlegbaar. Kies de technische aanpak met de architect; begin daarna pas met bouwen.
+
+## Repo-werkwijze
+
+Alle wijzigingen gaan via een branch en pull request; commit nooit rechtstreeks naar `main`. Merge geen PR zonder expliciete toestemming. Branch protection is met de huidige private repo/accountconfiguratie niet af te dwingen, dus volg de PR-werkwijze handmatig.
