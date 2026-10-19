@@ -5,7 +5,7 @@ Een leerproject rond retrieval, embeddings en later een kleine agent harness, ge
 ## Waar het project nu staat
 
 - De private GitHub-repo bevat alleen documentatie; er is nog geen applicatiecode.
-- **Begin niet met bouwen totdat de gebruiker dat expliciet zegt.** De eerstvolgende leerstap is een kleine RAG-pipeline: retrieval opzetten en beoordelen met synthetische documenten. Een model eraan koppelen volgt daarna.
+- **Volgende stap: plan samen met Codex de eerste RAG-pipeline voordat je gaat bouwen.** Dit is alleen de planningsstap; begin niet met code totdat de gebruiker dat expliciet zegt. De eerste bouwmijlpaal wordt een kleine pipeline die retrieval op synthetische documenten opzet en beoordeelt. Een model eraan koppelen volgt daarna.
 - Dit is de eerste mijlpaal, niet het nieuwe einddoel. Het langetermijndoel blijft leren hoe een kleine, uitlegbare agent harness voor het vinden van passende activiteiten werkt.
 - Euan vond de richting redelijk, maar breed voor een eerste project. Zijn advies was om één onderdeel te kiezen en met RAG te beginnen; retrieval is op zichzelf al een uitdaging met veel optimalisatiemogelijkheden.
 
