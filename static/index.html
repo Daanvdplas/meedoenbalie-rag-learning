@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>One document · Retrieval notebook</title>
+<style>
+:root{color-scheme:light;--paper:#f6f5ef;--ink:#26392f;--muted:#59655d;--line:#d2d8cf;--green:#315b45;--wash:#e7ede2}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 "Avenir Next","Segoe UI",sans-serif}main{max-width:960px;margin:auto;padding:44px 24px}h1,h2{font-family:"Iowan Old Style",Palatino,serif;font-weight:500;line-height:1.15}h1{font-size:clamp(36px,6vw,54px);letter-spacing:-.035em;margin:12px 0 20px}h2{font-size:28px;margin:28px 0 16px}p{max-width:70ch;margin:0 0 16px}.eyebrow{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--green);font-weight:700}.muted,small{color:var(--muted)}small{font-size:13px}button,textarea{font:inherit;color:inherit}button{cursor:pointer;background:transparent;border:1px solid var(--line);padding:10px 16px;min-height:44px}button:hover{background:var(--wash)}button:disabled{cursor:wait;opacity:.6}button[aria-pressed="true"]{background:var(--wash);border-color:var(--green)}button.primary{background:var(--green);color:var(--paper);border-color:var(--green)}:focus-visible{outline:3px solid var(--green);outline-offset:4px}.questions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}label{font-size:14px;font-weight:650;display:block;margin-bottom:8px}textarea{display:block;resize:vertical;width:100%;padding:12px;background:var(--paper);border:1px solid var(--muted);min-height:104px;margin-bottom:12px}details{border-top:1px solid var(--line);padding:16px 0;margin:24px 0}summary{cursor:pointer;font-weight:600}pre{font:14px/1.7 inherit;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--wash);padding:20px}.toolbar{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.hit{border-top:1px solid var(--line);padding:20px 0}.hit h3{font-size:18px;margin:4px 0 12px}.hit blockquote{margin:0 0 12px}.hit small{display:block}.review{padding:20px;background:var(--wash);margin-top:24px}.review button{background:var(--paper);border-color:var(--muted)}#criteria ul{padding-left:20px}#criteria h3{font-size:17px}.error{color:#913520}footer{margin-top:40px;border-top:1px solid var(--line);padding-top:20px;font-size:13px;color:var(--muted)}[hidden]{display:none!important}@media(max-width:500px){main{padding:28px 20px}.toolbar{align-items:flex-start}.review{padding:16px}.review .toolbar{gap:8px}pre{padding:14px}}
+</style>
+</head>
+<body><main>
+<div class="eyebrow">Small first experiment · Rust · Local embeddings</div>
+<h1>One document.<br>Five questions. Your judgement.</h1>
+<p>Choose a question and inspect the three passages found by real semantic search. Decide whether they contain the evidence you need. There is no generated answer yet.</p>
+<small>Fictional activity · Source date: 20 October 2026 · Reference date: 20 October 2026 · Retrieval only, Codex is not connected</small>
+<details><summary>Read the full source document</summary><pre id="source">Loading source…</pre></details>
+<h2>Ask the document</h2>
+<div id="questions" class="questions" aria-label="Five test questions"></div>
+<form id="search-form">
+<label for="question">Your question (Dutch or English)</label>
+<textarea id="question" maxlength="1000" required></textarea>
+<div class="toolbar"><button id="run" class="primary" type="submit">Find passages</button><small id="progress">0 of 5 questions judged in this session</small></div>
+</form>
+<p id="status" role="status" style="margin-top:16px"></p>
+<section id="result" hidden aria-label="Retrieved passages">
+<h2>What the search found</h2>
+<p class="muted">These are the closest passages, not confirmed answers. Similarity is not a probability. The source may contain old information or omit what you asked.</p>
+<div id="hits"></div>
+<div id="review" class="review" hidden>
+<p><strong>Do these passages contain enough evidence?</strong></p>
+<p id="informed" class="muted" hidden>You have seen this question’s criteria. This is an informed review.</p>
+<div class="toolbar" id="verdicts"><button type="button" data-verdict="correct">Correct</button><button type="button" data-verdict="attention">Needs attention</button><button type="button" data-verdict="unsure">Not sure</button></div>
+<p id="verdict-status" style="margin-top:12px"></p>
+<button type="button" id="reveal" hidden>Reveal expected evidence</button>
+<div id="criteria" hidden></div>
+</div>
+<p id="custom-note" class="muted" hidden>This is your own question. Inspect the source to judge it; there are no prepared criteria.</p>
+</section>
+<details><summary>What runs locally?</summary><p>Rust splits the source at its six section headings, embeds each section once in memory, then embeds your question and ranks the sections by cosine similarity. The CLI and this page use the same search function.</p><p>Model: <span id="model"></span>. The model files download once; no API key is needed. The expected evidence is kept outside the embedding inputs and search response.</p><p>With six passages, a closest result will always exist. This experiment has no calibrated “no match” threshold, and five questions do not prove retrieval quality. Transport and current availability must not be inferred from a similarity score.</p></details>
+<footer>This is an independent learning experiment, not an internal COA plan. All source data is invented. Participation is voluntary; an employee discusses options with the resident. The demo writes no records, sends no messages and registers nobody.</footer>
+</main>
+<script>
+const byId = id => document.getElementById(id);
+let questions = [], activeQuestion = null, verdict = null;
+const judgements = new Map(), revealed = new Set();
+async function request(path, body) {
+  const response = await fetch(path, body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : {});
+  if (!response.ok) { const text = await response.text(); throw new Error(text || 'Request failed'); }
+  return response.json();
+}
+function clearResults() { byId('result').hidden = true; byId('status').textContent = ''; }
+function selectQuestion(question) {
+  byId('question').value = question.text;
+  document.querySelectorAll('[data-question]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.question === question.id)));
+  clearResults();
+}
+byId('question').addEventListener('input', () => {
+  document.querySelectorAll('[data-question]').forEach(button => button.setAttribute('aria-pressed',String(questions.find(q => q.id === button.dataset.question).text === byId('question').value.trim())));
+  clearResults();
+});
+byId('search-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const question = byId('question').value.trim();
+  if (!question) return;
+  activeQuestion = questions.find(q => q.text === question) || null;
+  verdict = null;
+  byId('result').hidden = true;
+  byId('criteria').hidden = true;
+  byId('reveal').hidden = true;
+  byId('verdict-status').textContent = '';
+  byId('informed').hidden = !activeQuestion || !revealed.has(activeQuestion.id);
+  document.querySelectorAll('button,textarea').forEach(element => element.disabled = true);
+  byId('status').className = '';
+  byId('status').textContent = 'Embedding your question and finding passages…';
+  try {
+    const result = await request('/api/search', {question});
+    byId('hits').replaceChildren();
+    result.hits.forEach((hit,index) => {
+      const article = document.createElement('article'); article.className = 'hit';
+      const heading = document.createElement('h3'); heading.textContent = (index+1) + '. ' + hit.section.id + ' · ' + hit.section.heading;
+      const quote = document.createElement('blockquote'); quote.textContent = hit.section.text;
+      const source = document.createElement('small'); source.textContent = result.source_id + ' / ' + hit.section.id + ' · Source: ' + result.source_date + ' · As of: ' + result.as_of;
+      const score = document.createElement('small'); score.textContent = 'Cosine similarity: ' + hit.similarity.toFixed(4) + ' (not confidence)';
+      article.append(heading,quote,source,score); byId('hits').append(article);
+    });
+    byId('result').hidden = false;
+    byId('review').hidden = !activeQuestion;
+    byId('custom-note').hidden = !!activeQuestion;
+    byId('status').textContent = 'Found three passages using the local embedding model.';
+  } catch (error) { byId('status').className = 'error'; byId('status').textContent = 'Search failed: ' + error.message; }
+  finally { document.querySelectorAll('button,textarea').forEach(element => element.disabled = false); }
+});
+byId('verdicts').addEventListener('click', event => {
+  if (!event.target.dataset.verdict || !activeQuestion) return;
+  verdict = event.target.dataset.verdict;
+  byId('informed').hidden = !revealed.has(activeQuestion.id);
+  if (!judgements.has(activeQuestion.id)) judgements.set(activeQuestion.id,verdict);
+  byId('progress').textContent = judgements.size + ' of 5 questions judged in this session';
+  byId('verdict-status').textContent = (revealed.has(activeQuestion.id) ? 'Informed review: ' : 'Your judgement: ') + event.target.textContent + '. First judgement preserved: ' + judgements.get(activeQuestion.id) + '.';
+  byId('reveal').hidden = false;
+});
+byId('reveal').addEventListener('click', async () => {
+  if (!activeQuestion || !verdict) return;
+  try {
+    const criteria = await request('/api/review',{question_id:activeQuestion.id,verdict});
+    revealed.add(activeQuestion.id);
+    const panel = byId('criteria'); panel.replaceChildren();
+    const heading = document.createElement('h3'); heading.textContent = 'Expected evidence · after your judgement'; panel.append(heading);
+    const sources = document.createElement('p'); sources.textContent = criteria.required_source_ids.length ? 'Relevant sections: ' + criteria.required_source_ids.join(', ') : 'No section establishes the requested information.'; panel.append(sources);
+    const list = document.createElement('ul');
+    [...criteria.required_facts,...criteria.unknown_flags,...criteria.forbidden_claims.map(text => 'Do not conclude: ' + text)].forEach(text => { const item = document.createElement('li'); item.textContent = text; list.append(item); });
+    panel.append(list); panel.hidden = false;
+    byId('reveal').hidden = true;
+  } catch(error) { byId('verdict-status').textContent = 'Could not load criteria: ' + error.message; }
+});
+(async () => {
+  try {
+    const [source, items] = await Promise.all([request('/api/source'),request('/api/questions')]);
+    byId('source').textContent = source.document; byId('model').textContent = source.model;
+    questions = items;
+    questions.forEach(question => { const button = document.createElement('button'); button.type='button'; button.dataset.question=question.id; button.textContent=question.id; button.setAttribute('aria-label', question.id + ': ' + question.text); button.addEventListener('click',()=>selectQuestion(question)); byId('questions').append(button); });
+    selectQuestion(questions[0]);
+  } catch(error) { byId('status').textContent = 'Could not load the experiment: ' + error.message; }
+})();
+</script></body></html>

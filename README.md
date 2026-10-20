@@ -1,30 +1,42 @@
-# Meedoenbalie RAG learning project
+# Meedoenbalie: one-document retrieval experiment
 
-Een leerproject rond retrieval, embeddings en later een kleine agent harness, geïnspireerd op openbare COA-informatie. Dit is een eigen prototype-idee, geen bestaand COA-project en geen weergave van interne plannen.
+A small learning experiment: one fictional activity document, five questions, and a Rust search function using real local embeddings. This is an independent prototype inspired by public COA information, not an internal COA plan.
 
-## Waar het project nu staat
+## Try it
 
-- De private GitHub-repo bevat alleen documentatie; er is nog geen applicatiecode.
-- **Volgende stap: plan samen met Codex de eerste RAG-pipeline voordat je gaat bouwen.** Dit is alleen de planningsstap; begin niet met code totdat de gebruiker dat expliciet zegt. De eerste bouwmijlpaal wordt een kleine pipeline die retrieval op synthetische documenten opzet en beoordeelt. Een model eraan koppelen volgt daarna.
-- Dit is de eerste mijlpaal, niet het nieuwe einddoel. Het langetermijndoel blijft leren hoe een kleine, uitlegbare agent harness voor het vinden van passende activiteiten werkt.
-- Euan vond de richting redelijk, maar breed voor een eerste project. Zijn advies was om één onderdeel te kiezen en met RAG te beginnen; retrieval is op zichzelf al een uitdaging met veel optimalisatiemogelijkheden.
+```sh
+cargo run --locked
+```
 
-## Richting en open keuzes
+Open **http://127.0.0.1:8766/**. The first run downloads the multilingual model (about 235 MB) and supporting files into `.model-cache/`; it requires internet access but no API key. The server starts after the model loads. Subsequent runs reuse cached files. Rust 1.94.1 was used locally.
 
-- Embeddings horen bij de beoogde RAG-leerstap. Embeddingmodel, opslag, documentverwerking, chunking, retrieval-aanpak en evaluatiemethode zijn nog niet gekozen.
-- Een model kan later de opgehaalde passages gebruiken om antwoorden te formuleren. Codex of Claude Desktop als MCP-client zijn mogelijke manieren om een lokale zoektool uit te proberen; geen van beide is gekozen of gekoppeld.
-- Accounts, toolrechten, agentloop, UI, traces/evals voor de volledige harness en eventuele externe koppelingen horen bij de latere scope. Herbekijk die scope voordat je eraan begint.
+Read the document, choose Q1–Q5, and click **Find passages**. Judge the exact passages before revealing the expected evidence. You can edit the question; custom questions have no prepared criteria. Judgements stay in this browser session only. Repeating a question after revealing its criteria is marked as informed review.
 
-## Blijvende grenzen
+CLI uses the same retrieval function:
 
-Gebruik alleen verzonnen bewoners- en activiteitendata. Toon bij suggesties bron en datum; laat ontbrekende of verouderde informatie als onbekend zien. Deelname blijft vrijwillig en de medewerker bespreekt suggesties met de bewoner. De demo wijzigt geen dossiers, verstuurt geen berichten en meldt niemand aan. Zie [AGENTS.md](AGENTS.md) en [user_journey.md](user_journey.md) voor de projectafspraken en use case.
+```sh
+cargo run --locked -- search 'Waar en wanneer is het tuinieren?'
+cargo test --locked
+```
 
-## Werkwijze
+## What it does
 
-Ontwikkelingen gaan via branches en pull requests; commit niet rechtstreeks naar `main` en merge een PR pas na expliciete toestemming. Branch protection is in de huidige private repo/accountconfiguratie niet technisch af te dwingen, dus volg dit proces handmatig. Er is nog geen applicatie om te starten of te testen.
+- `fixtures/document.md` is the only indexed document, split into six sections. Each short section is embedded once in memory.
+- Rust embeds arbitrary question text and returns the three closest sections by cosine similarity, with exact source text, section IDs, source date and a fixed reference date of 2026-10-20.
+- The local model is the quantized multilingual `Qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q` (384 dimensions), loaded through `fastembed` 7.1.2. Document sections and questions use the same sentence-transformer encoding without prefixes.
+- `fixtures/questions.json` contains only questions. `fixtures/expectations.json` holds human review criteria; it is never embedded or included in search results. The page requests criteria separately after a judgement.
 
-## Projectdocumenten
+There is **no generated answer or Codex connection yet**, no database, and no calibrated no-match threshold. With six passages, search always has a closest passage; that does not mean it answers the question. Historical places do not establish current availability. Transport is unknown when the document says nothing about it. Five questions are a human learning exercise, not proof of retrieval quality.
 
-- [AGENTS.md](AGENTS.md): korte instructies en veiligheidsgrenzen voor agents.
-- [user_journey.md](user_journey.md): onderbouwde use case en voorgestelde AI-laag.
-- [agent-harness-landscape.md](agent-harness-landscape.md): gedateerde oriëntatie op agentconcepten en platformkeuzes; controleer actuele documentatie voordat je keuzes maakt.
+A later MCP adapter could expose this same Rust search function to Codex. That is a separate next step after user feedback, not part of this slice. The long-term goal remains a small, explainable agent harness.
+
+## Boundaries
+
+All people, activities and dates are fictional. Suggestions must retain sources and dates; missing or outdated facts remain unknown. Participation stays voluntary and an employee discusses options with the resident. This demo changes no records, sends no messages and registers nobody. It listens only on localhost.
+
+All changes go through a branch and pull request. Never commit directly to `main`; merge only with explicit user permission.
+
+## References
+
+- [fastembed 7.1.2 release](https://github.com/anush008/fastembed-rs/releases/tag/v7.1.2), **19 October 2026**: the Rust SDK version used here. Model selection/API were checked against this release's source.
+- [User journey](user_journey.md), [project instructions](AGENTS.md) and [2026 agent-harness orientation](agent-harness-landscape.md). The broader orientation is background; this experiment implements only the tiny retrieval slice above.

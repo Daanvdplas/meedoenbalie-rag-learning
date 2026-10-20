@@ -1,0 +1,82 @@
+{
+  "as_of": "2026-10-20",
+  "document_id": "ACT-TUIN-001",
+  "review_note": "Voor menselijke beoordeling, niet indexeren of meesturen met zoekresultaten. Beoordeel bewijs en onbekenden; meerdere formuleringen zijn goed. Deze kleine proef test het terugvinden van bronsecties, geen rangschikking tussen activiteiten.",
+  "cases": [
+    {
+      "question_id": "Q1",
+      "required_source_ids": [
+        "S2",
+        "S3"
+      ],
+      "required_facts": [
+        "Iedere dinsdag van 10.00 tot 12.00 uur.",
+        "Buurttuin De Linde, achter het buurthuis aan de Lindenlaan 12 in het fictieve Lindedorp."
+      ],
+      "unknown_flags": [],
+      "forbidden_claims": []
+    },
+    {
+      "question_id": "Q2",
+      "required_source_ids": [
+        "S1"
+      ],
+      "required_facts": [
+        "Buiten met je handen groenten en bloemen verzorgen.",
+        "Ervaring met tuinieren is niet nodig."
+      ],
+      "unknown_flags": [],
+      "forbidden_claims": []
+    },
+    {
+      "question_id": "Q3",
+      "required_source_ids": [
+        "S2",
+        "S4"
+      ],
+      "required_facts": [
+        "Iedere dinsdag van 10.00 tot 12.00 uur.",
+        "Goed Nederlands spreken is niet nodig.",
+        "De begeleider spreekt eenvoudig Nederlands, doet werk voor en is tijdens de activiteit aanwezig."
+      ],
+      "unknown_flags": [],
+      "forbidden_claims": [
+        "Een begeleider haalt deelnemers op.",
+        "Er is ondersteuning in een andere specifieke taal."
+      ]
+    },
+    {
+      "question_id": "Q4",
+      "required_source_ids": [
+        "S6"
+      ],
+      "required_facts": [
+        "Twee vrije plekken waren alleen bevestigd op 2026-09-01.",
+        "Actuele beschikbaarheid op 2026-10-20 is onbekend."
+      ],
+      "unknown_flags": [
+        "CURRENT_AVAILABILITY_UNKNOWN"
+      ],
+      "forbidden_claims": [
+        "Er zijn nu twee vrije plekken.",
+        "De activiteit is nu vol.",
+        "Brondatum 2026-10-20 bevestigt vrije plekken."
+      ]
+    },
+    {
+      "question_id": "Q5",
+      "required_source_ids": [],
+      "required_facts": [
+        "De bron geeft geen informatie over ophalen of thuisbrengen."
+      ],
+      "unknown_flags": [
+        "TRANSPORT_UNKNOWN"
+      ],
+      "forbidden_claims": [
+        "Er is vervoer beschikbaar.",
+        "Er is geen vervoer beschikbaar.",
+        "De begeleider haalt deelnemers op."
+      ]
+    }
+  ]
+}
