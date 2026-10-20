@@ -3,256 +3,89 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Vijf vragen · Controleer de bron</title>
+    <title>Wat wil je doen? · Activiteiten verkennen</title>
     <style>
-      :root {
-        color-scheme: light;
-        --paper: #f6f5ef;
-        --ink: #26392f;
-        --muted: #59655d;
-        --line: #d2d8cf;
-        --green: #315b45;
-        --wash: #e7ede2;
-      }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        background: var(--paper);
-        color: var(--ink);
-        font:
-          16px/1.65 "Avenir Next",
-          "Segoe UI",
-          sans-serif;
-      }
-      main {
-        max-width: 950px;
-        margin: auto;
-        padding: 44px 24px;
-      }
-      h1,
-      h2 {
-        font-family: "Iowan Old Style", Palatino, serif;
-        font-weight: 500;
-        line-height: 1.15;
-      }
-      h1 {
-        font-size: clamp(36px, 6vw, 54px);
-        letter-spacing: -0.035em;
-        margin: 12px 0 20px;
-      }
-      h2 {
-        font-size: 28px;
-        margin: 28px 0 16px;
-      }
-      h3 {
-        font-size: 18px;
-        margin: 12px 0;
-      }
-      p {
-        max-width: 70ch;
-        margin: 0 0 16px;
-      }
-      .eyebrow {
-        font-size: 12px;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: var(--green);
-        font-weight: 700;
-      }
-      .muted,
-      small {
-        color: var(--muted);
-      }
-      small {
-        font-size: 13px;
-      }
-      button,
-      textarea,
-      select {
-        font: inherit;
-        color: inherit;
-      }
-      button {
-        cursor: pointer;
-        background: transparent;
-        border: 1px solid var(--line);
-        padding: 10px 16px;
-        min-height: 44px;
-      }
-      button:hover {
-        background: var(--wash);
-      }
-      button:disabled {
-        cursor: wait;
-        opacity: 0.6;
-      }
-      button[aria-pressed="true"] {
-        background: var(--wash);
-        border-color: var(--green);
-      }
-      button.primary {
-        background: var(--green);
-        color: var(--paper);
-        border-color: var(--green);
-      }
-      :focus-visible {
-        outline: 3px solid var(--green);
-        outline-offset: 4px;
-      }
-      .questions,
-      .toolbar {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-      .questions {
-        margin-bottom: 16px;
-      }
-      label {
-        font-size: 14px;
-        font-weight: 650;
-        display: block;
-        margin-bottom: 8px;
-      }
-      textarea,
-      select {
-        width: 100%;
-        padding: 12px;
-        background: var(--paper);
-        border: 1px solid var(--muted);
-        margin-bottom: 12px;
-      }
-      textarea {
-        resize: vertical;
-        min-height: 104px;
-      }
-      select {
-        min-height: 48px;
-      }
-      details {
-        border-top: 1px solid var(--line);
-        padding: 16px 0;
-        margin: 24px 0;
-      }
-      summary {
-        cursor: pointer;
-        font-weight: 600;
-      }
-      blockquote {
-        margin: 8px 0 12px;
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
-      }
-      .source-section,
-      .hit {
-        border-top: 1px solid var(--line);
-        padding: 16px 0;
-      }
-      .source-section p {
-        white-space: pre-wrap;
-      }
-      .hit > small {
-        display: block;
-      }
-      .review {
-        padding: 20px;
-        background: var(--wash);
-        margin-top: 24px;
-      }
-      .review button {
-        background: var(--paper);
-        border-color: var(--muted);
-      }
-      .answer {
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
-        font-size: 18px;
-      }
-      .error {
-        color: #913520;
-      }
-      .citation {
-        text-align: left;
-      }
-      .citation small {
-        display: block;
-      }
-      #status {
-        min-height: 28px;
-        margin-top: 16px;
-      }
-      #criteria {
-        margin-top: 20px;
-      }
-      #metadata {
-        font-size: 13px;
-        overflow-wrap: anywhere;
-      }
-      footer {
-        margin-top: 40px;
-        border-top: 1px solid var(--line);
-        padding-top: 20px;
-        font-size: 13px;
-        color: var(--muted);
-      }
-      [hidden] {
-        display: none !important;
-      }
-      @media (max-width: 500px) {
-        main {
-          padding: 28px 20px;
-        }
-        .review {
-          padding: 16px;
-        }
-        .toolbar button {
-          padding: 10px 12px;
-        }
-      }
+      :root { color-scheme:light; --paper:oklch(98% .008 90); --ink:oklch(27% .025 160); --muted:oklch(43% .02 160); --line:oklch(83% .02 160); --green:oklch(38% .065 155); --wash:oklch(94% .025 155); }
+      * { box-sizing:border-box; }
+      body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.5 "Avenir Next","Segoe UI",sans-serif; }
+      main { max-width:900px; margin:auto; padding:28px 24px; }
+      h1,h2 { font-family:"Iowan Old Style",Palatino,serif; font-weight:500; line-height:1.15; }
+      h1 { font-size:40px; letter-spacing:-.03em; margin:8px 0 22px; }
+      h2 { font-size:26px; margin:24px 0 10px; }
+      h3 { font-size:17px; margin:10px 0 6px; }
+      p { max-width:72ch; margin:0 0 10px; }
+      .eyebrow { font-size:12px; color:var(--muted); }
+      .muted,small { color:var(--muted); }
+      small,.small { font-size:13px; }
+      button,textarea,select { font:inherit; color:inherit; }
+      button { cursor:pointer; border:1px solid var(--line); background:var(--paper); padding:8px 14px; min-height:44px; border-radius:5px; }
+      button:hover,button[aria-pressed="true"] { background:var(--wash); border-color:var(--green); }
+      button:disabled { cursor:wait; opacity:.6; }
+      button.primary { background:var(--green); color:white; border-color:var(--green); }
+      :focus-visible { outline:3px solid var(--green); outline-offset:3px; }
+      label { display:block; font-size:14px; font-weight:650; margin-bottom:6px; }
+      textarea,select { width:100%; min-width:0; padding:10px 12px; background:white; border:1px solid var(--muted); border-radius:5px; margin-bottom:10px; }
+      textarea { resize:vertical; min-height:88px; }
+      select { min-height:44px; }
+      .toolbar,.questions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+      .questions { margin-top:10px; }
+      .questions button { text-align:left; font-size:14px; }
+      details { border-top:1px solid var(--line); padding:12px 0; margin:16px 0; }
+      summary { cursor:pointer; font-weight:600; }
+      .examples { border:0; padding:0; margin:10px 0; font-size:14px; }
+      #status { margin:12px 0; }
+      #status:empty { display:none; }
+      .answer-panel { background:oklch(95% .035 85); border-left:4px solid oklch(66% .09 85); padding:16px 18px; margin:12px 0 18px; }
+      .answer { white-space:pre-wrap; overflow-wrap:anywhere; font-size:18px; margin:0; }
+      #unknowns:not(:empty) { margin-top:12px; }
+      #citations { display:flex; flex-direction:column; gap:8px; }
+      .garden { background:oklch(94% .034 145); border-color:oklch(77% .065 145); }
+      .workshop { background:oklch(94% .027 240); border-color:oklch(77% .055 240); }
+      .citation { width:100%; text-align:left; padding:12px 14px; }
+      .citation small,.hit small,.source-document>small { display:block; }
+      blockquote { margin:6px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+      .source-document { border:1px solid; border-radius:5px; padding:12px 14px; margin:8px 0; }
+      .source-document>small { margin-top:6px; }
+      .source-section { border-top:1px solid color-mix(in oklch,var(--ink) 15%,transparent); margin-top:10px; padding-top:4px; }
+      .source-section p { white-space:pre-wrap; font-size:15px; }
+      #tool-details { background:oklch(95% .008 245); padding:12px 14px; border:1px solid var(--line); border-radius:5px; }
+      #tool-details>p { margin-top:8px; font-size:14px; }
+      .hit { margin-top:14px; }
+      .retrieved { padding:8px 12px; margin-top:8px; border-left:3px solid; font-size:14px; }
+      .retrieved h3 { font-size:15px; margin-top:0; }
+      .review { border:1px solid var(--line); border-radius:5px; padding:12px 14px; margin:16px 0; }
+      .review>p:first-of-type { margin-top:12px; }
+      #criteria { margin-top:14px; }
+      .error { color:#913520; }
+      #metadata { font-size:13px; overflow-wrap:anywhere; }
+      footer { margin-top:24px; border-top:1px solid var(--line); padding-top:14px; font-size:12px; color:var(--muted); }
+      [hidden] { display:none !important; }
+      @media(max-width:500px) { main { padding:22px 16px; } h1 { font-size:34px; } .answer-panel { padding:12px; } .source-document,.citation { padding:10px 12px; } }
     </style>
+
   </head>
   <body>
     <main>
-      <div class="eyebrow">Een kleine proef · Twee verzonnen bronnen</div>
-      <h1>Vijf vragen.<br />Controleer zelf het antwoord.</h1>
-      <p>
-        Lees de bron, stel een vraag en bekijk wat Codex met de gevonden
-        passages doet. Geef eerst je eigen oordeel. Daarna kun je de verwachte
-        onderbouwing bekijken.
-      </p>
-      <small id="source-dates">Bron en referentiedatum worden geladen…</small>
-      <details id="source">
-        <summary>Lees beide volledige brondocumenten</summary>
-        <p id="source-intro" class="muted"></p>
-        <div id="source-sections"></div>
-      </details>
-      <h2>Stel je vraag</h2>
-      <p class="muted">
-        Gebruik alleen verzonnen gegevens. De vijf testvragen gaan over tuinieren.
-        Stel ook een eigen vraag over beide activiteiten, bijvoorbeeld: welk werk is mogelijk op dinsdag? Het gaat om vrijwilligersactiviteiten, niet om betaalde banen.
-      </p>
-      <div id="questions" class="questions" aria-label="Vijf testvragen"></div>
+      <div class="eyebrow">Activiteiten verkennen · Fictieve demo</div>
+      <h1>Wat wil je doen?</h1>
       <form id="form">
-        <label for="question">Vraag aan Codex</label
-        ><textarea
-          id="question"
-          class="run-control"
-          maxlength="1000"
-          required
-        ></textarea
-        ><button class="primary run-control" type="submit">
-          Zoek en maak antwoord
-        </button>
+        <label for="question">Stel je vraag over de activiteiten</label>
+        <textarea id="question" class="run-control" maxlength="1000" required placeholder="Bijvoorbeeld: welk werk is mogelijk op dinsdag?"></textarea>
+        <div class="toolbar">
+          <button class="primary run-control" type="submit">Zoek een antwoord</button>
+          <button id="new-question" class="run-control" type="button">Nieuwe vraag</button>
+        </div>
       </form>
+      <details class="examples">
+        <summary>Een voorbeeldvraag gebruiken</summary>
+        <div id="questions" class="questions" aria-label="Voorbeeldvragen"></div>
+      </details>
       <p id="status" role="status"></p>
       <section id="result" hidden aria-label="Uitvoering en antwoord">
         <h2 id="result-title">Het antwoord</h2>
         <small id="run-caption"></small>
-        <p id="answer" class="answer" style="margin-top: 16px"></p>
-        <div id="unknowns"></div>
+        <div class="answer-panel"><p id="answer" class="answer"></p><div id="unknowns"></div></div>
+        <h3 id="evidence-heading">Onderbouwing</h3>
         <div id="citations"></div>
         <details id="tool-details">
           <summary>Bekijk zoekvragen en gevonden passages</summary>
@@ -262,7 +95,7 @@
           </p>
           <div id="tools"></div>
         </details>
-        <div id="review" class="review" hidden>
+        <details id="review" class="review" hidden><summary>Geef je oordeel (optioneel)</summary>
           <p>
             <strong
               >Klopt het antwoord met de bron, inclusief wat onbekend
@@ -296,11 +129,10 @@
             Bekijk verwachte onderbouwing
           </button>
           <p id="custom-note" class="muted" hidden>
-            Eigen vraag: geen voorbereide criteria en niet meegeteld bij de vijf
-            testvragen.
+            Voor deze eigen vraag zijn geen voorbereide vergelijkingscriteria beschikbaar.
           </p>
           <div id="criteria" hidden></div>
-        </div>
+        </details>
         <button
           id="replay"
           class="run-control"
@@ -318,14 +150,19 @@
           <div id="metadata"></div>
         </details>
       </section>
-      <details id="session-details" open>
-        <summary>Je testsessie</summary>
+      <section id="source" aria-labelledby="source-heading">
+        <h2 id="source-heading">Bronnen</h2>
+        <p class="muted small">Verzonnen vrijwilligersactiviteiten. Geen betaalde banen.</p>
+        <div id="source-sections"></div>
+      </section>
+      <details id="session-details">
+        <summary>Eerdere vragen en beoordelingen</summary>
         <p id="progress" style="margin-top: 16px">
           Nog geen vragen beoordeeld.
         </p>
         <p class="muted">
           Eerste oordelen blijven bewaard. “Weet ik niet” blijft onzeker; dit is
-          geen automatisch oordeel over kwaliteit. Eigen vragen tellen niet mee.
+          geen automatisch oordeel over kwaliteit. Je kunt altijd een nieuwe vraag stellen.
         </p>
         <label for="history">Bekijk een eerdere uitvoering</label
         ><select id="history">
@@ -410,6 +247,8 @@
         if (className) item.className = className;
         return item;
       }
+      function sourceTitle(id) { return source.sources.find(doc => doc.id === id)?.title || id; }
+      function sourceClass(id) { return source.sources.findIndex(doc => doc.id === id) === 0 ? "garden" : "workshop"; }
       function markQuestion() {
         document
           .querySelectorAll("[data-question]")
@@ -417,7 +256,7 @@
             button.setAttribute(
               "aria-pressed",
               String(
-                questions.find((q) => q.id === button.dataset.question).text ===
+                button.dataset.text ===
                   el("question").value.trim(),
               ),
             ),
@@ -432,9 +271,9 @@
         message("");
       }
       function inspectSection(sourceId, id) {
-        el("source").open = true;
         const target = el("source-" + sourceId + "-" + id);
         if (target) {
+          target.closest("details").open = true;
           target.focus();
           target.scrollIntoView({ behavior: "auto", block: "center" });
         }
@@ -452,16 +291,7 @@
         el("result").hidden = false;
         el("result-title").textContent =
           run.status === "failed" ? "De uitvoering is mislukt" : "Het antwoord";
-        el("run-caption").textContent =
-          (run.question_id || "Eigen vraag") +
-          " · " +
-          run.id +
-          " · " +
-          "referentie " + source.as_of +
-          " · " +
-          (run.parent_id
-            ? "Nieuwe uitvoering van " + run.parent_id
-            : "Eerste uitvoering van deze run");
+        el("run-caption").textContent = run.question;
         el("answer").textContent =
           run.status === "failed"
             ? failureMessage(run.error)
@@ -477,15 +307,17 @@
           el("unknowns").append(list);
         }
         el("citations").replaceChildren();
-        (run.result?.answer?.citations || []).forEach((citation) => {
-          const button = node("button", undefined, "citation");
+        const citations = run.result?.answer?.citations || [];
+        el("evidence-heading").hidden = !citations.length;
+        citations.forEach((citation) => {
+          const button = node("button", undefined, "citation " + sourceClass(citation.source_id));
           button.type = "button";
           button.append(
-            node("strong", citation.source_id + ":" + citation.section_id + " · Bekijk de bron"),
+            node("strong", sourceTitle(citation.source_id) + " · " + citation.section_id),
             node("blockquote", citation.quote),
             node(
               "small",
-              citation.source_id + " · brondatum " + citation.source_date,
+              "Brondatum " + citation.source_date + " · Bekijk in document",
             ),
           );
           button.addEventListener("click", () =>
@@ -504,8 +336,9 @@
             ),
           );
           (call.result?.hits || []).forEach((hit) => {
-            item.append(
-              node("h3", hit.section.source_id + ":" + hit.section.id + " · " + hit.section.heading),
+            const evidence = node("section", undefined, "retrieved " + sourceClass(hit.section.source_id));
+            evidence.append(
+              node("h3", sourceTitle(hit.section.source_id) + " · " + hit.section.id + " · " + hit.section.heading),
               node("blockquote", hit.section.text),
               node(
                 "small",
@@ -522,6 +355,7 @@
                   " — geen kans of zekerheid.",
               ),
             );
+            item.append(evidence);
           });
           if (call.error) item.append(node("p", call.error, "error"));
           el("tools").append(item);
@@ -573,18 +407,8 @@
       }
       async function refresh() {
         const summary = await api("/api/session");
-        el("progress").textContent =
-          "Beoordeeld: " +
-          summary.judged +
-          "/5 · goed: " +
-          summary.correct +
-          " · aandacht nodig: " +
-          summary.attention +
-          " · onzeker: " +
-          summary.unsure +
-          " · met voorkennis: " +
-          summary.informed +
-          ".";
+        const judged = summary.runs.filter(run => run.first_judgement);
+        el("progress").textContent = summary.runs.length + " uitvoeringen · " + judged.length + " beoordeeld · " + judged.filter(run => run.first_judgement.verdict === "needs_attention").length + " met aandachtspunten · " + judged.filter(run => run.first_judgement.verdict === "not_sure").length + " onzeker.";
         el("history").replaceChildren(node("option", "Kies een uitvoering"));
         el("history").firstChild.value = "";
         summary.runs
@@ -593,11 +417,7 @@
           .forEach((run) => {
             const option = node(
               "option",
-              (run.question_id || "Eigen vraag") +
-                " · " +
-                run.status +
-                " · " +
-                run.id,
+              run.question.slice(0, 65) + " · " + run.status,
             );
             option.value = run.id;
             el("history").append(option);
@@ -647,6 +467,14 @@
       el("form").addEventListener("submit", (event) => {
         event.preventDefault();
         begin("/api/runs", { question: el("question").value.trim(), top_k: 3 });
+      });
+      el("new-question").addEventListener("click", () => {
+        el("question").value = "";
+        markQuestion();
+        current = null;
+        el("result").hidden = true;
+        message("");
+        el("question").focus();
       });
       el("question").addEventListener("input", () => {
         markQuestion();
@@ -733,16 +561,14 @@
           message(error.message, true);
         }
       });
-      async function createSession() {
+      async function createSession(announce = true) {
         const data = await api("/api/session", { seen_question_ids: known() });
         session = data.session_id;
         sessionStorage.setItem("coa-test-session", session);
         current = null;
         el("result").hidden = true;
         await refresh();
-        message(
-          "Nieuwe sessie. Eerder bekeken criteria blijven als voorkennis gemarkeerd.",
-        );
+        if (announce) message("Nieuwe sessie. Eerder bekeken criteria blijven als voorkennis gemarkeerd.");
       }
       el("new-session").addEventListener("click", async () => {
         if (busy) return;
@@ -775,27 +601,25 @@
             api("/api/source"),
             api("/api/questions"),
           ]);
-          el("source-dates").textContent = source.sources.map(doc => doc.id + " · brondatum " + doc.date).join(" / ") + " · referentiedatum " + source.as_of;
-          el("source-intro").textContent = "Twee vrijwillige activiteiten: tuinieren in de ochtend en fietsen opknappen in de middag. Alle gegevens zijn verzonnen.";
           source.sources.forEach(doc => {
-            el("source-sections").append(node("h2", doc.title), node("p", doc.id + " · brondatum " + doc.date));
+            const document = node("details", undefined, "source-document " + sourceClass(doc.id));
+            document.append(node("summary", doc.title), node("small", "Brondatum " + doc.date + " · referentie " + source.as_of));
             doc.sections.forEach(section => {
               const item = node("section", undefined, "source-section");
               item.id = "source-" + doc.id + "-" + section.id;
               item.tabIndex = -1;
-              item.append(node("h3", section.id + " · " + section.heading), node("p", section.text), node("small", "Bron " + doc.id + " · " + doc.date));
-              el("source-sections").append(item);
+              item.append(node("h3", section.id + " · " + section.heading), node("p", section.text));
+              document.append(item);
             });
+            el("source-sections").append(document);
           });
-          questions.forEach((question) => {
-            const button = node("button", question.id, "run-control");
+          const examples = [questions[0], {id:"tuesday",text:"Welk werk is mogelijk op dinsdag?"}, {id:"bicycle",text:"Kan ik zonder ervaring helpen met fietsen opknappen?"}];
+          examples.forEach(question => {
+            const button = node("button", question.text, "run-control");
             button.type = "button";
             button.dataset.question = question.id;
-            button.setAttribute(
-              "aria-label",
-              question.id + ": " + question.text,
-            );
-            button.addEventListener("click", () => choose(question));
+            button.dataset.text = question.text;
+            button.addEventListener("click", () => { choose(question); el("question").focus(); });
             el("questions").append(button);
           });
           session = sessionStorage.getItem("coa-test-session") || "";
@@ -804,11 +628,12 @@
             if (!session) throw new Error();
             summary = await refresh();
           } catch {
-            await createSession();
+            await createSession(false);
             summary = await refresh();
           }
           setBusy(false);
-          choose(questions[0]);
+          el("question").value = "";
+          el("question").focus();
           const pending = summary.runs.find((run) => run.status === "pending");
           if (pending) {
             el("question").value = pending.question;
