@@ -1,0 +1,258 @@
+{
+  "purpose": "Five exploratory live embedding searches, not a benchmark or completeness/answer-quality claim. Results unmodified; score is cosine similarity, not probability.",
+  "manifest": {
+    "as_of": "2026-10-20",
+    "chunking": "document-title-section-headings-v2",
+    "dimensions": 384,
+    "document_vectors_sha256": "b75f07f16c998f0e077b985c987304e567838b0353004f4706e2ecc8d1edc1ac",
+    "embedding_inputs_sha256": "632cadb7c2324d61df27fdef691a86bd2ca0714d84e3e2391de2c359b7455098",
+    "encoding": "unprefixed sentence transformer; document title + newline + heading + newline + exact text",
+    "filter": "five fictional activity documents; no eligibility inference",
+    "max_tokens": 512,
+    "model": "Qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q",
+    "platform": "macos-aarch64",
+    "sdk": "fastembed 7.1.2",
+    "settings_sha256": "1d422be2d3f2a9b1ca0740265cfeb0de25ad8dccbe918e014b409d6b459801fa",
+    "source_sha256": "5e7143226ad250d1ed6e2e5242a740b6dc533a622d87147fb10b65dfcfbd71f8",
+    "sources": [
+      {
+        "date": "2026-10-20",
+        "id": "ACT-TUIN-001",
+        "sha256": "bca80ca505327a9d8882bc24da8643722c909b4a4a53d5b2dd7ab1affa9d6434",
+        "title": "Tuinieren"
+      },
+      {
+        "date": "2026-10-18",
+        "id": "ACT-FIETS-002",
+        "sha256": "325779cb17203fe2a8966e405c7e6671837a08a8cd74b12e0401f0492d233024",
+        "title": "Fietsen opknappen"
+      },
+      {
+        "date": "2026-10-19",
+        "id": "ACT-TAAL-003",
+        "sha256": "18b7b85dec63666b1744c1ba0f1ad549fa6304c68c8ad184a13c2be7347910ef",
+        "title": "Taalcafé"
+      },
+      {
+        "date": "2026-10-17",
+        "id": "ACT-KOKEN-004",
+        "sha256": "3aacb079e7201f131bfc6e1134e113c4d0003bb4eed8167958e60c6b639fe053",
+        "title": "Samen koken"
+      },
+      {
+        "date": "2026-10-20",
+        "id": "ACT-WANDEL-005",
+        "sha256": "f65335bb91b8fc17b68836916619dbaa459837c29c3396e47d658069376bd691",
+        "title": "Wandelen"
+      }
+    ]
+  },
+  "top_k": 6,
+  "cases": [
+    {
+      "question": "waar en wanneer tuinieren",
+      "hits": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "source_date": "2026-10-20",
+          "section_id": "S1",
+          "similarity": 0.7345807552337646
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "source_date": "2026-10-17",
+          "section_id": "S1",
+          "similarity": 0.4354906380176544
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "source_date": "2026-10-20",
+          "section_id": "S5",
+          "similarity": 0.43513983488082886
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "source_date": "2026-10-17",
+          "section_id": "S3",
+          "similarity": 0.3701751232147217
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "source_date": "2026-10-17",
+          "section_id": "S2",
+          "similarity": 0.36699220538139343
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "source_date": "2026-10-20",
+          "section_id": "S1",
+          "similarity": 0.33714723587036133
+        }
+      ]
+    },
+    {
+      "question": "Welk werk is mogelijk op dinsdag?",
+      "hits": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "source_date": "2026-10-20",
+          "section_id": "S2",
+          "similarity": 0.6031987071037292
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "source_date": "2026-10-18",
+          "section_id": "S2",
+          "similarity": 0.5861443281173706
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "source_date": "2026-10-17",
+          "section_id": "S2",
+          "similarity": 0.422330379486084
+        },
+        {
+          "source_id": "ACT-TAAL-003",
+          "source_date": "2026-10-19",
+          "section_id": "S2",
+          "similarity": 0.3999008536338806
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "source_date": "2026-10-20",
+          "section_id": "S2",
+          "similarity": 0.3784467875957489
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "source_date": "2026-10-17",
+          "section_id": "S1",
+          "similarity": 0.3778880536556244
+        }
+      ]
+    },
+    {
+      "question": "Waar kan ik woensdag Nederlands oefenen?",
+      "hits": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "source_date": "2026-10-20",
+          "section_id": "S4",
+          "similarity": 0.576352059841156
+        },
+        {
+          "source_id": "ACT-TAAL-003",
+          "source_date": "2026-10-19",
+          "section_id": "S1",
+          "similarity": 0.5502861142158508
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "source_date": "2026-10-17",
+          "section_id": "S4",
+          "similarity": 0.43681666254997253
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "source_date": "2026-10-18",
+          "section_id": "S4",
+          "similarity": 0.3956815302371979
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "source_date": "2026-10-20",
+          "section_id": "S4",
+          "similarity": 0.3730553388595581
+        },
+        {
+          "source_id": "ACT-TAAL-003",
+          "source_date": "2026-10-19",
+          "section_id": "S2",
+          "similarity": 0.3673078417778015
+        }
+      ]
+    },
+    {
+      "question": "Ik wil vrijdag helpen met een maaltijd bereiden. Waar is dat?",
+      "hits": [
+        {
+          "source_id": "ACT-KOKEN-004",
+          "source_date": "2026-10-17",
+          "section_id": "S2",
+          "similarity": 0.6754599809646606
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "source_date": "2026-10-17",
+          "section_id": "S1",
+          "similarity": 0.5483060479164124
+        },
+        {
+          "source_id": "ACT-TAAL-003",
+          "source_date": "2026-10-19",
+          "section_id": "S2",
+          "similarity": 0.490140825510025
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "source_date": "2026-10-20",
+          "section_id": "S2",
+          "similarity": 0.46054744720458984
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "source_date": "2026-10-17",
+          "section_id": "S4",
+          "similarity": 0.4580833613872528
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "source_date": "2026-10-18",
+          "section_id": "S2",
+          "similarity": 0.43632587790489197
+        }
+      ]
+    },
+    {
+      "question": "Wanneer kan ik buiten met een groep een rustig rondje lopen?",
+      "hits": [
+        {
+          "source_id": "ACT-WANDEL-005",
+          "source_date": "2026-10-20",
+          "section_id": "S1",
+          "similarity": 0.6925118565559387
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "source_date": "2026-10-20",
+          "section_id": "S2",
+          "similarity": 0.5923540592193604
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "source_date": "2026-10-20",
+          "section_id": "S3",
+          "similarity": 0.45801839232444763
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "source_date": "2026-10-20",
+          "section_id": "S4",
+          "similarity": 0.4512956440448761
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "source_date": "2026-10-20",
+          "section_id": "S2",
+          "similarity": 0.44730082154273987
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "source_date": "2026-10-20",
+          "section_id": "S5",
+          "similarity": 0.42472290992736816
+        }
+      ]
+    }
+  ]
+}

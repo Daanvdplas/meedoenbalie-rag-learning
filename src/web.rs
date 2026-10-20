@@ -43,7 +43,7 @@ fn locked(app: &App) -> Result<std::sync::MutexGuard<'_, RunStore>, ApiError> {
         .map_err(|_| error("Lokale opslag niet beschikbaar; herstart de demo."))
 }
 fn context(app: &App, top_k: usize) -> Value {
-    json!({"web_version":"human-review-v2","sources":app.manifest["sources"],"as_of":AS_OF,"retrieval_manifest":app.manifest,"codex_configuration":app.configuration,"top_k":top_k})
+    json!({"web_version":"activity-demo-v3","sources":app.manifest["sources"],"as_of":AS_OF,"retrieval_manifest":app.manifest,"codex_configuration":app.configuration,"top_k":top_k})
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -254,7 +254,7 @@ pub async fn serve(index: Index) -> Result<(), Box<dyn std::error::Error>> {
 mod tests {
     use super::*;
     #[tokio::test]
-    async fn source_reader_returns_two_distinct_document_dates_without_gold() {
+    async fn source_reader_returns_five_activity_documents_without_gold() {
         use tower::ServiceExt;
         let sources =
             meedoen_retrieval::source::parse_sources(meedoen_retrieval::DOCUMENTS).unwrap();
@@ -280,7 +280,7 @@ mod tests {
             .await
             .unwrap();
         let value: Value = serde_json::from_slice(&bytes).unwrap();
-        assert_eq!(value["sources"].as_array().unwrap().len(), 2);
+        assert_eq!(value["sources"].as_array().unwrap().len(), 5);
         assert_eq!(value["sources"][0]["date"], "2026-10-20");
         assert_eq!(value["sources"][1]["date"], "2026-10-18");
         assert!(!String::from_utf8_lossy(&bytes).contains("required_source_ids"));

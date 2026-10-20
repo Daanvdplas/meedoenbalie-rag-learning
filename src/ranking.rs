@@ -38,7 +38,9 @@ pub fn rank(sections: &[Section], scores: &[f32], top_k: usize) -> Result<Vec<Hi
 }
 pub fn validate_top_k(top_k: usize) -> Result<(), String> {
     if !(1..=6).contains(&top_k) {
-        return Err("top_k must be between 1 and 6 for this six-section experiment".into());
+        return Err(
+            "top_k must be between 1 and 6 for this thirty-section activity experiment".into(),
+        );
     }
     Ok(())
 }

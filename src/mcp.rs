@@ -30,7 +30,7 @@ where
         Some("ping") => json!({}),
         Some("tools/list") => json!({"tools":[{
             "name":"search_document",
-            "description":"Search two fictional Dutch voluntary-activity documents: gardening and bicycle repair. Each returned section has its own source_id, source_date and source_title. Section IDs repeat across documents; always preserve document ownership. Returns actual nearest source evidence, not proof every question is answerable. Use another focused query if evidence for part of the question is missing. Never infer current availability or transport from unrelated neighbours.",
+            "description":"Search five fictional Dutch voluntary-activity documents: gardening, bicycle repair, language cafe, cooking and walking. Each returned section has its own source_id, source_date and source_title. Section IDs repeat across documents; always preserve document ownership. Returns actual nearest source evidence, not proof every question is answerable. Use another focused query if evidence for part of the question is missing. Never infer current availability or transport from unrelated neighbours.",
             "inputSchema":{"type":"object","properties":{"query":{"type":"string","minLength":1,"maxLength":1000},"top_k":{"type":"integer","minimum":1,"maximum":6}},"required":["query","top_k"],"additionalProperties":false},
             "annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true,"openWorldHint":false}
         }]}),

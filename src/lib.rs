@@ -61,7 +61,13 @@ pub fn validate_query(query: &str) -> Result<String, String> {
 
 pub const MODEL: &str = "Qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q";
 pub const DOCUMENT: &str = include_str!("../fixtures/document.md");
-pub const DOCUMENTS: &[&str] = &[DOCUMENT, include_str!("../fixtures/bicycle-workshop.md")];
+pub const DOCUMENTS: &[&str] = &[
+    DOCUMENT,
+    include_str!("../fixtures/bicycle-workshop.md"),
+    include_str!("../fixtures/language-cafe.md"),
+    include_str!("../fixtures/community-cooking.md"),
+    include_str!("../fixtures/walking.md"),
+];
 
 #[derive(Serialize)]
 pub struct Hit {
@@ -128,9 +134,9 @@ impl Index {
             embedding_inputs_sha256,
             document_vectors_sha256: manifest::hash(&vector_bytes),
             model: MODEL, dimensions:384, sdk:"fastembed 7.1.2",
-            settings_sha256: manifest::hash(format!("{MODEL}|384|512|fastembed7.1.2|sections-v2|unprefixed-title-heading-text|cosine|two-documents|{AS_OF}").as_bytes()),
+            settings_sha256: manifest::hash(format!("{MODEL}|384|512|fastembed7.1.2|sections-v2|unprefixed-title-heading-text|cosine|five-documents|{AS_OF}").as_bytes()),
             chunking:"document-title-section-headings-v2",encoding:"unprefixed sentence transformer; document title + newline + heading + newline + exact text",max_tokens:512,
-            filter:"two fictional documents; no eligibility inference",as_of:AS_OF,
+            filter:"five fictional activity documents; no eligibility inference",as_of:AS_OF,
             platform:format!("{}-{}",std::env::consts::OS,std::env::consts::ARCH),
         };
         Ok(Self {
@@ -216,7 +222,7 @@ mod tests {
     use super::*;
     #[test]
     #[ignore = "real embeddings; records a small title-context comparison, not a quality gate"]
-    fn live_two_document_evidence_and_title_context_comparison() {
+    fn live_five_activity_evidence_and_title_context_comparison() {
         let mut index = Index::load().unwrap();
         let raw: Vec<_> = index
             .sections
@@ -249,8 +255,8 @@ mod tests {
             }
             cases.push(serde_json::json!({"question":question,"without_title":before,"with_title":after.hits}));
         }
-        let report = serde_json::json!({"purpose":"Title-context ablation on the same two-document corpus; three learning queries, not a benchmark or proof of improvement.","manifest":index.manifest(),"cases":cases});
-        let path = std::env::temp_dir().join("coa-context-comparison.json");
+        let report = serde_json::json!({"purpose":"Title-context ablation on the same five-document corpus; three learning queries, not a benchmark or proof of improvement.","manifest":index.manifest(),"cases":cases});
+        let path = std::env::temp_dir().join("coa-five-context-comparison.json");
         std::fs::write(&path, serde_json::to_string_pretty(&report).unwrap()).unwrap();
         println!("comparison: {}", path.display());
     }
