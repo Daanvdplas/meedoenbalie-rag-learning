@@ -22,7 +22,7 @@ Een andere lokale poort kan met `COA_PORT=8767 cargo run --locked`. `COA_CODEX_M
 4. Exact geciteerde tekst is gemarkeerd in de werkelijk gevonden passages. Bron, datum en een klik naar de juiste activiteit staan erbij. Er is geen afzonderlijk bewijsblok of beoordelingsflow.
 5. Stel direct een nieuwe vraag, bekijk een eerdere uitvoering of voer die opnieuw uit. Een nieuwe generatie krijgt een eigen run; gewijzigde bron/runtime-instellingen worden niet stilzwijgend hergebruikt.
 
-Een Codex-antwoord kan ongeveer een minuut duren; de bron blijft ondertussen leesbaar. Er kan één modeluitvoering tegelijk lopen. Fouten blijven zichtbaar. Vraaggeschiedenis staat in begrensd servergeheugen en verdwijnt bij herstart. Er zijn geen oordelen, criteria of scores in de demo-UI.
+Een Codex-antwoord kan ongeveer een minuut duren; de bron blijft ondertussen leesbaar. Er kan één modeluitvoering tegelijk lopen. Fouten blijven zichtbaar. Vraaggeschiedenis staat in begrensd servergeheugen en verdwijnt bij herstart. Er is geen beoordelings- of criteriaflow; cosinusovereenkomsten staan alleen bij de technische zoekresultaten.
 
 ## Rust-zoekfunctie en evaluatie
 
