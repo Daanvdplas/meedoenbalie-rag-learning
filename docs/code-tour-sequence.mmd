@@ -10,7 +10,7 @@ sequenceDiagram
   H->>H: RunStore::begin (pending, context)
   H-->>B: run-ID (worker gaat verder)
   H->>R: run(vraag, top_k)
-  R->>C: start geïsoleerd child process
+  R->>C: start begrensd child process met toolbeleid
   C->>O: vraag + instructies
   loop maximaal vier zoekacties
     O-->>C: zoekopdracht
@@ -24,7 +24,7 @@ sequenceDiagram
     Note over C,O: Zo nodig gerichter zoeken, geen extra gebruikersvraag
   end
   O-->>C: antwoord + citaten + onbekenden
-  C-->>R: publieke JSONL-events en eindantwoord
+  C-->>R: CLI JSONL-events en eindantwoord
   R->>R: parse_events: bron / datum / letterlijk citaat
   R-->>H: gecontroleerde structuur of fout
   H->>H: RunStore::complete (RAM)
