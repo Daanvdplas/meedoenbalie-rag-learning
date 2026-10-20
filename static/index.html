@@ -38,13 +38,24 @@
       .answer-panel { background:oklch(95% .035 85); border-left:4px solid oklch(66% .09 85); padding:16px 18px; margin:12px 0 18px; }
       .answer { white-space:pre-wrap; overflow-wrap:anywhere; font-size:18px; margin:0; }
       #unknowns:not(:empty) { margin-top:12px; }
-      #citations { display:flex; flex-direction:column; gap:8px; }
       .garden { background:oklch(94% .034 145); border-color:oklch(77% .065 145); }
       .workshop { background:oklch(94% .027 240); border-color:oklch(77% .055 240); }
-      .citation { width:100%; text-align:left; padding:12px 14px; }
-      .citation small,.hit small,.source-document>small { display:block; }
+      .hit small,.source-document>small { display:block; }
       blockquote { margin:6px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
-      .source-document { border:1px solid; border-radius:5px; padding:12px 14px; margin:8px 0; }
+      .language { background:oklch(95% .03 300); border-color:oklch(77% .05 300); }
+      .cooking { background:oklch(95% .04 80); border-color:oklch(77% .065 80); }
+      .walking { background:oklch(94% .03 30); border-color:oklch(77% .05 30); }
+      #source-sections { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; }
+      #source-heading { margin-top:0; }
+      .source-document { flex:1 1 140px; min-width:0; border:1px solid; border-radius:5px; padding:4px 10px; margin:0; }
+      .source-document summary { min-height:44px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+      .source-document summary::after { content:"+"; }
+      .source-document[open]>summary::after { content:"−"; }
+      .source-document[open] { flex-basis:100%; order:1; }
+      .source-document>small { display:none; }
+      .source-document[open]>small { display:block; }
+      mark { background:oklch(84% .09 90); color:var(--ink); }
+      .retrieved button { margin-top:6px; font-size:13px; }
       .source-document>small { margin-top:6px; }
       .source-section { border-top:1px solid color-mix(in oklch,var(--ink) 15%,transparent); margin-top:10px; padding-top:4px; }
       .source-section p { white-space:pre-wrap; font-size:15px; }
@@ -53,19 +64,21 @@
       .hit { margin-top:14px; }
       .retrieved { padding:8px 12px; margin-top:8px; border-left:3px solid; font-size:14px; }
       .retrieved h3 { font-size:15px; margin-top:0; }
-      .review { border:1px solid var(--line); border-radius:5px; padding:12px 14px; margin:16px 0; }
-      .review>p:first-of-type { margin-top:12px; }
-      #criteria { margin-top:14px; }
       .error { color:#913520; }
       #metadata { font-size:13px; overflow-wrap:anywhere; }
       footer { margin-top:24px; border-top:1px solid var(--line); padding-top:14px; font-size:12px; color:var(--muted); }
       [hidden] { display:none !important; }
-      @media(max-width:500px) { main { padding:22px 16px; } h1 { font-size:34px; } .answer-panel { padding:12px; } .source-document,.citation { padding:10px 12px; } }
+      @media(max-width:500px) { main { padding:22px 16px; } h1 { font-size:34px; } .answer-panel { padding:12px; } .source-document { padding:4px 10px; } }
     </style>
 
   </head>
   <body>
     <main>
+      <section id="source" aria-labelledby="source-heading">
+        <h2 id="source-heading">Activiteiten</h2>
+        <p class="muted small">Verzonnen vrijwilligersactiviteiten. Geen betaalde banen.</p>
+        <div id="source-sections"></div>
+      </section>
       <div class="eyebrow">Activiteiten verkennen · Fictieve demo</div>
       <h1>Wat wil je doen?</h1>
       <form id="form">
@@ -86,53 +99,15 @@
         <h2 id="result-title">Het antwoord</h2>
         <small id="run-caption"></small>
         <div class="answer-panel"><p id="answer" class="answer"></p><div id="unknowns"></div></div>
-        <h3 id="evidence-heading">Onderbouwing</h3>
-        <div id="citations"></div>
         <details id="tool-details">
           <summary>Bekijk zoekvragen en gevonden passages</summary>
+          <h3>Zoekacties van Codex</h3>
           <p class="muted">
-            Dit is wat de zoekfunctie teruggaf. Een hoge overeenkomst betekent
-            niet dat iets klopt of bekend is.
+            Codex kan meerdere keren zoeken om de informatie voor je antwoord te verzamelen.
+            Dit zijn zoekopdrachten van Codex, geen extra vragen van jou.
+            Gemarkeerde tekst is gebruikt als citaat.
           </p>
           <div id="tools"></div>
-        </details>
-        <details id="review" class="review" hidden><summary>Geef je oordeel (optioneel)</summary>
-          <p>
-            <strong
-              >Klopt het antwoord met de bron, inclusief wat onbekend
-              is?</strong
-            >
-          </p>
-          <p id="informed" class="muted" hidden>
-            Je beoordeelt opnieuw of hebt de criteria al gezien. Dit oordeel is
-            met voorkennis.
-          </p>
-          <div id="verdicts" class="toolbar">
-            <button type="button" data-verdict="correct">Goed</button
-            ><button type="button" data-verdict="needs_attention">
-              Aandacht nodig</button
-            ><button type="button" data-verdict="not_sure">Weet ik niet</button>
-          </div>
-          <p id="first-verdict" style="margin-top: 12px"></p>
-          <div id="diagnosis-wrap" hidden>
-            <label for="diagnosis">Waar zit het probleem? (optioneel)</label
-            ><select id="diagnosis">
-              <option value="">Kies een categorie</option>
-              <option value="retrieval">Er ontbreekt een bronpassage</option>
-              <option value="answer">
-                Het antwoord gebruikt de bron verkeerd
-              </option>
-              <option value="both">Beide</option>
-              <option value="unclear">Nog niet duidelijk</option>
-            </select>
-          </div>
-          <button id="reveal" type="button" hidden>
-            Bekijk verwachte onderbouwing
-          </button>
-          <p id="custom-note" class="muted" hidden>
-            Voor deze eigen vraag zijn geen voorbereide vergelijkingscriteria beschikbaar.
-          </p>
-          <div id="criteria" hidden></div>
         </details>
         <button
           id="replay"
@@ -151,36 +126,13 @@
           <div id="metadata"></div>
         </details>
       </section>
-      <section id="source" aria-labelledby="source-heading">
-        <h2 id="source-heading">Bronnen</h2>
-        <p class="muted small">Verzonnen vrijwilligersactiviteiten. Geen betaalde banen.</p>
-        <div id="source-sections"></div>
-      </section>
       <details id="session-details">
-        <summary>Eerdere vragen en beoordelingen</summary>
-        <p id="progress" style="margin-top: 16px">
-          Nog geen vragen beoordeeld.
-        </p>
-        <p class="muted">
-          Eerste oordelen blijven bewaard. “Weet ik niet” blijft onzeker; dit is
-          geen automatisch oordeel over kwaliteit. Je kunt altijd een nieuwe vraag stellen.
-        </p>
-        <label for="history">Bekijk een eerdere uitvoering</label
-        ><select id="history">
-          <option value="">Nog geen uitvoeringen</option>
-        </select>
-        <div class="toolbar">
-          <button id="download" type="button">Download testverslag</button
-          ><button id="new-session" class="run-control" type="button">
-            Nieuwe testsessie
-          </button>
-        </div>
-        <p class="muted small" style="margin-top: 12px">
-          Runs en oordelen staan alleen in het geheugen van deze lokale server
-          en verdwijnen bij herstart. Een nieuwe sessie reset de voortgang.
-          Eerder bekeken criteria blijven in deze browser als voorkennis
-          gemarkeerd.
-        </p>
+        <summary>Eerdere vragen</summary>
+        <p id="progress" class="muted small"></p>
+        <label for="history">Bekijk een eerdere uitvoering</label>
+        <select id="history"><option value="">Nog geen uitvoeringen</option></select>
+        <button id="new-session" class="run-control" type="button">Nieuwe sessie</button>
+        <p class="muted small" style="margin-top:10px">De geschiedenis staat alleen in het geheugen van deze lokale server en verdwijnt bij herstart.</p>
       </details>
       <footer>
         Dit is een eigen leerproef, geen intern COA-plan. Alle brongegevens zijn
@@ -190,29 +142,13 @@
       </footer>
     </main>
     <script>
-      const el = (id) => document.getElementById(id),
-        labels = {
-          correct: "Goed",
-          needs_attention: "Aandacht nodig",
-          not_sure: "Weet ik niet",
-        };
+      const el = (id) => document.getElementById(id);
       let session = "",
         questions = [],
         source = {},
         current = null,
         busy = false,
         pollVersion = 0;
-      function known() {
-        try {
-          return [
-            ...new Set(
-              JSON.parse(localStorage.getItem("coa-criteria-seen") || "[]"),
-            ),
-          ].filter((id) => ["Q1", "Q2", "Q3", "Q4", "Q5"].includes(id));
-        } catch {
-          return [];
-        }
-      }
       async function api(path, body, method) {
         const response = await fetch(path, {
           method: method || (body ? "POST" : "GET"),
@@ -249,7 +185,7 @@
         return item;
       }
       function sourceTitle(id) { return source.sources.find(doc => doc.id === id)?.title || id; }
-      function sourceClass(id) { return source.sources.findIndex(doc => doc.id === id) === 0 ? "garden" : "workshop"; }
+      function sourceClass(id) { return ["garden", "workshop", "language", "cooking", "walking"][source.sources.findIndex(doc => doc.id === id)] || ""; }
       function markQuestion() {
         document
           .querySelectorAll("[data-question]")
@@ -287,13 +223,24 @@
           return "Het antwoord kon niet aan de gevonden bronpassages worden gekoppeld. Er is geen antwoord opgeslagen.";
         return "Codex kon de vraag niet afronden. Controleer de aanmelding of probeer opnieuw. De foutdetails staan bij de gegevens van deze uitvoering.";
       }
+      function quotedPassage(text, quotes) {
+        const block = node("blockquote");
+        const ranges = quotes.map(quote => ({start:text.indexOf(quote),end:text.indexOf(quote)+quote.length})).filter(range => range.start >= 0).sort((a,b) => a.start-b.start);
+        let cursor = 0;
+        for (const range of ranges) {
+          if (range.start < cursor) continue;
+          block.append(document.createTextNode(text.slice(cursor, range.start)), node("mark", text.slice(range.start, range.end)));
+          cursor = range.end;
+        }
+        block.append(document.createTextNode(text.slice(cursor)));
+        return block;
+      }
       function showRun(run) {
-        const changed = !current || current.id !== run.id;
         current = run;
         el("result").hidden = false;
         el("result-title").textContent =
           run.status === "failed" ? "De uitvoering is mislukt" : "Het antwoord";
-        el("run-caption").textContent = run.question;
+        el("run-caption").textContent = "Dit heb jij gevraagd: " + run.question;
         el("answer").textContent =
           run.status === "failed"
             ? failureMessage(run.error)
@@ -308,30 +255,12 @@
           );
           el("unknowns").append(list);
         }
-        el("citations").replaceChildren();
         const citations = run.result?.answer?.citations || [];
-        el("evidence-heading").hidden = !citations.length;
-        citations.forEach((citation) => {
-          const button = node("button", undefined, "citation " + sourceClass(citation.source_id));
-          button.type = "button";
-          button.append(
-            node("strong", sourceTitle(citation.source_id) + " · " + citation.section_id),
-            node("blockquote", citation.quote),
-            node(
-              "small",
-              "Brondatum " + citation.source_date + " · Bekijk in document",
-            ),
-          );
-          button.addEventListener("click", () =>
-            inspectSection(citation.source_id, citation.section_id),
-          );
-          el("citations").append(button);
-        });
         el("tools").replaceChildren();
-        (run.result?.tool_calls || []).forEach((call) => {
+        (run.result?.tool_calls || []).forEach((call, index) => {
           const item = node("article", undefined, "hit");
           item.append(
-            node("h3", "Zoekvraag: " + call.query),
+            node("h3", "Zoekactie " + (index + 1)), node("p", "Zoekopdracht van Codex: " + call.query),
             node(
               "small",
               "Gevraagde passages: " + call.top_k + " · " + call.status,
@@ -341,7 +270,7 @@
             const evidence = node("section", undefined, "retrieved " + sourceClass(hit.section.source_id));
             evidence.append(
               node("h3", sourceTitle(hit.section.source_id) + " · " + hit.section.id + " · " + hit.section.heading),
-              node("blockquote", hit.section.text),
+              quotedPassage(hit.section.text, citations.filter(c => c.source_id === hit.section.source_id && c.source_date === hit.section.source_date && c.section_id === hit.section.id).map(c => c.quote)),
               node(
                 "small",
                 hit.section.source_id +
@@ -357,37 +286,16 @@
                   " — geen kans of zekerheid.",
               ),
             );
+            const open = node("button", "Bekijk activiteit: " + sourceTitle(hit.section.source_id));
+            open.type = "button";
+            open.addEventListener("click", () => inspectSection(hit.section.source_id, hit.section.id));
+            evidence.append(open);
             item.append(evidence);
           });
           if (call.error) item.append(node("p", call.error, "error"));
           el("tools").append(item);
         });
-        el("review").hidden = run.status !== "completed";
         el("tool-details").hidden = run.status !== "completed";
-        const latest = run.reviews.at(-1) || run.first_judgement;
-        el("informed").hidden = !(
-          latest?.informed ||
-          run.informed_context ||
-          known().includes(run.question_id)
-        );
-        el("first-verdict").textContent = run.first_judgement
-          ? "Eerste oordeel: " +
-            labels[run.first_judgement.verdict] +
-            (run.first_judgement.informed ? " (met voorkennis)." : ".") +
-            (run.reviews.length
-              ? " Aanvulling: " +
-                labels[latest.verdict] +
-                "; het eerste oordeel blijft staan."
-              : "")
-          : "";
-        el("diagnosis-wrap").hidden = latest?.verdict !== "needs_attention";
-        el("diagnosis").value = run.diagnosis || "";
-        el("reveal").hidden = !run.first_judgement || !run.question_id;
-        el("custom-note").hidden = !!run.question_id;
-        if (changed) {
-          el("criteria").hidden = true;
-          el("criteria").replaceChildren();
-        }
         el("metadata").replaceChildren();
         [
           "Status: " + run.status,
@@ -409,8 +317,7 @@
       }
       async function refresh() {
         const summary = await api("/api/session");
-        const judged = summary.runs.filter(run => run.first_judgement);
-        el("progress").textContent = summary.runs.length + " uitvoeringen · " + judged.length + " beoordeeld · " + judged.filter(run => run.first_judgement.verdict === "needs_attention").length + " met aandachtspunten · " + judged.filter(run => run.first_judgement.verdict === "not_sure").length + " onzeker.";
+        el("progress").textContent = summary.runs.length + " uitvoeringen in deze sessie.";
         el("history").replaceChildren(node("option", "Kies een uitvoering"));
         el("history").firstChild.value = "";
         summary.runs
@@ -501,99 +408,19 @@
           message(error.message, true);
         }
       });
-      el("verdicts").addEventListener("click", async (event) => {
-        if (!current || !event.target.dataset.verdict) return;
-        try {
-          const run = await api("/api/runs/" + current.id + "/judgement", {
-            verdict: event.target.dataset.verdict,
-          });
-          showRun(run);
-          await refresh();
-        } catch (error) {
-          message(error.message, true);
-        }
-      });
-      el("diagnosis").addEventListener("change", async () => {
-        if (!current || !el("diagnosis").value) return;
-        try {
-          current = await api("/api/runs/" + current.id + "/diagnosis", {
-            diagnosis: el("diagnosis").value,
-          });
-        } catch (error) {
-          message(error.message, true);
-        }
-      });
-      el("reveal").addEventListener("click", async () => {
-        if (!current) return;
-        try {
-          const data = await api("/api/runs/" + current.id + "/criteria", {});
-          const seen = new Set(known());
-          seen.add(current.question_id);
-          localStorage.setItem("coa-criteria-seen", JSON.stringify([...seen]));
-          current = await api("/api/runs/" + current.id);
-          showRun(current);
-          const panel = el("criteria");
-          panel.replaceChildren(node("h3", "Vergelijk de onderbouwing"));
-          const required = data.expected.required_source_ids,
-            actual = data.actual_source_ids;
-          panel.append(
-            node(
-              "p",
-              "Verwacht: " +
-                (required.join(", ") || "geen bronsectie met deze informatie") +
-                ". Gevonden: " +
-                (actual.join(", ") || "geen") +
-                ".",
-            ),
-          );
-          const missing = required.filter((id) => !actual.includes(id));
-          if (missing.length)
-            panel.append(
-              node("p", "Ontbrekende bronsecties: " + missing.join(", ") + "."),
-            );
-          const list = node("ul");
-          data.expected.required_facts.forEach((text) =>
-            list.append(node("li", text)),
-          );
-          data.expected.forbidden_claims.forEach((text) =>
-            list.append(node("li", "Niet concluderen: " + text)),
-          );
-          panel.append(list);
-          panel.hidden = false;
-          await refresh();
-        } catch (error) {
-          message(error.message, true);
-        }
-      });
       async function createSession(announce = true) {
-        const data = await api("/api/session", { seen_question_ids: known() });
+        const data = await api("/api/session", { seen_question_ids: [] });
         session = data.session_id;
         sessionStorage.setItem("coa-test-session", session);
         current = null;
         el("result").hidden = true;
         await refresh();
-        if (announce) message("Nieuwe sessie. Eerder bekeken criteria blijven als voorkennis gemarkeerd.");
+        if (announce) message("Nieuwe sessie gestart.");
       }
       el("new-session").addEventListener("click", async () => {
         if (busy) return;
         try {
           await createSession();
-        } catch (error) {
-          message(error.message, true);
-        }
-      });
-      el("download").addEventListener("click", async () => {
-        try {
-          const response = await fetch("/api/report", {
-            headers: { "X-Test-Session": session },
-          });
-          if (!response.ok) throw new Error("Verslag kon niet worden geladen.");
-          const url = URL.createObjectURL(await response.blob());
-          const link = node("a");
-          link.href = url;
-          link.download = "meedoen-testverslag.txt";
-          link.click();
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
         } catch (error) {
           message(error.message, true);
         }

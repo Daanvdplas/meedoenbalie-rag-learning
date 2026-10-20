@@ -1,4 +1,4 @@
-# Samen fietsen opknappen bij De Werkbank
+# Fietsen opknappen
 ID: ACT-FIETS-002
 Brondatum: 2026-10-18
 

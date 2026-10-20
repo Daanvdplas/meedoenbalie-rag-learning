@@ -133,7 +133,7 @@ pub fn run(index: &mut Index, top_k: usize) -> Result<Value, String> {
         }
     }
     Ok(json!({
-        "report_version":"two-document-source-evidence-v2","manifest":index.manifest(),"top_k":top_k,
+        "report_version":"five-activity-source-evidence-v3","manifest":index.manifest(),"top_k":top_k,
         "sources":index.manifest().sources,
         "timing_note":"Measured warm-index search time per question; model/source-vector initialization excluded. Dense includes query embedding and ranking; keyword includes tokenization and ranking. One local run, not a performance claim.",
         "questions_sha256":hash(QUESTIONS.as_bytes()),"labels_sha256":hash(EXPECTATIONS.as_bytes()),

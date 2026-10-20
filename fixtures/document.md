@@ -1,4 +1,4 @@
-# Samen tuinieren bij De Linde
+# Tuinieren
 
 ID: ACT-TUIN-001
 Brondatum: 2026-10-20
