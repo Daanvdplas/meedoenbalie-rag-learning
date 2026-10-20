@@ -1,4 +1,4 @@
-# Meedoenbalie: twee bronnen, vijf testvragen
+# Meedoenbalie: activiteiten verkennen
 
 Een kleine Rust-leerproef met twee verzonnen activiteiten, echte lokale embeddings en Codex. Je beoordeelt zelf het antwoord en de gebruikte bronpassages. Dit is een eigen prototype, geen intern COA-plan.
 
@@ -16,9 +16,9 @@ Een andere lokale poort kan met `COA_PORT=8767 cargo run --locked`. `COA_CODEX_M
 
 ## Zelf testen
 
-1. Lees beide brondocumenten en kies Q1–Q5 over tuinieren, of schrijf een eigen vraag over het hele aanbod. Probeer bijvoorbeeld “Welk werk is mogelijk op dinsdag?” Beide documenten beschrijven vrijwilligersactiviteiten, geen betaalde banen.
+1. Schrijf een eigen vraag in het lege vraagveld, of kies een optionele voorbeeldvraag. Probeer bijvoorbeeld “Welk werk is mogelijk op dinsdag?” Beide documenten beschrijven vrijwilligersactiviteiten, geen betaalde banen. De twee brondocumenten staan afzonderlijk in groene en blauwe panelen.
 2. Laat Codex zoeken en antwoorden. Bekijk de exacte citaten, brondatum en gebruikte zoekvragen/passages.
-3. Kies **Goed**, **Aandacht nodig** of **Weet ik niet**. Pas daarna zijn de voorbereide criteria beschikbaar. Een eigen vraag telt niet mee bij de vijf vragen.
+3. Je kunt direct een nieuwe vraag stellen, zonder eerst te beoordelen. **Geef je oordeel** is optioneel: **Goed**, **Aandacht nodig** of **Weet ik niet**. Alleen bij een herkende vaste testvraag zijn daarna voorbereide criteria beschikbaar.
 4. Vergelijk verwachte en gevonden bronsecties. Het eerste oordeel blijft staan; herhaalde beoordelingen en uitvoeringen zijn als voorkennis gemarkeerd.
 5. Bekijk eerdere runs, download het testverslag of voer een vraag opnieuw uit. Een nieuwe generatie krijgt een eigen run. Gewijzigde of ontbrekende bron/runtime-instellingen worden niet stilzwijgend hergebruikt.
 
@@ -37,7 +37,7 @@ cargo test --locked
 
 `fixtures/questions.json` bevat vijf vragen; `fixtures/expectations.json` is uitsluitend voor evaluatie en menselijke beoordeling. Verwachte antwoorden gaan niet naar de index, zoekresultaten of Codex. Codex krijgt alleen de vraag en daadwerkelijk opgehaalde passages via de beperkte MCP-tool.
 
-Het [huidige zoekexperiment](reports/two-document-eval.json) vergelijkt embeddings met een woordoverlap-baseline op dezelfde titel, sectiekop en tekst. De vijf vragen blijven expliciet over tuinieren gaan; labels gebruiken document-ID én sectie-ID. Dit is bronsectiedekking, geen antwoordnauwkeurigheid of bewijs voor algemene kwaliteit. Q5 heeft geen relevante bronsectie; historische beschikbaarheid geeft geen actuele plekken.
+Het [huidige zoekexperiment](reports/two-document-eval.json) vergelijkt embeddings met een woordoverlap-baseline op dezelfde titel, sectiekop en tekst. De vijf vaste vragen blijven als regressie- en menselijke testset beschikbaar via `fixtures/questions.json` en de API; ze vormen geen verplichte reeks in de pagina. Ze gaan expliciet over tuinieren; labels gebruiken document-ID én sectie-ID. Dit is bronsectiedekking, geen antwoordnauwkeurigheid of bewijs voor algemene kwaliteit. Q5 heeft geen relevante bronsectie; historische beschikbaarheid geeft geen actuele plekken.
 
 De [titelcontextvergelijking](reports/two-document-context-comparison.json) toont drie echte zoekvragen op hetzelfde tweedocumentencorpus, met en zonder titelcontext. Voor “waar en wanneer tuinieren” stijgt de tijdpassage S2 naar de tweede plek, maar de locatie S3 blijft vijfde. De standaard drie hits vormen dus nog geen volledig antwoord. Codex kan aanvullende gerichte zoekvragen stellen. De dinsdagvraag haalt beide tijdpassages op. De rangorde is niet op deze vragen vastgezet; scores meten verwantschap en vormen geen zekerheid. Het eerdere [één-documentexperiment](reports/one-document-eval.json) blijft als historisch resultaat bewaard; corpus, vraagteksten en embeddinginvoer zijn sindsdien veranderd, dus de scores zijn geen zuivere vergelijking van alleen titelcontext.
 
