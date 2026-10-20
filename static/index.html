@@ -70,7 +70,8 @@
       <h1>Wat wil je doen?</h1>
       <form id="form">
         <label for="question">Stel je vraag over de activiteiten</label>
-        <textarea id="question" class="run-control" maxlength="1000" required placeholder="Bijvoorbeeld: welk werk is mogelijk op dinsdag?"></textarea>
+        <textarea id="question" class="run-control" aria-describedby="question-help" maxlength="1000" required placeholder="Bijvoorbeeld: welk werk is mogelijk op dinsdag?"></textarea>
+        <p id="question-help" class="muted small">Gebruik geen echte persoonsgegevens.</p>
         <div class="toolbar">
           <button class="primary run-control" type="submit">Zoek een antwoord</button>
           <button id="new-question" class="run-control" type="button">Nieuwe vraag</button>
