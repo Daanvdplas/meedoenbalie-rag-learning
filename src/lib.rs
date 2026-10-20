@@ -2,6 +2,7 @@ pub mod codex;
 pub mod manifest;
 pub mod mcp;
 pub mod ranking;
+pub mod runs;
 pub mod source;
 use serde::Serialize;
 
