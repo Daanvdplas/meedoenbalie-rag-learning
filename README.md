@@ -28,3 +28,4 @@ Ontwikkelingen gaan via branches en pull requests; commit niet rechtstreeks naar
 - [AGENTS.md](AGENTS.md): korte instructies en veiligheidsgrenzen voor agents.
 - [user_journey.md](user_journey.md): onderbouwde use case en voorgestelde AI-laag.
 - [agent-harness-landscape.md](agent-harness-landscape.md): gedateerde oriëntatie op agentconcepten en platformkeuzes; controleer actuele documentatie voordat je keuzes maakt.
+- [Visuele uitleg: hoe een RAG-pipeline werkt](docs/learning/rag-pipeline-explainer.html): een korte uitleg met diagrammen. Open het HTML-bestand in een browser.

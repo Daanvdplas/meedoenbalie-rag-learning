@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Hoe een RAG-pipeline werkt — Meedoenbalie leerproject</title>
+  <style>
+    :root {
+      --ink: #172a35;
+      --muted: #526570;
+      --line: #d7e1e4;
+      --paper: #f5f8f7;
+      --white: #fff;
+      --teal: #087c78;
+      --teal-pale: #e5f4f1;
+      --blue: #315fa8;
+      --blue-pale: #eaf0fb;
+      --amber: #99630a;
+      --amber-pale: #fff3d8;
+      --coral: #ad4c37;
+      --coral-pale: #fcece7;
+      --shadow: 0 14px 38px rgb(27 52 63 / 7%);
+      --radius: 20px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 8% 0%, rgb(8 124 120 / 8%), transparent 29rem),
+        var(--paper);
+      line-height: 1.55;
+    }
+
+    a { color: #155c82; text-underline-offset: .2em; }
+    a:hover { color: #0b3f5b; }
+    a:focus-visible, summary:focus-visible { outline: 3px solid #d18b1b; outline-offset: 4px; border-radius: 4px; }
+
+    .skip-link {
+      position: absolute;
+      z-index: 5;
+      inset: 8px auto auto 8px;
+      padding: 10px 14px;
+      color: var(--white);
+      background: var(--ink);
+      border-radius: 8px;
+      transform: translateY(-160%);
+    }
+    .skip-link:focus { transform: translateY(0); }
+
+    .page { width: min(1100px, calc(100% - 36px)); margin: 0 auto; }
+    .hero { padding: 56px 0 26px; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+      color: var(--teal);
+      font-size: .82rem;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before { content: ""; width: 9px; height: 9px; background: currentColor; border-radius: 50%; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 790px; margin-bottom: 14px; font-size: clamp(2.35rem, 5.6vw, 4.3rem); line-height: 1.03; letter-spacing: -.055em; }
+    .lede { max-width: 720px; margin-bottom: 22px; color: var(--muted); font-size: clamp(1.08rem, 2vw, 1.28rem); }
+    .context-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag { display: inline-flex; align-items: center; min-height: 32px; padding: 5px 11px; color: #334c58; background: #e9efed; border-radius: 999px; font-size: .84rem; font-weight: 700; }
+
+    main { padding-bottom: 56px; }
+    section { margin-top: 22px; }
+    .panel { padding: clamp(20px, 4vw, 34px); background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .section-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 22px; }
+    .section-number { display: grid; flex: 0 0 38px; width: 38px; height: 38px; place-items: center; color: var(--white); background: var(--ink); border-radius: 12px; font-size: .9rem; font-weight: 800; }
+    .section-head h2 { margin-bottom: 4px; font-size: clamp(1.35rem, 3vw, 1.8rem); line-height: 1.2; letter-spacing: -.025em; }
+    .section-head p { margin: 0; color: var(--muted); }
+
+    .brief-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .brief-item { padding: 14px 15px; background: #f3f7f6; border-radius: 13px; }
+    .brief-item strong { display: block; margin-bottom: 4px; font-size: .86rem; }
+    .brief-item span { color: var(--muted); font-size: .9rem; }
+
+    .hook { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: start; margin-top: 18px; padding: 19px; background: var(--amber-pale); border: 1px solid #f0d99f; border-radius: 16px; }
+    .hook-icon { display: grid; width: 38px; height: 38px; place-items: center; color: var(--amber); background: #fffaf0; border-radius: 12px; font-size: 1.2rem; font-weight: 900; }
+    .hook h3 { margin: 1px 0 4px; font-size: 1rem; }
+    .hook p { margin: 0; color: #604d2d; }
+
+    .diagram-note { margin: -7px 0 20px; padding: 10px 13px; color: #3f5863; background: #eff5f4; border-left: 4px solid var(--teal); border-radius: 5px 10px 10px 5px; font-size: .92rem; }
+    .stage { padding: 22px; border: 1px solid var(--line); border-radius: 17px; }
+    .stage + .stage { margin-top: 18px; }
+    .stage.prep { background: linear-gradient(145deg, #f2faf8, #fff 65%); }
+    .stage.query { background: linear-gradient(145deg, #f3f6fd, #fff 65%); }
+    .stage-title { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 17px; }
+    .stage-title h3 { margin: 0; font-size: 1.12rem; }
+    .stage-title span { color: var(--muted); font-size: .83rem; font-weight: 700; }
+    .flow { display: grid; align-items: stretch; gap: 10px; }
+    .flow.prep-flow { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .flow.query-flow { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .flow-node { position: relative; min-width: 0; min-height: 124px; padding: 15px 13px 13px; background: var(--white); border: 1px solid var(--line); border-radius: 14px; }
+    .flow-node:not(:last-child)::after { content: "→"; position: absolute; z-index: 1; top: 46%; right: -18px; width: 24px; color: var(--teal); background: inherit; font-size: 1.2rem; font-weight: 800; text-align: center; }
+    .query-flow .flow-node:not(:last-child)::after { color: var(--blue); }
+    .node-top { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+    .node-icon { display: grid; flex: 0 0 31px; width: 31px; height: 31px; place-items: center; color: var(--teal); background: var(--teal-pale); border-radius: 9px; font-size: .83rem; font-weight: 900; }
+    .query-flow .node-icon { color: var(--blue); background: var(--blue-pale); }
+    .node-label { font-size: .91rem; font-weight: 800; line-height: 1.2; }
+    .flow-node p { margin: 0; color: var(--muted); font-size: .84rem; line-height: 1.42; }
+    .node-example { display: block; margin-top: 8px; padding: 6px 7px; color: #38535f; background: #f2f6f5; border-radius: 7px; font-size: .75rem; line-height: 1.4; overflow-wrap: anywhere; }
+    .index-bridge { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin: 8px 2px 11px; color: #425e69; font-size: .8rem; font-weight: 700; }
+    .index-bridge::before { content: "↓"; display: grid; width: 25px; height: 25px; place-items: center; color: var(--teal); background: var(--teal-pale); border-radius: 50%; font-size: 1rem; }
+    .answer-node { background: #f0fbf8; border-color: #96d0c4; }
+    .answer-node .node-icon { color: #fff; background: var(--teal); }
+    .model-node { background: #fbf9ff; border-color: #c9c2e4; }
+    .model-node .node-icon { color: #55448d; background: #eeeafb; }
+    .callout-inline { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+    .callout-inline div { padding: 13px 14px; background: rgb(255 255 255 / 75%); border: 1px dashed #c5d5d3; border-radius: 12px; color: var(--muted); font-size: .86rem; }
+    .callout-inline strong { color: var(--ink); }
+
+    .steps-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .step { padding: 19px; background: #f8faf9; border: 1px solid var(--line); border-radius: 15px; }
+    .step-kicker { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; color: var(--teal); font-size: .8rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+    .step-kicker b { display: grid; width: 26px; height: 26px; place-items: center; color: var(--white); background: var(--teal); border-radius: 8px; letter-spacing: 0; }
+    .step h3 { margin-bottom: 6px; font-size: 1.05rem; }
+    .step p { margin: 0; color: var(--muted); font-size: .94rem; }
+    .term { color: var(--ink); font-weight: 800; }
+
+    .two-checks { display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; gap: 12px; }
+    .check-card { padding: 20px; border-radius: 15px; }
+    .check-card.retrieval { background: var(--teal-pale); border: 1px solid #acdcd2; }
+    .check-card.answer { background: var(--blue-pale); border: 1px solid #c4d3f1; }
+    .check-card .check-label { margin-bottom: 8px; font-size: .77rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .retrieval .check-label { color: #08645f; }
+    .answer .check-label { color: #315693; }
+    .check-card h3 { margin-bottom: 8px; font-size: 1.08rem; }
+    .check-card p { margin-bottom: 9px; color: #3f5863; font-size: .92rem; }
+    .check-card ul { margin: 0; padding-left: 1.2rem; color: #3f5863; font-size: .89rem; }
+    .check-card li + li { margin-top: 5px; }
+    .then-arrow { display: grid; width: 38px; place-items: center; color: var(--muted); font-size: 1.4rem; font-weight: 900; }
+    .freshness-note { margin-top: 14px; padding: 15px 17px; color: #654e21; background: var(--amber-pale); border-radius: 12px; font-size: .9rem; }
+    .freshness-note strong { color: #543c0f; }
+
+    .open-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .open-item { min-height: 94px; padding: 14px; background: #fafafa; border: 1px dashed #b7c5c8; border-radius: 13px; }
+    .open-item span { display: block; margin-bottom: 5px; color: var(--muted); font-size: .75rem; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
+    .open-item strong { font-size: .94rem; }
+    .not-decided { margin: 13px 0 0; color: var(--muted); font-size: .88rem; }
+
+    .recap { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: start; color: var(--white); background: #193643; border: 0; }
+    .recap .section-number { color: var(--ink); background: #c7efdf; }
+    .recap h2 { margin-bottom: 8px; font-size: 1.45rem; }
+    .recap p { margin-bottom: 0; color: #e4f0f0; font-size: 1.03rem; }
+    .recap strong { color: #c7efdf; }
+    details { margin-top: 16px; background: #f6f8f8; border: 1px solid var(--line); border-radius: 13px; }
+    summary { padding: 14px 17px; cursor: pointer; font-weight: 800; }
+    details p { padding: 0 17px 15px; margin: 0; color: var(--muted); }
+
+    .sources { padding: 21px 25px; color: #405761; background: #edf2f1; border-radius: 16px; }
+    .sources h2 { margin-bottom: 9px; font-size: 1rem; }
+    .sources ul { margin: 0; padding-left: 1.15rem; font-size: .85rem; }
+    .sources li + li { margin-top: 7px; }
+    .sources small { display: block; margin-top: 11px; color: #586c73; }
+    footer { padding: 0 0 30px; color: var(--muted); font-size: .82rem; }
+
+    @media (max-width: 820px) {
+      .flow.prep-flow, .flow.query-flow { grid-template-columns: 1fr; gap: 9px; }
+      .flow-node { min-height: 0; padding: 13px; }
+      .flow-node:not(:last-child)::after, .query-flow .flow-node:not(:last-child)::after { content: "↓"; top: auto; right: 12px; bottom: -18px; width: 24px; background: transparent; }
+      .flow-node:not(:last-child) { margin-bottom: 7px; }
+      .index-bridge { justify-content: flex-start; margin-left: 8px; }
+      .index-bridge::before { content: "↘"; }
+      .brief-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .open-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 600px) {
+      .page { width: min(100% - 24px, 1100px); }
+      .hero { padding-top: 36px; }
+      .panel { border-radius: 16px; }
+      .stage { padding: 15px; }
+      .stage-title { align-items: flex-start; flex-direction: column; gap: 3px; }
+      .brief-grid, .steps-grid, .callout-inline, .two-checks { grid-template-columns: 1fr; }
+      .then-arrow { width: auto; height: 24px; transform: rotate(90deg); }
+      .hook { grid-template-columns: 1fr; }
+      .hook-icon { width: 32px; height: 32px; }
+      .open-grid { grid-template-columns: 1fr 1fr; }
+      .open-item { min-height: auto; }
+      .recap { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+    @media print {
+      body { background: #fff; }
+      .page { width: 100%; }
+      .panel { box-shadow: none; break-inside: avoid; }
+      a { color: inherit; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#inhoud">Ga naar de uitleg</a>
+  <header class="page hero">
+    <p class="eyebrow">Meedoenbalie · eerste leerstap</p>
+    <h1>Hoe helpt RAG een AI met de juiste bron?</h1>
+    <p class="lede">RAG zoekt eerst in documenten. Daarna krijgt het taalmodel de gevonden stukjes tekst om een antwoord mee te maken.</p>
+    <div class="context-tags" aria-label="Leerdoel en duur">
+      <span class="tag">Visuele uitleg · ongeveer 5 minuten</span>
+      <span class="tag">Alle voorbeelden zijn verzonnen</span>
+    </div>
+  </header>
+
+  <main class="page" id="inhoud">
+    <section class="panel" aria-labelledby="start-title">
+      <div class="section-head">
+        <div class="section-number" aria-hidden="true">◎</div>
+        <div>
+          <h2 id="start-title">Eerst het idee</h2>
+          <p>Je hebt geen technische voorkennis nodig.</p>
+        </div>
+      </div>
+      <div class="brief-grid">
+        <div class="brief-item"><strong>Voor wie?</strong><span>Een beginner die wil leren hoe RAG werkt.</span></div>
+        <div class="brief-item"><strong>Weet je al</strong><span>Dat een AI-model tekst kan maken.</span></div>
+        <div class="brief-item"><strong>Veelvoorkomend misverstand</strong><span>RAG traint het model opnieuw.</span></div>
+        <div class="brief-item"><strong>Na deze uitleg</strong><span>Je kunt uitleggen hoe zoeken en antwoorden samenhangen.</span></div>
+      </div>
+      <div class="hook">
+        <div class="hook-icon" aria-hidden="true">?</div>
+        <div>
+          <h3>Een praktische vraag</h3>
+          <p>Stel, iemand vraagt naar een activiteit op woensdag. Het model weet niet vanzelf welke verzonnen activiteitstekst bij dit project hoort. RAG laat het eerst zoeken in die teksten.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="map-title">
+      <div class="section-head">
+        <div class="section-number" aria-hidden="true">1</div>
+        <div>
+          <h2 id="map-title">Het hele plaatje</h2>
+          <p>Er zijn twee momenten: de teksten klaarzetten en later zoeken bij een vraag.</p>
+        </div>
+      </div>
+      <p class="diagram-note"><strong>Onthoud:</strong> de zoekindex uit de bovenste rij wordt gebruikt in de onderste rij. Het model krijgt de gevonden tekst pas bij het maken van het antwoord.</p>
+
+      <div class="stage prep" aria-label="Documenten voorbereiden">
+        <div class="stage-title"><h3>A · Documenten voorbereiden</h3><span>Een keer, en opnieuw als tekst verandert</span></div>
+        <div class="flow prep-flow">
+          <article class="flow-node">
+            <div class="node-top"><span class="node-icon" aria-hidden="true">01</span><span class="node-label">Verzonnen teksten</span></div>
+            <p>Bijvoorbeeld een activiteitbeschrijving.</p>
+            <span class="node-example">Activiteit act-017<br>Bijgewerkt: 12 okt 2026</span>
+          </article>
+          <article class="flow-node">
+            <div class="node-top"><span class="node-icon" aria-hidden="true">02</span><span class="node-label">Kleine passages</span></div>
+            <p>Lange tekst wordt opgeknipt. Bron-ID en datum reizen mee.</p>
+            <span class="node-example">chunk-03 · act-017 · 12 okt 2026</span>
+          </article>
+          <article class="flow-node">
+            <div class="node-top"><span class="node-icon" aria-hidden="true">03</span><span class="node-label">Embeddings</span></div>
+            <p>Elke passage krijgt een reeks getallen die de betekenis helpen vergelijken.</p>
+            <span class="node-example">chunk-03 → [0.12, −0.08, …]</span>
+          </article>
+          <article class="flow-node">
+            <div class="node-top"><span class="node-icon" aria-hidden="true">04</span><span class="node-label">Zoekindex</span></div>
+            <p>De passages, hun getallen en brongegevens worden doorzoekbaar bewaard.</p>
+            <span class="node-example">index: passages + betekenis + bron/datum</span>
+          </article>
+        </div>
+      </div>
+
+      <div class="index-bridge">de vraag zoekt in deze index</div>
+
+      <div class="stage query" aria-label="Een vraag beantwoorden">
+        <div class="stage-title"><h3>B · Een vraag beantwoorden</h3><span>Herhaalt zich voor elke vraag</span></div>
+        <div class="flow query-flow">
+          <article class="flow-node">
+            <div class="node-top"><span class="node-icon" aria-hidden="true">01</span><span class="node-label">Vraag</span></div>
+            <p>“Welke activiteit is er woensdag?”</p>
+          </article>
+          <article class="flow-node">
+            <div class="node-top"><span class="node-icon" aria-hidden="true">02</span><span class="node-label">Vraag als embedding</span></div>
+            <p>De vraag wordt op dezelfde manier omgezet naar getallen.</p>
+          </article>
+          <article class="flow-node">
+            <div class="node-top"><span class="node-icon" aria-hidden="true">03</span><span class="node-label">Passende passages</span></div>
+            <p>Zoeken vindt tekst met verwante betekenis en houdt bron/datum erbij.</p>
+            <span class="node-example">gevonden: chunk-03 · act-017</span>
+          </article>
+          <article class="flow-node model-node">
+            <div class="node-top"><span class="node-icon" aria-hidden="true">04</span><span class="node-label">Vraag + bron naar AI</span></div>
+            <p>Het taalmodel krijgt de vraag en de gevonden passages.</p>
+          </article>
+          <article class="flow-node answer-node">
+            <div class="node-top"><span class="node-icon" aria-hidden="true">05</span><span class="node-label">Antwoord</span></div>
+            <p>Antwoord met bron en datum, of zeg “onbekend”.</p>
+          </article>
+        </div>
+        <div class="callout-inline">
+          <div><strong>Embedding in gewone taal:</strong> tekst wordt een soort betekenis-code. Teksten over een vergelijkbaar onderwerp komen bij zoeken vaak dichter bij elkaar uit.</div>
+          <div><strong>Wat verandert niet?</strong> De modelkennis wordt hierdoor niet opnieuw getraind. RAG haalt alleen extra tekst op voor dit antwoord.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="steps-title">
+      <div class="section-head">
+        <div class="section-number" aria-hidden="true">2</div>
+        <div>
+          <h2 id="steps-title">Vier stappen om te onthouden</h2>
+          <p>Volg de tekst: van document naar antwoord.</p>
+        </div>
+      </div>
+      <div class="steps-grid">
+        <article class="step">
+          <div class="step-kicker"><b>1</b> Klaarmaken</div>
+          <h3>Bewaar tekst met bron en datum</h3>
+          <p>We gebruiken alleen verzonnen activiteiten. We knippen die in kleine passages. Elke passage houdt een bron-ID en datum.</p>
+        </article>
+        <article class="step">
+          <div class="step-kicker"><b>2</b> Omzetten</div>
+          <h3>Maak betekenis vergelijkbaar</h3>
+          <p>Een <span class="term">embedding</span> zet tekst om naar getallen. Zo kan een zoeksysteem passages vinden die qua betekenis bij de vraag passen.</p>
+        </article>
+        <article class="step">
+          <div class="step-kicker"><b>3</b> Terugvinden</div>
+          <h3>Zoek vóórdat het model antwoordt</h3>
+          <p>De vraag wordt ook omgezet. Het systeem zoekt bijpassende passages en geeft die samen met hun brongegevens door.</p>
+        </article>
+        <article class="step">
+          <div class="step-kicker"><b>4</b> Antwoorden</div>
+          <h3>Gebruik de gevonden tekst als bewijs</h3>
+          <p>Het model formuleert een antwoord met de gevonden bron. Als er geen bruikbare bron is, hoort het “onbekend” te zeggen.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="eval-title">
+      <div class="section-head">
+        <div class="section-number" aria-hidden="true">3</div>
+        <div>
+          <h2 id="eval-title">Twee aparte controles</h2>
+          <p>Een goed klinkend antwoord bewijst niet dat de juiste tekst is gevonden.</p>
+        </div>
+      </div>
+      <div class="two-checks">
+        <article class="check-card retrieval">
+          <p class="check-label">Controle 1 · zoeken</p>
+          <h3>Vond RAG de juiste bron?</h3>
+          <p>We maken vaste, verzonnen vragen en noteren vooraf welke bron-ID erbij hoort.</p>
+          <ul>
+            <li>Staat de verwachte bron tussen de gevonden passages?</li>
+            <li>Staan de relevante passages hoog genoeg in de resultaten?</li>
+          </ul>
+        </article>
+        <div class="then-arrow" aria-hidden="true">→</div>
+        <article class="check-card answer">
+          <p class="check-label">Controle 2 · antwoord</p>
+          <h3>Gebruikte het model de bron goed?</h3>
+          <p>Pas daarna beoordelen we wat het model met die passages doet.</p>
+          <ul>
+            <li>Klopt de bronvermelding en datum?</li>
+            <li>Volgt de bewering uit de tekst?</li>
+            <li>Zegt het “onbekend” als bewijs ontbreekt?</li>
+          </ul>
+        </article>
+      </div>
+      <div class="freshness-note"><strong>Verouderde informatie:</strong> een datum tonen maakt informatie niet actueel. We moeten zelf nog afspreken wanneer een bron te oud is en dus “onbekend” moet opleveren.</div>
+    </section>
+
+    <section class="panel" aria-labelledby="decisions-title">
+      <div class="section-head">
+        <div class="section-number" aria-hidden="true">?</div>
+        <div>
+          <h2 id="decisions-title">Nog open keuzes</h2>
+          <p>Deze uitleg laat de bouwblokken zien. De technische invulling is nog niet gekozen.</p>
+        </div>
+      </div>
+      <div class="open-grid">
+        <div class="open-item"><span>Nog kiezen</span><strong>Hoe verbinden we Claude of een ander model?</strong></div>
+        <div class="open-item"><span>Nog kiezen</span><strong>Welk embeddingmodel gebruiken we?</strong></div>
+        <div class="open-item"><span>Nog kiezen</span><strong>Waar bewaren we de zoekindex?</strong></div>
+        <div class="open-item"><span>Nog kiezen</span><strong>Hoe groot zijn de tekstpassages?</strong></div>
+      </div>
+      <p class="not-decided">Ook de precieze zoekmethode en de regel voor verouderde bronnen vragen nog een besluit.</p>
+    </section>
+
+    <section class="panel recap" aria-labelledby="recap-title">
+      <div class="section-number" aria-hidden="true">✓</div>
+      <div>
+        <h2 id="recap-title">In één zin</h2>
+        <p><strong>RAG zoekt eerst relevante stukjes tekst met brongegevens en geeft die daarna aan een taalmodel.</strong> Zo kunnen we het zoeken apart controleren en antwoorden laten steunen op gevonden bronnen.</p>
+      </div>
+    </section>
+
+    <details>
+      <summary>Check jezelf: kun je het navertellen?</summary>
+      <p>Maak deze zin af: “Eerst doet RAG … Daarna krijgt het model … Als er geen goede bron is, …”</p>
+    </details>
+
+    <section class="sources" aria-labelledby="sources-title">
+      <h2 id="sources-title">Bronnen voor deze uitleg</h2>
+      <ul>
+        <li><a href="https://docs.cloud.google.com/architecture/gen-ai-rag-vertex-ai-vector-search">Google Cloud, RAG-infrastructuur voor generatieve AI</a> — laatst beoordeeld op <strong>16 oktober 2026</strong>. De uitleg hierboven gebruikt alleen de algemene stroom; de Google-productkeuzes zijn geen advies voor dit project.</li>
+        <li><a href="https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents">Anthropic, Demystifying evals for AI agents</a> — gepubliceerd op <strong>9 januari 2026</strong>. Dit ondersteunt het idee om vaste evaluaties te gebruiken; het is een bron van een AI-aanbieder, geen onafhankelijke vergelijking.</li>
+      </ul>
+      <small>Alle voorbeelden op deze pagina zijn fictief. Dit is een leeruitleg voor een eigen prototype-idee, niet een beschrijving van een besloten of vastgesteld COA-plan.</small>
+    </section>
+  </main>
+
+  <footer class="page">Meedoenbalie RAG learning project · uitlegversie 1 · 20 oktober 2026</footer>
+</body>
+</html>
