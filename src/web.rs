@@ -6,7 +6,7 @@ use axum::{
     routing::{get, post},
 };
 use meedoen_retrieval::{
-    AS_OF, DOCUMENT, Index,
+    AS_OF, Index,
     codex::CodexRunner,
     runs::{RunStore, Verdict},
 };
@@ -20,8 +20,7 @@ struct WebState {
     runner: Option<CodexRunner>,
     runner_error: Option<String>,
     manifest: Value,
-    source_id: String,
-    source_date: String,
+    sources: Value,
     configuration: Value,
 }
 fn error(message: impl Into<String>) -> ApiError {
@@ -44,7 +43,7 @@ fn locked(app: &App) -> Result<std::sync::MutexGuard<'_, RunStore>, ApiError> {
         .map_err(|_| error("Lokale opslag niet beschikbaar; herstart de demo."))
 }
 fn context(app: &App, top_k: usize) -> Value {
-    json!({"web_version":"human-review-v1","source_id":app.source_id,"source_date":app.source_date,"as_of":AS_OF,"retrieval_manifest":app.manifest,"codex_configuration":app.configuration,"top_k":top_k})
+    json!({"web_version":"human-review-v2","sources":app.manifest["sources"],"as_of":AS_OF,"retrieval_manifest":app.manifest,"codex_configuration":app.configuration,"top_k":top_k})
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -91,7 +90,7 @@ fn start(
         let result = if let Some(runner) = &app.runner {
             runner.run(&question,top_k).await.and_then(|result|{
     let result=serde_json::to_value(result).map_err(|e|e.to_string())?;
-    for key in ["source_id","source_date","as_of"] {if result[key]!=snapshot[key]{return Err("tool: Broncontext verschilt van de vastgelegde bron.".into());}}
+    for key in ["sources","as_of"] {if result[key]!=snapshot[key]{return Err("tool: Broncontext verschilt van de vastgelegde bron.".into());}}
     if result["manifest"]!=snapshot["retrieval_manifest"]{return Err("tool: Zoekindex is veranderd; deze run kan niet als dezelfde context worden opgeslagen.".into());}
     Ok(result)
    })
@@ -194,9 +193,8 @@ async fn diagnose(
 async fn report(State(app): State<App>, headers: HeaderMap) -> Result<impl IntoResponse, ApiError> {
     let summary = locked(&app)?.summary(&session(&headers)?).map_err(error)?;
     let mut text = format!(
-        "VIJF VRAGEN — LOKAAL TESTVERSLAG\nBron: {} · brondatum {} · referentiedatum {}\n\n{} van 5 vragen beoordeeld. Goed: {} · aandacht nodig: {} · onzeker: {} · met voorkennis: {}.\nEerste oordelen blijven behouden. Dit is geen automatische kwaliteitsmeting.\n\n",
-        app.source_id,
-        app.source_date,
+        "VIJF VRAGEN — LOKAAL TESTVERSLAG\nBronnen: {} · referentiedatum {}\n\n{} van 5 vragen beoordeeld. Goed: {} · aandacht nodig: {} · onzeker: {} · met voorkennis: {}.\nEerste oordelen blijven behouden. Dit is geen automatische kwaliteitsmeting.\n\n",
+        app.manifest["sources"],
         AS_OF,
         summary["judged"],
         summary["correct"],
@@ -220,7 +218,7 @@ async fn report(State(app): State<App>, headers: HeaderMap) -> Result<impl IntoR
 }
 fn router(app: App) -> Router {
     Router::new().route("/",get(||async{Html(include_str!("../static/index.html"))}))
- .route("/api/source",get({let app=app.clone();move||{let app=app.clone();async move{Json(json!({"document":DOCUMENT,"sections":meedoen_retrieval::source::parse_source(DOCUMENT).unwrap().sections,"source_id":app.source_id,"source_date":app.source_date,"as_of":AS_OF,"runtime_ready":app.runner.is_some(),"runtime_error":app.runner_error}))}}}))
+ .route("/api/source",get({let app=app.clone();move||{let app=app.clone();async move{Json(json!({"sources":app.sources,"as_of":AS_OF,"runtime_ready":app.runner.is_some(),"runtime_error":app.runner_error}))}}}))
  .route("/api/questions",get(||async{Json(serde_json::from_str::<Value>(include_str!("../fixtures/questions.json")).unwrap())}))
  .route("/api/session",post(new_session).get(summary)).route("/api/runs",post(run))
  .route("/api/runs/{id}",get(get_run)).route("/api/runs/{id}/replay",post(replay))
@@ -242,8 +240,7 @@ pub async fn serve(index: Index) -> Result<(), Box<dyn std::error::Error>> {
         runner_error,
         configuration,
         manifest: serde_json::to_value(index.manifest())?,
-        source_id: index.source().id.clone(),
-        source_date: index.source().date.clone(),
+        sources: serde_json::to_value(index.sources())?,
     });
     let port = std::env::var("COA_PORT")
         .unwrap_or_else(|_| "8766".into())
@@ -256,6 +253,38 @@ pub async fn serve(index: Index) -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn source_reader_returns_two_distinct_document_dates_without_gold() {
+        use tower::ServiceExt;
+        let sources =
+            meedoen_retrieval::source::parse_sources(meedoen_retrieval::DOCUMENTS).unwrap();
+        let app = Arc::new(WebState {
+            store: Mutex::new(RunStore::new()),
+            runner: None,
+            runner_error: None,
+            manifest: json!({}),
+            sources: serde_json::to_value(sources).unwrap(),
+            configuration: json!({}),
+        });
+        let response = router(app)
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/api/source")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let value: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(value["sources"].as_array().unwrap().len(), 2);
+        assert_eq!(value["sources"][0]["date"], "2026-10-20");
+        assert_eq!(value["sources"][1]["date"], "2026-10-18");
+        assert!(!String::from_utf8_lossy(&bytes).contains("required_source_ids"));
+    }
     #[test]
     fn browser_cannot_submit_gold_or_a_fabricated_answer() {
         assert!(
