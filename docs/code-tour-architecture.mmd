@@ -1,0 +1,15 @@
+flowchart TB
+  subgraph local[Lokale machine]
+    B[Browser] -->|HTTP| H[Rust API]
+    H --> R[CodexRunner + validatie]
+    R -->|child process| C[Codex CLI]
+    H <--> S[RunStore in RAM]
+    C <-->|stdio MCP| M[meedoen mcp]
+    M <--> I[MiniLM + RAM-index]
+    D[Vijf bronbestanden] --> I
+  end
+  C <-->|vraag + opgehaalde tekst| O[OpenAI-modeldienst]
+  classDef remote fill:#fae6cc,stroke:#83541d,color:#30281f
+  classDef storage fill:#e4f0e8,stroke:#336b49,color:#203b2a
+  class O remote
+  class D,I,S storage
