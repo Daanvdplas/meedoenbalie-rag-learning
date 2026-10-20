@@ -1,6 +1,6 @@
 # Real Codex retrieval bridge
 
-Scope: two fictional activity documents, twelve sections, five prepared gardening questions and free queries. This is a local learning prototype, not a COA system or a production-quality claim.
+Scope: five fictional activity documents, thirty sections, free queries and five internal gardening regression questions. This is a local learning prototype, not a COA system or a production-quality claim.
 
 ```sh
 cargo run -- ask --top-k 3 'Waar en wanneer is het tuinieren?'
@@ -23,7 +23,7 @@ The bridge currently targets macOS/Linux. Each run forces `--no-daemon` so gener
 
 Questions contain 1–1000 characters; top_k is 1–6. There is one active Codex run per runner, at most four searches per MCP session, a 120-second process timeout, 512 KiB stdout and 16 KiB stderr limits, and a 16 KiB MCP request limit. User text goes through stdin with argument arrays; no shell interpolation. A dedicated process-group guard stops Codex and descendants on completion, timeout, output failure or future cancellation; temporary run files also have a cleanup guard. Private reasoning and raw diagnostics are not saved in public run records.
 
-A successful answer requires an actual successful MCP search, a completed Codex turn, a consistent nonempty source/index manifest, and valid structured output. Every citation includes source_id, source_date and section_id. Repeated section IDs across documents stay distinct: the quoted text must occur exactly in a returned section belonging to that same document and date. This checks provenance; it does not automatically prove every sentence's meaning. Human review still checks relevance, unsupported claims and faithful unknowns. Missing evidence remains visible. There is no calibrated no-match threshold or accuracy claim from five questions.
+A successful answer requires an actual successful MCP search, a completed Codex turn, a consistent nonempty source/index manifest, and valid structured output. Every citation includes source_id, source_date and section_id. Repeated section IDs across documents stay distinct: the quoted text must occur exactly in a returned section belonging to that same document and date. This checks provenance; it does not automatically prove every sentence's meaning. People still need to check relevance, unsupported claims and faithful unknowns; the demo no longer presents a judgement or criteria flow. One user question may cause multiple focused Codex search actions; actual query text, returned passages and highlighted exact citations remain inspectable in the single collapsible search panel. Missing evidence remains visible. There is no calibrated no-match threshold or accuracy claim from five questions.
 
 ## Verification
 
