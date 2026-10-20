@@ -269,6 +269,7 @@
         markQuestion();
         el("result").hidden = true;
         current = null;
+        el("history").value = "";
         message("");
       }
       function inspectSection(sourceId, id) {
@@ -473,6 +474,7 @@
         el("question").value = "";
         markQuestion();
         current = null;
+        el("history").value = "";
         el("result").hidden = true;
         message("");
         el("question").focus();
@@ -481,6 +483,7 @@
         markQuestion();
         el("result").hidden = true;
         current = null;
+        el("history").value = "";
         message("");
       });
       el("replay").addEventListener("click", () => {
