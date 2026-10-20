@@ -6,8 +6,8 @@
     {
       "question_id": "Q1",
       "required_source_ids": [
-        "S2",
-        "S3"
+        "ACT-TUIN-001:S2",
+        "ACT-TUIN-001:S3"
       ],
       "required_facts": [
         "Iedere dinsdag van 10.00 tot 12.00 uur.",
@@ -19,7 +19,7 @@
     {
       "question_id": "Q2",
       "required_source_ids": [
-        "S1"
+        "ACT-TUIN-001:S1"
       ],
       "required_facts": [
         "Buiten met je handen groenten en bloemen verzorgen.",
@@ -31,8 +31,8 @@
     {
       "question_id": "Q3",
       "required_source_ids": [
-        "S2",
-        "S4"
+        "ACT-TUIN-001:S2",
+        "ACT-TUIN-001:S4"
       ],
       "required_facts": [
         "Iedere dinsdag van 10.00 tot 12.00 uur.",
@@ -48,7 +48,7 @@
     {
       "question_id": "Q4",
       "required_source_ids": [
-        "S6"
+        "ACT-TUIN-001:S6"
       ],
       "required_facts": [
         "Twee vrije plekken waren alleen bevestigd op 2026-09-01.",

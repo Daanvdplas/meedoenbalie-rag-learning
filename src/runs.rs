@@ -232,8 +232,10 @@ impl RunStore {
             for call in calls {
                 if let Some(hits) = call["result"]["hits"].as_array() {
                     for hit in hits {
-                        if let Some(id) = hit["section"]["id"].as_str() {
-                            actual.insert(id.to_owned());
+                        if let Some(id) = hit["section"]["id"].as_str()
+                            && let Some(source) = hit["section"]["source_id"].as_str()
+                        {
+                            actual.insert(format!("{source}:{id}"));
                         }
                     }
                 }
@@ -317,6 +319,33 @@ mod tests {
             )
             .unwrap();
         (store, session, run)
+    }
+    #[test]
+    fn review_does_not_count_another_documents_section_as_gardening_evidence() {
+        let mut store = RunStore::new();
+        let session = store.session(&[]).unwrap();
+        let run = store
+            .begin(
+                &session,
+                "Waar en wanneer is het tuinieren?",
+                3,
+                json!({}),
+                None,
+            )
+            .unwrap();
+        store.complete(&session,&run.id,Ok(json!({"tool_calls":[{"result":{"hits":[{"section":{"source_id":"ACT-TUIN-001","id":"S2"}},{"section":{"source_id":"ACT-FIETS-002","id":"S3"}}]}}]}))).unwrap();
+        assert!(store.reveal(&session, &run.id).is_err());
+        store
+            .judge(&session, &run.id, Verdict::NeedsAttention)
+            .unwrap();
+        let revealed = store.reveal(&session, &run.id).unwrap();
+        assert_eq!(
+            revealed["expected"]["required_source_ids"],
+            json!(["ACT-TUIN-001:S2", "ACT-TUIN-001:S3"])
+        );
+        let actual = revealed["actual_source_ids"].as_array().unwrap();
+        assert!(actual.contains(&json!("ACT-FIETS-002:S3")));
+        assert!(!actual.contains(&json!("ACT-TUIN-001:S3")));
     }
     #[test]
     fn a_pending_model_call_rejects_another_request_instead_of_queuing() {

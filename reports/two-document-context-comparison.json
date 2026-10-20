@@ -1,0 +1,451 @@
+{
+  "cases": [
+    {
+      "question": "waar en wanneer tuinieren",
+      "with_title": [
+        {
+          "section": {
+            "heading": "Wat doen we?",
+            "id": "S1",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "We verzorgen samen groenten en bloemen in de buurttuin. Je werkt buiten met je handen. Ervaring met tuinieren is niet nodig."
+          },
+          "similarity": 0.7553595900535583
+        },
+        {
+          "section": {
+            "heading": "Wanneer?",
+            "id": "S2",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+          },
+          "similarity": 0.698376476764679
+        },
+        {
+          "section": {
+            "heading": "Wat neem je mee?",
+            "id": "S5",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+          },
+          "similarity": 0.6155792474746704
+        },
+        {
+          "section": {
+            "heading": "Beschikbaarheid",
+            "id": "S6",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "Op 2026-09-01 waren er twee vrije plekken. Sindsdien is het aantal plekken niet opnieuw gecontroleerd."
+          },
+          "similarity": 0.49428120255470276
+        },
+        {
+          "section": {
+            "heading": "Waar?",
+            "id": "S3",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "Buurttuin De Linde, achter het fictieve buurthuis aan de Lindenlaan 12 in het fictieve Lindedorp."
+          },
+          "similarity": 0.4158497750759125
+        },
+        {
+          "section": {
+            "heading": "Taal en hulp",
+            "id": "S4",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "De begeleider spreekt eenvoudig Nederlands en doet het werk eerst voor. Je hoeft niet goed Nederlands te spreken. De begeleider is tijdens de activiteit aanwezig."
+          },
+          "similarity": 0.38590481877326965
+        }
+      ],
+      "without_title": [
+        {
+          "section": {
+            "heading": "Wat doen we?",
+            "id": "S1",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "We verzorgen samen groenten en bloemen in de buurttuin. Je werkt buiten met je handen. Ervaring met tuinieren is niet nodig."
+          },
+          "similarity": 0.7226118445396423
+        },
+        {
+          "section": {
+            "heading": "Wat neem je mee?",
+            "id": "S5",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+          },
+          "similarity": 0.4245877265930176
+        },
+        {
+          "section": {
+            "heading": "Wanneer?",
+            "id": "S2",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "Iedere dinsdag van 14.00 tot 16.00 uur."
+          },
+          "similarity": 0.31119948625564575
+        },
+        {
+          "section": {
+            "heading": "Wanneer?",
+            "id": "S2",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+          },
+          "similarity": 0.278266042470932
+        },
+        {
+          "section": {
+            "heading": "Waar?",
+            "id": "S3",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "Werkplaats De Werkbank, in het fictieve wijkgebouw aan de Esdoornstraat 8 in het fictieve Lindedorp. We werken binnen."
+          },
+          "similarity": 0.23016659915447235
+        },
+        {
+          "section": {
+            "heading": "Wat doen we?",
+            "id": "S1",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "We knappen samen oude fietsen op in de werkplaats. Je helpt met banden plakken, fietsen schoonmaken en eenvoudige reparaties. Dit is een vrijwillige activiteit, geen betaalde baan. Je hoeft geen ervaring met fietsreparatie te hebben."
+          },
+          "similarity": 0.18495915830135345
+        }
+      ]
+    },
+    {
+      "question": "Welk werk is mogelijk op dinsdag?",
+      "with_title": [
+        {
+          "section": {
+            "heading": "Wanneer?",
+            "id": "S2",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+          },
+          "similarity": 0.527771532535553
+        },
+        {
+          "section": {
+            "heading": "Wanneer?",
+            "id": "S2",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "Iedere dinsdag van 14.00 tot 16.00 uur."
+          },
+          "similarity": 0.4477805495262146
+        },
+        {
+          "section": {
+            "heading": "Wat doen we?",
+            "id": "S1",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "We knappen samen oude fietsen op in de werkplaats. Je helpt met banden plakken, fietsen schoonmaken en eenvoudige reparaties. Dit is een vrijwillige activiteit, geen betaalde baan. Je hoeft geen ervaring met fietsreparatie te hebben."
+          },
+          "similarity": 0.3460555970668793
+        },
+        {
+          "section": {
+            "heading": "Wat doen we?",
+            "id": "S1",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "We verzorgen samen groenten en bloemen in de buurttuin. Je werkt buiten met je handen. Ervaring met tuinieren is niet nodig."
+          },
+          "similarity": 0.29659172892570496
+        },
+        {
+          "section": {
+            "heading": "Waar?",
+            "id": "S3",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "Werkplaats De Werkbank, in het fictieve wijkgebouw aan de Esdoornstraat 8 in het fictieve Lindedorp. We werken binnen."
+          },
+          "similarity": 0.29476556181907654
+        },
+        {
+          "section": {
+            "heading": "Wat neem je mee?",
+            "id": "S5",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+          },
+          "similarity": 0.2907193601131439
+        }
+      ],
+      "without_title": [
+        {
+          "section": {
+            "heading": "Wanneer?",
+            "id": "S2",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+          },
+          "similarity": 0.6267940998077393
+        },
+        {
+          "section": {
+            "heading": "Wanneer?",
+            "id": "S2",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "Iedere dinsdag van 14.00 tot 16.00 uur."
+          },
+          "similarity": 0.6039848327636719
+        },
+        {
+          "section": {
+            "heading": "Waar?",
+            "id": "S3",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "Werkplaats De Werkbank, in het fictieve wijkgebouw aan de Esdoornstraat 8 in het fictieve Lindedorp. We werken binnen."
+          },
+          "similarity": 0.38169029355049133
+        },
+        {
+          "section": {
+            "heading": "Wat doen we?",
+            "id": "S1",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "We knappen samen oude fietsen op in de werkplaats. Je helpt met banden plakken, fietsen schoonmaken en eenvoudige reparaties. Dit is een vrijwillige activiteit, geen betaalde baan. Je hoeft geen ervaring met fietsreparatie te hebben."
+          },
+          "similarity": 0.3341327905654907
+        },
+        {
+          "section": {
+            "heading": "Wat neem je mee?",
+            "id": "S5",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+          },
+          "similarity": 0.30393415689468384
+        },
+        {
+          "section": {
+            "heading": "Wat doen we?",
+            "id": "S1",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "We verzorgen samen groenten en bloemen in de buurttuin. Je werkt buiten met je handen. Ervaring met tuinieren is niet nodig."
+          },
+          "similarity": 0.2942047417163849
+        }
+      ]
+    },
+    {
+      "question": "Ik wil leren een lekke band te maken, zonder ervaring. Waar en hoe laat kan ik helpen?",
+      "with_title": [
+        {
+          "section": {
+            "heading": "Wat doen we?",
+            "id": "S1",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "We knappen samen oude fietsen op in de werkplaats. Je helpt met banden plakken, fietsen schoonmaken en eenvoudige reparaties. Dit is een vrijwillige activiteit, geen betaalde baan. Je hoeft geen ervaring met fietsreparatie te hebben."
+          },
+          "similarity": 0.2670366168022156
+        },
+        {
+          "section": {
+            "heading": "Wanneer?",
+            "id": "S2",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "Iedere dinsdag van 14.00 tot 16.00 uur."
+          },
+          "similarity": 0.235700324177742
+        },
+        {
+          "section": {
+            "heading": "Wat neem je mee?",
+            "id": "S5",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+          },
+          "similarity": 0.21692366898059845
+        },
+        {
+          "section": {
+            "heading": "Taal en hulp",
+            "id": "S4",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "Een begeleider laat iedere reparatie stap voor stap zien en helpt tijdens de activiteit. Eenvoudig Nederlands is voldoende. Er is geen informatie over ondersteuning in andere talen."
+          },
+          "similarity": 0.20230555534362793
+        },
+        {
+          "section": {
+            "heading": "Wanneer?",
+            "id": "S2",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+          },
+          "similarity": 0.2008766531944275
+        },
+        {
+          "section": {
+            "heading": "Kosten en materiaal",
+            "id": "S5",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "Deelname is gratis en vrijwillig. Gereedschap en reparatiemateriaal zijn aanwezig. Trek kleding aan die vies mag worden."
+          },
+          "similarity": 0.17543859779834747
+        }
+      ],
+      "without_title": [
+        {
+          "section": {
+            "heading": "Wat doen we?",
+            "id": "S1",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "We knappen samen oude fietsen op in de werkplaats. Je helpt met banden plakken, fietsen schoonmaken en eenvoudige reparaties. Dit is een vrijwillige activiteit, geen betaalde baan. Je hoeft geen ervaring met fietsreparatie te hebben."
+          },
+          "similarity": 0.30544140934944153
+        },
+        {
+          "section": {
+            "heading": "Wat neem je mee?",
+            "id": "S5",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+          },
+          "similarity": 0.2566307783126831
+        },
+        {
+          "section": {
+            "heading": "Wanneer?",
+            "id": "S2",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "Iedere dinsdag van 14.00 tot 16.00 uur."
+          },
+          "similarity": 0.21792355179786682
+        },
+        {
+          "section": {
+            "heading": "Wanneer?",
+            "id": "S2",
+            "source_date": "2026-10-20",
+            "source_id": "ACT-TUIN-001",
+            "source_title": "Samen tuinieren bij De Linde",
+            "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+          },
+          "similarity": 0.20380990207195282
+        },
+        {
+          "section": {
+            "heading": "Kosten en materiaal",
+            "id": "S5",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "Deelname is gratis en vrijwillig. Gereedschap en reparatiemateriaal zijn aanwezig. Trek kleding aan die vies mag worden."
+          },
+          "similarity": 0.17699438333511353
+        },
+        {
+          "section": {
+            "heading": "Waar?",
+            "id": "S3",
+            "source_date": "2026-10-18",
+            "source_id": "ACT-FIETS-002",
+            "source_title": "Samen fietsen opknappen bij De Werkbank",
+            "text": "Werkplaats De Werkbank, in het fictieve wijkgebouw aan de Esdoornstraat 8 in het fictieve Lindedorp. We werken binnen."
+          },
+          "similarity": 0.15559495985507965
+        }
+      ]
+    }
+  ],
+  "manifest": {
+    "as_of": "2026-10-20",
+    "chunking": "document-title-section-headings-v2",
+    "dimensions": 384,
+    "document_vectors_sha256": "e9028015d4565b960e255686adb58c197f754d6cb233cadf0d915d0f0bf17d46",
+    "embedding_inputs_sha256": "48e74a5a6b111436cb7cf8d29c5d052d380f48f8e48a721cafb5de1423d9b1b8",
+    "encoding": "unprefixed sentence transformer; document title + newline + heading + newline + exact text",
+    "filter": "two fictional documents; no eligibility inference",
+    "max_tokens": 512,
+    "model": "Qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q",
+    "platform": "macos-aarch64",
+    "sdk": "fastembed 7.1.2",
+    "settings_sha256": "b90ddf783940951b56a0ace3fc2ed49f2878af1dc31dc3017504538dfba85891",
+    "source_sha256": "a7999f1d3bba751cee21be248ec47374808e38d46df8b1c0e08de79e8cd7ac05",
+    "sources": [
+      {
+        "date": "2026-10-20",
+        "id": "ACT-TUIN-001",
+        "sha256": "6f70dd16aab821a2dda754f8c64b6c211ce0d9d7b57412e1c90eeca12ce191a2",
+        "title": "Samen tuinieren bij De Linde"
+      },
+      {
+        "date": "2026-10-18",
+        "id": "ACT-FIETS-002",
+        "sha256": "59b2ca8877f13aa47ec1c907e5af29938bc0d6a0704e891499620f671daff908",
+        "title": "Samen fietsen opknappen bij De Werkbank"
+      }
+    ]
+  },
+  "purpose": "Title-context ablation on the same two-document corpus; three learning queries, not a benchmark or proof of improvement."
+}

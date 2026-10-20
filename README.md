@@ -1,6 +1,6 @@
-# Meedoenbalie: één bron, vijf vragen
+# Meedoenbalie: twee bronnen, vijf testvragen
 
-Een kleine Rust-leerproef met één verzonnen activiteit, echte lokale embeddings en Codex. Je beoordeelt zelf het antwoord en de gebruikte bronpassages. Dit is een eigen prototype, geen intern COA-plan.
+Een kleine Rust-leerproef met twee verzonnen activiteiten, echte lokale embeddings en Codex. Je beoordeelt zelf het antwoord en de gebruikte bronpassages. Dit is een eigen prototype, geen intern COA-plan.
 
 ## Starten
 
@@ -16,7 +16,7 @@ Een andere lokale poort kan met `COA_PORT=8767 cargo run --locked`. `COA_CODEX_M
 
 ## Zelf testen
 
-1. Lees het brondocument en kies Q1–Q5, of schrijf een eigen vraag.
+1. Lees beide brondocumenten en kies Q1–Q5 over tuinieren, of schrijf een eigen vraag over het hele aanbod. Probeer bijvoorbeeld “Welk werk is mogelijk op dinsdag?” Beide documenten beschrijven vrijwilligersactiviteiten, geen betaalde banen.
 2. Laat Codex zoeken en antwoorden. Bekijk de exacte citaten, brondatum en gebruikte zoekvragen/passages.
 3. Kies **Goed**, **Aandacht nodig** of **Weet ik niet**. Pas daarna zijn de voorbereide criteria beschikbaar. Een eigen vraag telt niet mee bij de vijf vragen.
 4. Vergelijk verwachte en gevonden bronsecties. Het eerste oordeel blijft staan; herhaalde beoordelingen en uitvoeringen zijn als voorkennis gemarkeerd.
@@ -33,13 +33,15 @@ cargo run --locked -- eval > /tmp/meedoen-eval.json
 cargo test --locked
 ```
 
-`fixtures/document.md` is de enige geïndexeerde bron. Zes secties krijgen embeddings van het lokale, gekwantiseerde meertalige MiniLM-model via fastembed 7.1.2. CLI en MCP gebruiken dezelfde Rust-zoekfunctie. Standaard worden drie secties gerangschikt; `--top-k 1..6` is instelbaar. Overeenkomst is geen zekerheid en er is geen gekalibreerde grens voor “geen match”.
+`fixtures/document.md` (tuinieren, brondatum 2026-10-20) en `fixtures/bicycle-workshop.md` (fietsen opknappen, brondatum 2026-10-18) zijn de twee geïndexeerde bronnen. Beide activiteiten vinden op dinsdag plaats, op verschillende tijden en locaties. De twaalf secties krijgen embeddings van het lokale, gekwantiseerde meertalige MiniLM-model via fastembed 7.1.2. Iedere embedding bevat documenttitel, sectiekop en tekst; teruggegeven bewijs behoudt de exacte originele tekst. CLI en MCP gebruiken dezelfde Rust-zoekfunctie. Iedere hit en ieder citaat behouden document-ID, sectie-ID en de eigen brondatum. Standaard worden drie secties gerangschikt; `--top-k 1..6` is instelbaar, ook bij twaalf secties. Overeenkomst is geen zekerheid en er is geen gekalibreerde grens voor “geen match”.
 
 `fixtures/questions.json` bevat vijf vragen; `fixtures/expectations.json` is uitsluitend voor evaluatie en menselijke beoordeling. Verwachte antwoorden gaan niet naar de index, zoekresultaten of Codex. Codex krijgt alleen de vraag en daadwerkelijk opgehaalde passages via de beperkte MCP-tool.
 
-Het [vastgelegde zoekexperiment](reports/one-document-eval.json) vergelijkt embeddings met een simpele woordoverlap-baseline. Gemiddelde bronsectiedekking op vier vragen met bronlabels is 0,875 versus 0,75; dit is geen antwoordnauwkeurigheid. Q1 mist bij de eerste drie zoekhits locatie S3. Q5 heeft geen relevante bronsectie. Q4 vindt alleen historische beschikbaarheid; actuele plekken blijven onbekend. Codex kan zelf aanvullende zoekvragen stellen. Vijf vragen vormen geen bewijs voor algemene kwaliteit.
+Het [huidige zoekexperiment](reports/two-document-eval.json) vergelijkt embeddings met een woordoverlap-baseline op dezelfde titel, sectiekop en tekst. De vijf vragen blijven expliciet over tuinieren gaan; labels gebruiken document-ID én sectie-ID. Dit is bronsectiedekking, geen antwoordnauwkeurigheid of bewijs voor algemene kwaliteit. Q5 heeft geen relevante bronsectie; historische beschikbaarheid geeft geen actuele plekken.
 
-CI controleert formattering, clippy, deterministische tests en build zonder modelaanroepen. De echte modelcontrole staat apart: `cargo test --locked live_report_retains -- --ignored`. [Besluiten](decisions.md) beschrijft zoekinstellingen, brondata en beperkingen van reproduceerbaarheid.
+De [titelcontextvergelijking](reports/two-document-context-comparison.json) toont drie echte zoekvragen op hetzelfde tweedocumentencorpus, met en zonder titelcontext. Voor “waar en wanneer tuinieren” stijgt de tijdpassage S2 naar de tweede plek, maar de locatie S3 blijft vijfde. De standaard drie hits vormen dus nog geen volledig antwoord. Codex kan aanvullende gerichte zoekvragen stellen. De dinsdagvraag haalt beide tijdpassages op. De rangorde is niet op deze vragen vastgezet; scores meten verwantschap en vormen geen zekerheid. Het eerdere [één-documentexperiment](reports/one-document-eval.json) blijft als historisch resultaat bewaard; corpus, vraagteksten en embeddinginvoer zijn sindsdien veranderd, dus de scores zijn geen zuivere vergelijking van alleen titelcontext.
+
+CI controleert formattering, clippy, deterministische tests en build zonder modelaanroepen. De echte modelcontrole staat apart: `cargo test --locked live_report_retains -- --ignored`. De titelcontextvergelijking kan met `cargo test --locked live_two_document -- --ignored --nocapture` opnieuw worden gemeten (JSON in de tijdelijke systeemmap). [Besluiten](decisions.md) beschrijft zoekinstellingen, brondata en beperkingen van reproduceerbaarheid.
 
 ## Grenzen en werkwijze
 
@@ -47,4 +49,4 @@ Alle gegevens zijn verzonnen. Suggesties behouden bron en datum; ontbrekende of 
 
 Alle codewijzigingen gaan via branches en pull requests, met onafhankelijke beoordeling. Niet rechtstreeks naar `main` committen; alleen mergen met toestemming van de gebruiker.
 
-Bron: [fastembed 7.1.2](https://github.com/anush008/fastembed-rs/releases/tag/v7.1.2), gepubliceerd **19 oktober 2026**. Zie verder [projectinstructies](AGENTS.md), [use case](user_journey.md) en [2026-oriëntatie](agent-harness-landscape.md). Het langetermijndoel blijft een kleine, uitlegbare agent harness; deze proef houdt bewust één bron en vijf vragen.
+Bron: [fastembed 7.1.2](https://github.com/anush008/fastembed-rs/releases/tag/v7.1.2), gepubliceerd **19 oktober 2026**. Zie verder [projectinstructies](AGENTS.md), [use case](user_journey.md) en [2026-oriëntatie](agent-harness-landscape.md). Het langetermijndoel blijft een kleine, uitlegbare agent harness; deze proef houdt bewust twee bronnen en vijf vaste tuinvragen plus vrije vragen.

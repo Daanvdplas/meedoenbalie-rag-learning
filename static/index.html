@@ -216,7 +216,7 @@
   </head>
   <body>
     <main>
-      <div class="eyebrow">Een kleine proef · Eén verzonnen bron</div>
+      <div class="eyebrow">Een kleine proef · Twee verzonnen bronnen</div>
       <h1>Vijf vragen.<br />Controleer zelf het antwoord.</h1>
       <p>
         Lees de bron, stel een vraag en bekijk wat Codex met de gevonden
@@ -225,14 +225,14 @@
       </p>
       <small id="source-dates">Bron en referentiedatum worden geladen…</small>
       <details id="source">
-        <summary>Lees het volledige brondocument</summary>
+        <summary>Lees beide volledige brondocumenten</summary>
         <p id="source-intro" class="muted"></p>
         <div id="source-sections"></div>
       </details>
       <h2>Stel je vraag</h2>
       <p class="muted">
-        Gebruik alleen verzonnen gegevens. Je kunt een vraag kiezen of zelf
-        aanpassen.
+        Gebruik alleen verzonnen gegevens. De vijf testvragen gaan over tuinieren.
+        Stel ook een eigen vraag over beide activiteiten, bijvoorbeeld: welk werk is mogelijk op dinsdag? Het gaat om vrijwilligersactiviteiten, niet om betaalde banen.
       </p>
       <div id="questions" class="questions" aria-label="Vijf testvragen"></div>
       <form id="form">
@@ -431,9 +431,9 @@
         current = null;
         message("");
       }
-      function inspectSection(id) {
+      function inspectSection(sourceId, id) {
         el("source").open = true;
-        const target = el("source-" + id);
+        const target = el("source-" + sourceId + "-" + id);
         if (target) {
           target.focus();
           target.scrollIntoView({ behavior: "auto", block: "center" });
@@ -457,7 +457,7 @@
           " · " +
           run.id +
           " · " +
-          source.source_date +
+          "referentie " + source.as_of +
           " · " +
           (run.parent_id
             ? "Nieuwe uitvoering van " + run.parent_id
@@ -481,15 +481,15 @@
           const button = node("button", undefined, "citation");
           button.type = "button";
           button.append(
-            node("strong", citation.section_id + " · Bekijk de bron"),
+            node("strong", citation.source_id + ":" + citation.section_id + " · Bekijk de bron"),
             node("blockquote", citation.quote),
             node(
               "small",
-              source.source_id + " · brondatum " + source.source_date,
+              citation.source_id + " · brondatum " + citation.source_date,
             ),
           );
           button.addEventListener("click", () =>
-            inspectSection(citation.section_id),
+            inspectSection(citation.source_id, citation.section_id),
           );
           el("citations").append(button);
         });
@@ -505,13 +505,13 @@
           );
           (call.result?.hits || []).forEach((hit) => {
             item.append(
-              node("h3", hit.section.id + " · " + hit.section.heading),
+              node("h3", hit.section.source_id + ":" + hit.section.id + " · " + hit.section.heading),
               node("blockquote", hit.section.text),
               node(
                 "small",
-                call.result.source_id +
+                hit.section.source_id +
                   " · brondatum " +
-                  call.result.source_date +
+                  hit.section.source_date +
                   " · referentie " +
                   call.result.as_of,
               ),
@@ -556,10 +556,8 @@
         [
           "Status: " + run.status,
           "Foutdetails: " + (run.error || "geen"),
-          "Bron: " +
-            source.source_id +
-            " · " +
-            source.source_date +
+          "Bronnen: " +
+            source.sources.map(doc => doc.id + " (" + doc.date + ")").join(", ") +
             " · referentie " +
             source.as_of,
           "Aangemaakt: " + new Date(run.created_at_ms).toLocaleString("nl-NL"),
@@ -777,26 +775,17 @@
             api("/api/source"),
             api("/api/questions"),
           ]);
-          el("source-dates").textContent =
-            source.source_id +
-            " · brondatum " +
-            source.source_date +
-            " · referentiedatum " +
-            source.as_of;
-          el("source-intro").textContent = source.document.split("## ")[0];
-          source.sections.forEach((section) => {
-            const item = node("section", undefined, "source-section");
-            item.id = "source-" + section.id;
-            item.tabIndex = -1;
-            item.append(
-              node("h3", section.id + " · " + section.heading),
-              node("p", section.text),
-              node(
-                "small",
-                "Bron " + source.source_id + " · " + source.source_date,
-              ),
-            );
-            el("source-sections").append(item);
+          el("source-dates").textContent = source.sources.map(doc => doc.id + " · brondatum " + doc.date).join(" / ") + " · referentiedatum " + source.as_of;
+          el("source-intro").textContent = "Twee vrijwillige activiteiten: tuinieren in de ochtend en fietsen opknappen in de middag. Alle gegevens zijn verzonnen.";
+          source.sources.forEach(doc => {
+            el("source-sections").append(node("h2", doc.title), node("p", doc.id + " · brondatum " + doc.date));
+            doc.sections.forEach(section => {
+              const item = node("section", undefined, "source-section");
+              item.id = "source-" + doc.id + "-" + section.id;
+              item.tabIndex = -1;
+              item.append(node("h3", section.id + " · " + section.heading), node("p", section.text), node("small", "Bron " + doc.id + " · " + doc.date));
+              el("source-sections").append(item);
+            });
           });
           questions.forEach((question) => {
             const button = node("button", question.id, "run-control");

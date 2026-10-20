@@ -8,6 +8,9 @@ use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Section {
+    pub source_id: String,
+    pub source_date: String,
+    pub source_title: String,
     pub id: String,
     pub heading: String,
     pub text: String,
@@ -28,6 +31,9 @@ pub fn sections(document: &str) -> Result<Vec<Section>, String> {
                 return Err("Duplicate section ID".into());
             }
             result.push(Section {
+                source_id: String::new(),
+                source_date: String::new(),
+                source_title: String::new(),
                 id: id.into(),
                 heading: title.into(),
                 text: String::new(),
@@ -55,6 +61,7 @@ pub fn validate_query(query: &str) -> Result<String, String> {
 
 pub const MODEL: &str = "Qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q";
 pub const DOCUMENT: &str = include_str!("../fixtures/document.md");
+pub const DOCUMENTS: &[&str] = &[DOCUMENT, include_str!("../fixtures/bicycle-workshop.md")];
 
 #[derive(Serialize)]
 pub struct Hit {
@@ -65,8 +72,7 @@ pub struct Hit {
 pub struct SearchResult {
     pub question: String,
     pub model: &'static str,
-    pub source_id: String,
-    pub source_date: String,
+    pub sources: Vec<manifest::SourceFingerprint>,
     pub as_of: &'static str,
     pub hits: Vec<Hit>,
     pub manifest: manifest::Manifest,
@@ -77,13 +83,15 @@ pub const AS_OF: &str = "2026-10-20";
 pub const DEFAULT_TOP_K: usize = 3;
 pub struct Index {
     model: fastembed::TextEmbedding,
-    source: source::Source,
+    sources: Vec<source::Source>,
+    sections: Vec<Section>,
     vectors: Vec<Vec<f32>>,
     manifest: manifest::Manifest,
 }
 impl Index {
     pub fn load() -> Result<Self, String> {
-        let source = source::parse_source(DOCUMENT)?;
+        let sources = source::parse_sources(DOCUMENTS)?;
+        let sections: Vec<_> = sources.iter().flat_map(|s| s.sections.clone()).collect();
         eprintln!("Loading local multilingual model (first run downloads model files)...");
         let mut model = fastembed::TextEmbedding::try_new(
             fastembed::TextInitOptions::new(fastembed::EmbeddingModel::ParaphraseMLMiniLML12V2Q)
@@ -93,13 +101,17 @@ impl Index {
                 .with_intra_threads(2),
         )
         .map_err(|e| e.to_string())?;
-        let texts: Vec<_> = source
-            .sections
+        let texts: Vec<_> = sections
             .iter()
-            .map(|s| format!("{}\n{}", s.heading, s.text))
+            .map(|s| format!("{}\n{}\n{}", s.source_title, s.heading, s.text))
             .collect();
+        let embedding_inputs_sha256 = manifest::hash(
+            serde_json::to_string(&texts)
+                .map_err(|e| e.to_string())?
+                .as_bytes(),
+        );
         let vectors = model.embed(texts, None).map_err(|e| e.to_string())?;
-        if vectors.len() != source.sections.len() || vectors.iter().any(|v| v.len() != 384) {
+        if vectors.len() != sections.len() || vectors.iter().any(|v| v.len() != 384) {
             return Err("Embedding count or dimensions do not match the source/model".into());
         }
         for vector in &vectors {
@@ -111,23 +123,26 @@ impl Index {
             .flat_map(|v| v.to_le_bytes())
             .collect();
         let manifest = manifest::Manifest {
-            source_sha256: manifest::hash(DOCUMENT.as_bytes()),
+            source_sha256: manifest::hash(DOCUMENTS.join("\n---document---\n").as_bytes()),
+            sources: sources.iter().zip(DOCUMENTS).map(|(s, text)| manifest::SourceFingerprint { id:s.id.clone(), title:s.title.clone(), date:s.date.clone(), sha256:manifest::hash(text.as_bytes()) }).collect(),
+            embedding_inputs_sha256,
             document_vectors_sha256: manifest::hash(&vector_bytes),
             model: MODEL, dimensions:384, sdk:"fastembed 7.1.2",
-            settings_sha256: manifest::hash(format!("{MODEL}|384|512|fastembed7.1.2|sections-v1|unprefixed-heading-newline-text|cosine|single-document|{AS_OF}").as_bytes()),
-            chunking:"section-headings-v1",encoding:"unprefixed sentence transformer; heading + newline + text for sections",max_tokens:512,
-            filter:"single fictional document; no eligibility inference",as_of:AS_OF,
+            settings_sha256: manifest::hash(format!("{MODEL}|384|512|fastembed7.1.2|sections-v2|unprefixed-title-heading-text|cosine|two-documents|{AS_OF}").as_bytes()),
+            chunking:"document-title-section-headings-v2",encoding:"unprefixed sentence transformer; document title + newline + heading + newline + exact text",max_tokens:512,
+            filter:"two fictional documents; no eligibility inference",as_of:AS_OF,
             platform:format!("{}-{}",std::env::consts::OS,std::env::consts::ARCH),
         };
         Ok(Self {
             model,
-            source,
+            sources,
+            sections,
             vectors,
             manifest,
         })
     }
-    pub fn source(&self) -> &source::Source {
-        &self.source
+    pub fn sources(&self) -> &[source::Source] {
+        &self.sources
     }
     pub fn manifest(&self) -> &manifest::Manifest {
         &self.manifest
@@ -155,12 +170,11 @@ impl Index {
             .iter()
             .map(|vector| ranking::cosine(&query, vector))
             .collect::<Result<Vec<_>, _>>()?;
-        let hits = ranking::rank(&self.source.sections, &scores, top_k)?;
+        let hits = ranking::rank(&self.sections, &scores, top_k)?;
         Ok(SearchResult {
             question,
             model: MODEL,
-            source_id: self.source.id.clone(),
-            source_date: self.source.date.clone(),
+            sources: self.manifest.sources.clone(),
             as_of: AS_OF,
             hits,
             manifest: self.manifest.clone(),
@@ -170,7 +184,7 @@ impl Index {
 }
 
 pub fn keyword_search(
-    source: &source::Source,
+    sources: &[source::Source],
     question: &str,
     top_k: usize,
 ) -> Result<Vec<Hit>, String> {
@@ -183,41 +197,91 @@ pub fn keyword_search(
             .collect()
     }
     let query = tokens(&validate_query(question)?);
-    let scores: Vec<_> = source
-        .sections
+    let sections: Vec<_> = sources.iter().flat_map(|s| s.sections.clone()).collect();
+    let scores: Vec<_> = sections
         .iter()
         .map(|section| {
-            let words = tokens(&format!("{} {}", section.heading, section.text));
+            let words = tokens(&format!(
+                "{} {} {}",
+                section.source_title, section.heading, section.text
+            ));
             query.intersection(&words).count() as f32 / query.union(&words).count() as f32
         })
         .collect();
-    ranking::rank(&source.sections, &scores, top_k)
+    ranking::rank(&sections, &scores, top_k)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
+    #[ignore = "real embeddings; records a small title-context comparison, not a quality gate"]
+    fn live_two_document_evidence_and_title_context_comparison() {
+        let mut index = Index::load().unwrap();
+        let raw: Vec<_> = index
+            .sections
+            .iter()
+            .map(|s| format!("{}\n{}", s.heading, s.text))
+            .collect();
+        let without_title = index.model.embed(raw, None).unwrap();
+        let mut cases = Vec::new();
+        for question in [
+            "waar en wanneer tuinieren",
+            "Welk werk is mogelijk op dinsdag?",
+            "Ik wil leren een lekke band te maken, zonder ervaring. Waar en hoe laat kan ik helpen?",
+        ] {
+            let query = index.model.embed([question], None).unwrap().remove(0);
+            let scores: Vec<_> = without_title
+                .iter()
+                .map(|v| ranking::cosine(&query, v).unwrap())
+                .collect();
+            let before = ranking::rank(&index.sections, &scores, 6).unwrap();
+            let after = index.search_with_top_k(question, 6).unwrap();
+            if question == "Welk werk is mogelijk op dinsdag?" {
+                for source in ["ACT-TUIN-001", "ACT-FIETS-002"] {
+                    assert!(
+                        after
+                            .hits
+                            .iter()
+                            .any(|hit| hit.section.source_id == source && hit.section.id == "S2")
+                    );
+                }
+            }
+            cases.push(serde_json::json!({"question":question,"without_title":before,"with_title":after.hits}));
+        }
+        let report = serde_json::json!({"purpose":"Title-context ablation on the same two-document corpus; three learning queries, not a benchmark or proof of improvement.","manifest":index.manifest(),"cases":cases});
+        let path = std::env::temp_dir().join("coa-context-comparison.json");
+        std::fs::write(&path, serde_json::to_string_pretty(&report).unwrap()).unwrap();
+        println!("comparison: {}", path.display());
+    }
+    #[test]
     fn keyword_baseline_searches_arbitrary_text_and_does_not_claim_no_match() {
         let source = source::Source {
             id: "X".into(),
+            title: "Example".into(),
             date: "2026-10-20".into(),
             sections: vec![
                 Section {
+                    source_id: "X".into(),
+                    source_date: "2026-10-20".into(),
+                    source_title: "Example".into(),
                     id: "S1".into(),
                     heading: "Tools".into(),
                     text: "Gloves and tools provided.".into(),
                 },
                 Section {
+                    source_id: "X".into(),
+                    source_date: "2026-10-20".into(),
+                    source_title: "Example".into(),
                     id: "S2".into(),
                     heading: "Time".into(),
                     text: "Tuesday morning.".into(),
                 },
             ],
         };
-        let hits = keyword_search(&source, "GLOVES", 1).unwrap();
+        let hits = keyword_search(std::slice::from_ref(&source), "GLOVES", 1).unwrap();
         assert_eq!(hits[0].section.id, "S1");
-        let absent = keyword_search(&source, "transport", 2).unwrap();
+        let absent = keyword_search(std::slice::from_ref(&source), "transport", 2).unwrap();
         assert_eq!(absent.len(), 2);
         assert!(absent.iter().all(|hit| hit.similarity == 0.0));
     }

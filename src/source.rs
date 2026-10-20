@@ -4,6 +4,7 @@ use serde::Serialize;
 #[derive(Debug, Clone, Serialize)]
 pub struct Source {
     pub id: String,
+    pub title: String,
     pub date: String,
     pub sections: Vec<Section>,
 }
@@ -27,11 +28,38 @@ pub fn parse_source(text: &str) -> Result<Source, String> {
         .ok_or("Missing document ID")?;
     let date = date.ok_or("Missing source date")?;
     validate_date(&date)?;
+    let title = text
+        .lines()
+        .find_map(|line| line.strip_prefix("# "))
+        .filter(|s| !s.trim().is_empty())
+        .ok_or("Missing document title")?
+        .to_owned();
+    let mut sections = crate::sections(text)?;
+    for section in &mut sections {
+        section.source_id = id.clone();
+        section.source_date = date.clone();
+        section.source_title = title.clone();
+    }
     Ok(Source {
         id,
+        title,
         date,
-        sections: crate::sections(text)?,
+        sections,
     })
+}
+pub fn parse_sources(documents: &[&str]) -> Result<Vec<Source>, String> {
+    let mut sources = Vec::new();
+    for document in documents {
+        let source = parse_source(document)?;
+        if sources.iter().any(|s: &Source| s.id == source.id) {
+            return Err("Duplicate document ID in corpus".into());
+        }
+        sources.push(source);
+    }
+    if sources.is_empty() {
+        return Err("Corpus must contain documents".into());
+    }
+    Ok(sources)
 }
 pub fn validate_date(date: &str) -> Result<(), String> {
     let bytes = date.as_bytes();
@@ -73,6 +101,30 @@ pub fn validate_date(date: &str) -> Result<(), String> {
 mod tests {
     use super::*;
     const VALID: &str = "# Title\nID: DOC-A\nBrondatum: 2026-10-20\n\n## S1 — When\nEvery Tuesday.\n\nAn exact second paragraph.\n\n## S6 — Places\nTwo places on 2026-09-01; not checked since.\n";
+    #[test]
+    fn corpus_allows_repeated_section_ids_but_rejects_duplicate_document_ids() {
+        let other = VALID.replace("DOC-A", "DOC-B");
+        assert_eq!(parse_sources(&[VALID, &other]).unwrap().len(), 2);
+        assert!(parse_sources(&[VALID, VALID]).is_err());
+        assert!(parse_sources(&[]).is_err());
+    }
+    #[test]
+    fn every_section_retains_its_own_document_identity_date_and_title() {
+        let a = parse_source(VALID).unwrap();
+        let b = parse_source(
+            &VALID
+                .replace("DOC-A", "DOC-B")
+                .replace("2026-10-20", "2026-10-18"),
+        )
+        .unwrap();
+        let a = serde_json::to_value(a).unwrap();
+        let b = serde_json::to_value(b).unwrap();
+        assert_eq!(a["sections"][0]["source_id"], "DOC-A");
+        assert_eq!(b["sections"][0]["source_id"], "DOC-B");
+        assert_eq!(b["sections"][0]["source_date"], "2026-10-18");
+        assert_eq!(b["sections"][0]["source_title"], "Title");
+        assert_eq!(a["sections"][0]["id"], b["sections"][0]["id"]);
+    }
     #[test]
     fn provenance_comes_from_source_and_keeps_paragraphs() {
         let source = parse_source(VALID).unwrap();

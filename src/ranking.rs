@@ -30,6 +30,7 @@ pub fn rank(sections: &[Section], scores: &[f32], top_k: usize) -> Result<Vec<Hi
     hits.sort_by(|a, b| {
         b.similarity
             .total_cmp(&a.similarity)
+            .then(a.section.source_id.cmp(&b.section.source_id))
             .then(a.section.id.cmp(&b.section.id))
     });
     hits.truncate(top_k);
@@ -57,6 +58,9 @@ mod tests {
         let sections: Vec<_> = ["S3", "S1", "S2"]
             .iter()
             .map(|id| Section {
+                source_id: "X".into(),
+                source_date: "2026-10-20".into(),
+                source_title: "Example".into(),
                 id: (*id).into(),
                 heading: "Heading".into(),
                 text: "Exact evidence".into(),

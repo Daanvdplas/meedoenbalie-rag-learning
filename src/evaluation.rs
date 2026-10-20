@@ -54,13 +54,13 @@ fn validate_fixtures(
     for question in questions {
         meedoen_retrieval::validate_query(&question.text)?;
     }
-    let section_ids: HashSet<_> = source.sections.iter().map(|s| s.id.as_str()).collect();
+    let section_ids: HashSet<_> = source
+        .sections
+        .iter()
+        .map(|s| format!("{}:{}", s.source_id, s.id))
+        .collect();
     for case in &expected.cases {
-        let ids: HashSet<_> = case
-            .required_source_ids
-            .iter()
-            .map(String::as_str)
-            .collect();
+        let ids: HashSet<_> = case.required_source_ids.iter().cloned().collect();
         if ids.len() != case.required_source_ids.len() || !ids.is_subset(&section_ids) {
             return Err("Duplicate or nonexistent labelled source section".into());
         }
@@ -71,7 +71,15 @@ pub fn run(index: &mut Index, top_k: usize) -> Result<Value, String> {
     meedoen_retrieval::ranking::validate_top_k(top_k)?;
     let questions: Vec<Question> = serde_json::from_str(QUESTIONS).map_err(|e| e.to_string())?;
     let expected: Expectations = serde_json::from_str(EXPECTATIONS).map_err(|e| e.to_string())?;
-    validate_fixtures(index.source(), &questions, &expected)?;
+    validate_fixtures(
+        index
+            .sources()
+            .iter()
+            .find(|source| source.id == expected.document_id)
+            .ok_or("Missing labelled document")?,
+        &questions,
+        &expected,
+    )?;
     let mut cases = Vec::new();
     let mut dense_coverage = Vec::new();
     let mut keyword_coverage = Vec::new();
@@ -85,14 +93,17 @@ pub fn run(index: &mut Index, top_k: usize) -> Result<Value, String> {
         let dense = index.search_with_top_k(&question.text, top_k)?;
         let dense_ms = started.elapsed().as_secs_f64() * 1000.0;
         let started = std::time::Instant::now();
-        let keyword = keyword_search(index.source(), &question.text, top_k)?;
+        let keyword = keyword_search(index.sources(), &question.text, top_k)?;
         let keyword_ms = started.elapsed().as_secs_f64() * 1000.0;
         let dense_ids: Vec<_> = dense
             .hits
             .iter()
-            .map(|hit| hit.section.id.clone())
+            .map(|hit| format!("{}:{}", hit.section.source_id, hit.section.id))
             .collect();
-        let keyword_ids: Vec<_> = keyword.iter().map(|hit| hit.section.id.clone()).collect();
+        let keyword_ids: Vec<_> = keyword
+            .iter()
+            .map(|hit| format!("{}:{}", hit.section.source_id, hit.section.id))
+            .collect();
         let dense_score = coverage(&gold.required_source_ids, &dense_ids);
         let keyword_score = coverage(&gold.required_source_ids, &keyword_ids);
         if let Some(score) = dense_score {
@@ -122,8 +133,8 @@ pub fn run(index: &mut Index, top_k: usize) -> Result<Value, String> {
         }
     }
     Ok(json!({
-        "report_version":"one-document-source-evidence-v1","manifest":index.manifest(),"top_k":top_k,
-        "source_id":index.source().id,"source_date":index.source().date,
+        "report_version":"two-document-source-evidence-v2","manifest":index.manifest(),"top_k":top_k,
+        "sources":index.manifest().sources,
         "timing_note":"Measured warm-index search time per question; model/source-vector initialization excluded. Dense includes query embedding and ranking; keyword includes tokenization and ranking. One local run, not a performance claim.",
         "questions_sha256":hash(QUESTIONS.as_bytes()),"labels_sha256":hash(EXPECTATIONS.as_bytes()),
         "run_unix_seconds":std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_err(|e|e.to_string())?.as_secs(),
@@ -142,8 +153,8 @@ mod tests {
     fn live_report_retains_source_provenance_and_measured_search_times() {
         let mut index = Index::load().unwrap();
         let report = run(&mut index, 3).unwrap();
-        assert_eq!(report["source_id"], "ACT-TUIN-001");
-        assert_eq!(report["source_date"], "2026-10-20");
+        assert_eq!(report["sources"][0]["id"], "ACT-TUIN-001");
+        assert_eq!(report["sources"][0]["date"], "2026-10-20");
         for case in report["cases"].as_array().unwrap() {
             assert!(
                 case["dense"]["search_elapsed_ms"]

@@ -6,7 +6,7 @@ Lees eerst [README.md](README.md) voor de huidige status en besluiten. Lees voor
 
 Het langetermijndoel is een kleine, uitlegbare agent harness voor het vinden van passende activiteiten. De eerste leerstap is een RAG-pipeline met embeddings: eerst retrieval op synthetische documenten beoordelen, daarna eventueel een model koppelen. Dit vervangt het langetermijndoel niet.
 
-De gebruiker heeft de kleine proef laten bouwen: één synthetisch document met zes secties, vijf vragen, lokale meertalige MiniLM-embeddings via fastembed 7.1.2, zoeken in geheugen en een read-only MCP-koppeling met Codex. Er is geen database of volledige agent harness. Lees README.md voor de huidige uitvoering, teststappen en bekende beperkingen. Vergroot deze scope niet zonder een nieuwe opdracht.
+De gebruiker heeft de kleine proef laten bouwen: twee synthetische documenten met ieder zes secties, vijf vaste tuinvragen en vrije vragen, lokale meertalige MiniLM-embeddings via fastembed 7.1.2, zoeken in geheugen en een read-only MCP-koppeling met Codex. Er is geen database of volledige agent harness. Lees README.md voor de huidige uitvoering, teststappen en bekende beperkingen. Vergroot deze scope niet zonder een nieuwe opdracht.
 
 ## Bronnen
 

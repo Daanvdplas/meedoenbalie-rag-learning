@@ -1,7 +1,16 @@
 use serde::Serialize;
 #[derive(Debug, Clone, Serialize)]
+pub struct SourceFingerprint {
+    pub id: String,
+    pub title: String,
+    pub date: String,
+    pub sha256: String,
+}
+#[derive(Debug, Clone, Serialize)]
 pub struct Manifest {
+    pub sources: Vec<SourceFingerprint>,
     pub source_sha256: String,
+    pub embedding_inputs_sha256: String,
     pub document_vectors_sha256: String,
     pub model: &'static str,
     pub dimensions: usize,
