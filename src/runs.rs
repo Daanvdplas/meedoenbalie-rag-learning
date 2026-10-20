@@ -26,6 +26,7 @@ pub struct Run {
     pub first_judgement: Option<Judgement>,
     pub reviews: Vec<Judgement>,
     pub criteria_revealed: bool,
+    pub informed_context: bool,
     pub created_at_ms: u128,
     pub completed_at_ms: Option<u128>,
     pub parent_id: Option<String>,
@@ -108,9 +109,18 @@ impl RunStore {
             return Err("Deze sessie heeft 40 runs; start een nieuwe testsessie.".into());
         }
         self.sequence += 1;
+        let question_id = prepared_id(&question);
+        let informed_context = parent.is_some()
+            || state
+                .runs
+                .iter()
+                .any(|run| run.question == question && run.status == "completed")
+            || question_id
+                .as_ref()
+                .is_some_and(|id| state.seen.contains(id));
         let run = Run {
             id: format!("r-{}-{}", now(), self.sequence),
-            question_id: prepared_id(&question),
+            question_id,
             question,
             top_k,
             context,
@@ -120,6 +130,7 @@ impl RunStore {
             first_judgement: None,
             reviews: vec![],
             criteria_revealed: false,
+            informed_context,
             created_at_ms: now(),
             completed_at_ms: None,
             parent_id: parent,
@@ -169,7 +180,9 @@ impl RunStore {
         if previous.status != "completed" {
             return Err("Beoordeel alleen een afgerond antwoord.".into());
         }
-        let informed = previous.criteria_revealed
+        let informed = previous.informed_context
+            || previous.first_judgement.is_some()
+            || previous.criteria_revealed
             || previous
                 .question_id
                 .as_ref()
@@ -311,6 +324,54 @@ mod tests {
         let session = store.session(&[]).unwrap();
         store.begin(&session, "First", 3, json!({}), None).unwrap();
         assert!(store.begin(&session, "Second", 3, json!({}), None).is_err());
+    }
+    #[test]
+    fn a_revised_verdict_is_informed_even_before_criteria_reveal() {
+        let (mut store, session, run) = ready();
+        store
+            .judge(&session, &run.id, Verdict::NeedsAttention)
+            .unwrap();
+        let revised = store.judge(&session, &run.id, Verdict::Correct).unwrap();
+        assert!(revised.reviews[0].informed);
+        assert!(!revised.criteria_revealed);
+        assert_eq!(
+            revised.first_judgement.unwrap().verdict,
+            Verdict::NeedsAttention
+        );
+    }
+    #[test]
+    fn a_replay_or_repeat_is_informed_before_gold_is_seen() {
+        let (mut store, session, original) = ready();
+        let replay = store
+            .begin(
+                &session,
+                &original.question,
+                3,
+                original.context.clone(),
+                Some(original.id.clone()),
+            )
+            .unwrap();
+        let replay = store.complete(&session, &replay.id, Ok(json!({}))).unwrap();
+        let judged = store.judge(&session, &replay.id, Verdict::Correct).unwrap();
+        assert!(judged.first_judgement.unwrap().informed);
+        let repeat = store
+            .begin(
+                &session,
+                &original.question,
+                3,
+                original.context.clone(),
+                None,
+            )
+            .unwrap();
+        let repeat = store.complete(&session, &repeat.id, Ok(json!({}))).unwrap();
+        assert!(
+            store
+                .judge(&session, &repeat.id, Verdict::Correct)
+                .unwrap()
+                .first_judgement
+                .unwrap()
+                .informed
+        );
     }
     #[test]
     fn disclosure_requires_server_verdict_and_preserves_first_judgement() {

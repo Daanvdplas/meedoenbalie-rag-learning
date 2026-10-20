@@ -19,7 +19,7 @@ Een andere lokale poort kan met `COA_PORT=8767 cargo run --locked`. `COA_CODEX_M
 1. Lees het brondocument en kies Q1–Q5, of schrijf een eigen vraag.
 2. Laat Codex zoeken en antwoorden. Bekijk de exacte citaten, brondatum en gebruikte zoekvragen/passages.
 3. Kies **Goed**, **Aandacht nodig** of **Weet ik niet**. Pas daarna zijn de voorbereide criteria beschikbaar. Een eigen vraag telt niet mee bij de vijf vragen.
-4. Vergelijk verwachte en gevonden bronsecties. Het eerste oordeel blijft staan; latere beoordelingen met bekeken criteria zijn als voorkennis gemarkeerd.
+4. Vergelijk verwachte en gevonden bronsecties. Het eerste oordeel blijft staan; herhaalde beoordelingen en uitvoeringen zijn als voorkennis gemarkeerd.
 5. Bekijk eerdere runs, download het testverslag of voer een vraag opnieuw uit. Een nieuwe generatie krijgt een eigen run. Gewijzigde of ontbrekende bron/runtime-instellingen worden niet stilzwijgend hergebruikt.
 
 Een echt Codex-antwoord duurt in de lokale proef vaak ongeveer 45–50 seconden; de pagina toont ondertussen de voortgang en de bron blijft leesbaar. Er kan één modeluitvoering tegelijk lopen. Fouten blijven zichtbaar en tellen niet als geslaagde tests. Runs en oordelen staan uitsluitend in begrensd servergeheugen en verdwijnen bij herstart. De browser onthoudt welke criteria je al zag, ook na een nieuwe testsessie; voor onafhankelijke beoordeling gebruik je een apart browserprofiel/context.

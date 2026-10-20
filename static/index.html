@@ -154,6 +154,9 @@
       .source-section p {
         white-space: pre-wrap;
       }
+      .hit > small {
+        display: block;
+      }
       .review {
         padding: 20px;
         background: var(--wash);
@@ -267,8 +270,8 @@
             >
           </p>
           <p id="informed" class="muted" hidden>
-            Je hebt de criteria voor deze vraag al gezien. Dit oordeel is met
-            voorkennis.
+            Je beoordeelt opnieuw of hebt de criteria al gezien. Dit oordeel is
+            met voorkennis.
           </p>
           <div id="verdicts" class="toolbar">
             <button type="button" data-verdict="correct">Goed</button
@@ -527,7 +530,9 @@
         el("tool-details").hidden = run.status !== "completed";
         const latest = run.reviews.at(-1) || run.first_judgement;
         el("informed").hidden = !(
-          latest?.informed || known().includes(run.question_id)
+          latest?.informed ||
+          run.informed_context ||
+          known().includes(run.question_id)
         );
         el("first-verdict").textContent = run.first_judgement
           ? "Eerste oordeel: " +
