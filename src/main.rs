@@ -1,3 +1,4 @@
+mod evaluation;
 use axum::{
     Json, Router,
     extract::{DefaultBodyLimit, State},
@@ -18,6 +19,7 @@ fn error(status: StatusCode, message: impl Into<String>) -> ApiError {
 #[derive(Deserialize)]
 struct Search {
     question: String,
+    top_k: Option<usize>,
 }
 async fn search(
     State(index): State<Shared>,
@@ -25,11 +27,14 @@ async fn search(
 ) -> Result<Json<Value>, ApiError> {
     meedoen_retrieval::validate_query(&request.question)
         .map_err(|e| error(StatusCode::BAD_REQUEST, e))?;
+    let top_k = request.top_k.unwrap_or(meedoen_retrieval::DEFAULT_TOP_K);
+    meedoen_retrieval::ranking::validate_top_k(top_k)
+        .map_err(|e| error(StatusCode::BAD_REQUEST, e))?;
     let result = tokio::task::spawn_blocking(move || {
         index
             .lock()
             .map_err(|_| "Model unavailable".to_string())?
-            .search(&request.question)
+            .search_with_top_k(&request.question, top_k)
     })
     .await
     .map_err(|_| error(StatusCode::INTERNAL_SERVER_ERROR, "Search worker failed"))?
@@ -86,17 +91,80 @@ fn app(index: Shared) -> Router {
 }
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut index = Index::load().map_err(std::io::Error::other)?;
-    let args: Vec<_> = std::env::args().collect();
-    if args.get(1).map(String::as_str) == Some("search") {
-        let result = index
-            .search(&args[2..].join(" "))
-            .map_err(std::io::Error::other)?;
-        println!("{}", serde_json::to_string_pretty(&result)?);
-        return Ok(());
+    let mut args: Vec<_> = std::env::args().skip(1).collect();
+    let command = if args.is_empty() {
+        "serve".to_string()
+    } else {
+        args.remove(0)
+    };
+    match command.as_str() {
+        "search" | "eval" => {
+            let top_k = parse_top_k(&mut args).map_err(std::io::Error::other)?;
+            if command == "eval" && !args.is_empty() {
+                return Err("Usage: eval [--top-k 1..6]".into());
+            }
+            let question = if command == "search" {
+                Some(
+                    meedoen_retrieval::validate_query(&args.join(" "))
+                        .map_err(std::io::Error::other)?,
+                )
+            } else {
+                None
+            };
+            let mut index = Index::load().map_err(std::io::Error::other)?;
+            let output = if let Some(question) = question {
+                json!(
+                    index
+                        .search_with_top_k(&question, top_k)
+                        .map_err(std::io::Error::other)?
+                )
+            } else {
+                evaluation::run(&mut index, top_k).map_err(std::io::Error::other)?
+            };
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            return Ok(());
+        }
+        "serve" if args.is_empty() => {}
+        _ => {
+            return Err(
+                "Usage: [serve | search [--top-k 1..6] QUESTION | eval [--top-k 1..6]]".into(),
+            );
+        }
     }
+    let index = Index::load().map_err(std::io::Error::other)?;
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8766").await?;
     eprintln!("Ready: http://127.0.0.1:8766 (retrieval only, no Codex)");
     axum::serve(listener, app(Arc::new(Mutex::new(index)))).await?;
     Ok(())
+}
+
+fn parse_top_k(args: &mut Vec<String>) -> Result<usize, String> {
+    if args.iter().filter(|arg| arg.as_str() == "--top-k").count() > 1 {
+        return Err("Duplicate --top-k option".into());
+    }
+    let Some(position) = args.iter().position(|arg| arg == "--top-k") else {
+        return Ok(meedoen_retrieval::DEFAULT_TOP_K);
+    };
+    let value = args
+        .get(position + 1)
+        .ok_or("Missing --top-k value")?
+        .parse()
+        .map_err(|_| "Expected an integer for --top-k")?;
+    meedoen_retrieval::ranking::validate_top_k(value)?;
+    args.drain(position..=position + 1);
+    Ok(value)
+}
+#[cfg(test)]
+mod cli_tests {
+    use super::*;
+    #[test]
+    fn parses_bounded_k_without_losing_question_text() {
+        let mut args = vec!["--top-k".into(), "2".into(), "Where?".into()];
+        assert_eq!(parse_top_k(&mut args).unwrap(), 2);
+        assert_eq!(args, ["Where?"]);
+        for value in ["0", "7", "oops"] {
+            assert!(parse_top_k(&mut vec!["--top-k".into(), value.into()]).is_err());
+        }
+        assert!(parse_top_k(&mut vec!["--top-k".into()]).is_err());
+    }
 }
