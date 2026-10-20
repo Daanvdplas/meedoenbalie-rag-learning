@@ -1,0 +1,33 @@
+sequenceDiagram
+  participant B as Browser
+  participant H as Rust HTTP
+  participant R as CodexRunner
+  participant C as Codex CLI
+  participant O as OpenAI-model
+  participant M as stdio-MCP
+  participant I as MiniLM / RAM-index
+  B->>H: POST /api/runs (één vraag)
+  H->>H: RunStore::begin (pending, context)
+  H-->>B: run-ID (worker gaat verder)
+  H->>R: run(vraag, top_k)
+  R->>C: start geïsoleerd child process
+  C->>O: vraag + instructies
+  loop maximaal vier zoekacties
+    O-->>C: zoekopdracht
+    C->>M: search_document(query, top_k)
+    Note over M,I: Eerste zoekactie: eigen Index::load, daarna hergebruik
+    M->>I: search_with_top_k
+    I->>I: query-embedding + cosine over 30 secties
+    I-->>M: passages + bron-ID / datum / scores
+    M-->>C: JSON-RPC-resultaat
+    C->>O: gevonden tekst
+    Note over C,O: Zo nodig gerichter zoeken, geen extra gebruikersvraag
+  end
+  O-->>C: antwoord + citaten + onbekenden
+  C-->>R: publieke JSONL-events en eindantwoord
+  R->>R: parse_events: bron / datum / letterlijk citaat
+  R-->>H: gecontroleerde structuur of fout
+  H->>H: RunStore::complete (RAM)
+  B->>H: GET /api/runs/{id} (polling)
+  H-->>B: resultaat / fout
+  B->>B: showRun, optionele zoekdetails
