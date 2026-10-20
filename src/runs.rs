@@ -93,6 +93,13 @@ impl RunStore {
     ) -> Result<Run, String> {
         let question = crate::validate_query(question)?;
         crate::ranking::validate_top_k(top_k)?;
+        if self
+            .sessions
+            .values()
+            .any(|session| session.runs.iter().any(|run| run.status == "pending"))
+        {
+            return Err("Er draait al een vraag. Wacht tot die uitvoering klaar is.".into());
+        }
         let state = self
             .sessions
             .get_mut(session)
@@ -297,6 +304,13 @@ mod tests {
             )
             .unwrap();
         (store, session, run)
+    }
+    #[test]
+    fn a_pending_model_call_rejects_another_request_instead_of_queuing() {
+        let mut store = RunStore::new();
+        let session = store.session(&[]).unwrap();
+        store.begin(&session, "First", 3, json!({}), None).unwrap();
+        assert!(store.begin(&session, "Second", 3, json!({}), None).is_err());
     }
     #[test]
     fn disclosure_requires_server_verdict_and_preserves_first_judgement() {

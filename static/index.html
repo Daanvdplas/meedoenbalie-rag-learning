@@ -1,125 +1,835 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>One document · Retrieval notebook</title>
-<style>
-:root{color-scheme:light;--paper:#f6f5ef;--ink:#26392f;--muted:#59655d;--line:#d2d8cf;--green:#315b45;--wash:#e7ede2}
-*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 "Avenir Next","Segoe UI",sans-serif}main{max-width:960px;margin:auto;padding:44px 24px}h1,h2{font-family:"Iowan Old Style",Palatino,serif;font-weight:500;line-height:1.15}h1{font-size:clamp(36px,6vw,54px);letter-spacing:-.035em;margin:12px 0 20px}h2{font-size:28px;margin:28px 0 16px}p{max-width:70ch;margin:0 0 16px}.eyebrow{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--green);font-weight:700}.muted,small{color:var(--muted)}small{font-size:13px}button,textarea{font:inherit;color:inherit}button{cursor:pointer;background:transparent;border:1px solid var(--line);padding:10px 16px;min-height:44px}button:hover{background:var(--wash)}button:disabled{cursor:wait;opacity:.6}button[aria-pressed="true"]{background:var(--wash);border-color:var(--green)}button.primary{background:var(--green);color:var(--paper);border-color:var(--green)}:focus-visible{outline:3px solid var(--green);outline-offset:4px}.questions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}label{font-size:14px;font-weight:650;display:block;margin-bottom:8px}textarea{display:block;resize:vertical;width:100%;padding:12px;background:var(--paper);border:1px solid var(--muted);min-height:104px;margin-bottom:12px}details{border-top:1px solid var(--line);padding:16px 0;margin:24px 0}summary{cursor:pointer;font-weight:600}pre{font:14px/1.7 inherit;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--wash);padding:20px}.toolbar{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.hit{border-top:1px solid var(--line);padding:20px 0}.hit h3{font-size:18px;margin:4px 0 12px}.hit blockquote{margin:0 0 12px}.hit small{display:block}.review{padding:20px;background:var(--wash);margin-top:24px}.review button{background:var(--paper);border-color:var(--muted)}#criteria ul{padding-left:20px}#criteria h3{font-size:17px}.error{color:#913520}footer{margin-top:40px;border-top:1px solid var(--line);padding-top:20px;font-size:13px;color:var(--muted)}[hidden]{display:none!important}@media(max-width:500px){main{padding:28px 20px}.toolbar{align-items:flex-start}.review{padding:16px}.review .toolbar{gap:8px}pre{padding:14px}}
-</style>
-</head>
-<body><main>
-<div class="eyebrow">Small first experiment · Rust · Local embeddings</div>
-<h1>One document.<br>Five questions. Your judgement.</h1>
-<p>Choose a question and inspect the three passages found by real semantic search. Decide whether they contain the evidence you need. There is no generated answer yet.</p>
-<small>Fictional activity · Source date: 20 October 2026 · Reference date: 20 October 2026 · Retrieval only, Codex is not connected</small>
-<details><summary>Read the full source document</summary><pre id="source">Loading source…</pre></details>
-<h2>Ask the document</h2>
-<div id="questions" class="questions" aria-label="Five test questions"></div>
-<form id="search-form">
-<label for="question">Your question (Dutch or English)</label>
-<textarea id="question" maxlength="1000" required></textarea>
-<div class="toolbar"><button id="run" class="primary" type="submit">Find passages</button><small id="progress">0 of 5 questions judged in this session</small></div>
-</form>
-<p id="status" role="status" style="margin-top:16px"></p>
-<section id="result" hidden aria-label="Retrieved passages">
-<h2>What the search found</h2>
-<p class="muted">These are the closest passages, not confirmed answers. Similarity is not a probability. The source may contain old information or omit what you asked.</p>
-<div id="hits"></div>
-<div id="review" class="review" hidden>
-<p><strong>Do these passages contain enough evidence?</strong></p>
-<p id="informed" class="muted" hidden>You have seen this question’s criteria. This is an informed review.</p>
-<div class="toolbar" id="verdicts"><button type="button" data-verdict="correct">Correct</button><button type="button" data-verdict="attention">Needs attention</button><button type="button" data-verdict="unsure">Not sure</button></div>
-<p id="verdict-status" style="margin-top:12px"></p>
-<button type="button" id="reveal" hidden>Reveal expected evidence</button>
-<div id="criteria" hidden></div>
-</div>
-<p id="custom-note" class="muted" hidden>This is your own question. Inspect the source to judge it; there are no prepared criteria.</p>
-</section>
-<details><summary>What runs locally?</summary><p>Rust splits the source at its six section headings, embeds each section once in memory, then embeds your question and ranks the sections by cosine similarity. The CLI and this page use the same search function.</p><p>Model: <span id="model"></span>. The model files download once; no API key is needed. The expected evidence is kept outside the embedding inputs and search response.</p><p>With six passages, a closest result will always exist. This experiment has no calibrated “no match” threshold, and five questions do not prove retrieval quality. Transport and current availability must not be inferred from a similarity score.</p></details>
-<footer>This is an independent learning experiment, not an internal COA plan. All source data is invented. Participation is voluntary; an employee discusses options with the resident. The demo writes no records, sends no messages and registers nobody.</footer>
-</main>
-<script>
-const byId = id => document.getElementById(id);
-let questions = [], activeQuestion = null, verdict = null;
-const judgements = new Map(), revealed = new Set();
-async function request(path, body) {
-  const response = await fetch(path, body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : {});
-  if (!response.ok) { const text = await response.text(); throw new Error(text || 'Request failed'); }
-  return response.json();
-}
-function clearResults() { byId('result').hidden = true; byId('status').textContent = ''; }
-function selectQuestion(question) {
-  byId('question').value = question.text;
-  document.querySelectorAll('[data-question]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.question === question.id)));
-  clearResults();
-}
-byId('question').addEventListener('input', () => {
-  document.querySelectorAll('[data-question]').forEach(button => button.setAttribute('aria-pressed',String(questions.find(q => q.id === button.dataset.question).text === byId('question').value.trim())));
-  clearResults();
-});
-byId('search-form').addEventListener('submit', async event => {
-  event.preventDefault();
-  const question = byId('question').value.trim();
-  if (!question) return;
-  activeQuestion = questions.find(q => q.text === question) || null;
-  verdict = null;
-  byId('result').hidden = true;
-  byId('criteria').hidden = true;
-  byId('reveal').hidden = true;
-  byId('verdict-status').textContent = '';
-  byId('informed').hidden = !activeQuestion || !revealed.has(activeQuestion.id);
-  document.querySelectorAll('button,textarea').forEach(element => element.disabled = true);
-  byId('status').className = '';
-  byId('status').textContent = 'Embedding your question and finding passages…';
-  try {
-    const result = await request('/api/search', {question});
-    byId('hits').replaceChildren();
-    result.hits.forEach((hit,index) => {
-      const article = document.createElement('article'); article.className = 'hit';
-      const heading = document.createElement('h3'); heading.textContent = (index+1) + '. ' + hit.section.id + ' · ' + hit.section.heading;
-      const quote = document.createElement('blockquote'); quote.textContent = hit.section.text;
-      const source = document.createElement('small'); source.textContent = result.source_id + ' / ' + hit.section.id + ' · Source: ' + result.source_date + ' · As of: ' + result.as_of;
-      const score = document.createElement('small'); score.textContent = 'Cosine similarity: ' + hit.similarity.toFixed(4) + ' (not confidence)';
-      article.append(heading,quote,source,score); byId('hits').append(article);
-    });
-    byId('result').hidden = false;
-    byId('review').hidden = !activeQuestion;
-    byId('custom-note').hidden = !!activeQuestion;
-    byId('status').textContent = 'Found three passages using the local embedding model.';
-  } catch (error) { byId('status').className = 'error'; byId('status').textContent = 'Search failed: ' + error.message; }
-  finally { document.querySelectorAll('button,textarea').forEach(element => element.disabled = false); }
-});
-byId('verdicts').addEventListener('click', event => {
-  if (!event.target.dataset.verdict || !activeQuestion) return;
-  verdict = event.target.dataset.verdict;
-  byId('informed').hidden = !revealed.has(activeQuestion.id);
-  if (!judgements.has(activeQuestion.id)) judgements.set(activeQuestion.id,verdict);
-  byId('progress').textContent = judgements.size + ' of 5 questions judged in this session';
-  byId('verdict-status').textContent = (revealed.has(activeQuestion.id) ? 'Informed review: ' : 'Your judgement: ') + event.target.textContent + '. First judgement preserved: ' + judgements.get(activeQuestion.id) + '.';
-  byId('reveal').hidden = false;
-});
-byId('reveal').addEventListener('click', async () => {
-  if (!activeQuestion || !verdict) return;
-  try {
-    const criteria = await request('/api/review',{question_id:activeQuestion.id,verdict});
-    revealed.add(activeQuestion.id);
-    const panel = byId('criteria'); panel.replaceChildren();
-    const heading = document.createElement('h3'); heading.textContent = 'Expected evidence · after your judgement'; panel.append(heading);
-    const sources = document.createElement('p'); sources.textContent = criteria.required_source_ids.length ? 'Relevant sections: ' + criteria.required_source_ids.join(', ') : 'No section establishes the requested information.'; panel.append(sources);
-    const list = document.createElement('ul');
-    [...criteria.required_facts,...criteria.unknown_flags,...criteria.forbidden_claims.map(text => 'Do not conclude: ' + text)].forEach(text => { const item = document.createElement('li'); item.textContent = text; list.append(item); });
-    panel.append(list); panel.hidden = false;
-    byId('reveal').hidden = true;
-  } catch(error) { byId('verdict-status').textContent = 'Could not load criteria: ' + error.message; }
-});
-(async () => {
-  try {
-    const [source, items] = await Promise.all([request('/api/source'),request('/api/questions')]);
-    byId('source').textContent = source.document; byId('model').textContent = source.model;
-    questions = items;
-    questions.forEach(question => { const button = document.createElement('button'); button.type='button'; button.dataset.question=question.id; button.textContent=question.id; button.setAttribute('aria-label', question.id + ': ' + question.text); button.addEventListener('click',()=>selectQuestion(question)); byId('questions').append(button); });
-    selectQuestion(questions[0]);
-  } catch(error) { byId('status').textContent = 'Could not load the experiment: ' + error.message; }
-})();
-</script></body></html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Vijf vragen · Controleer de bron</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f6f5ef;
+        --ink: #26392f;
+        --muted: #59655d;
+        --line: #d2d8cf;
+        --green: #315b45;
+        --wash: #e7ede2;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font:
+          16px/1.65 "Avenir Next",
+          "Segoe UI",
+          sans-serif;
+      }
+      main {
+        max-width: 950px;
+        margin: auto;
+        padding: 44px 24px;
+      }
+      h1,
+      h2 {
+        font-family: "Iowan Old Style", Palatino, serif;
+        font-weight: 500;
+        line-height: 1.15;
+      }
+      h1 {
+        font-size: clamp(36px, 6vw, 54px);
+        letter-spacing: -0.035em;
+        margin: 12px 0 20px;
+      }
+      h2 {
+        font-size: 28px;
+        margin: 28px 0 16px;
+      }
+      h3 {
+        font-size: 18px;
+        margin: 12px 0;
+      }
+      p {
+        max-width: 70ch;
+        margin: 0 0 16px;
+      }
+      .eyebrow {
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--green);
+        font-weight: 700;
+      }
+      .muted,
+      small {
+        color: var(--muted);
+      }
+      small {
+        font-size: 13px;
+      }
+      button,
+      textarea,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+      button {
+        cursor: pointer;
+        background: transparent;
+        border: 1px solid var(--line);
+        padding: 10px 16px;
+        min-height: 44px;
+      }
+      button:hover {
+        background: var(--wash);
+      }
+      button:disabled {
+        cursor: wait;
+        opacity: 0.6;
+      }
+      button[aria-pressed="true"] {
+        background: var(--wash);
+        border-color: var(--green);
+      }
+      button.primary {
+        background: var(--green);
+        color: var(--paper);
+        border-color: var(--green);
+      }
+      :focus-visible {
+        outline: 3px solid var(--green);
+        outline-offset: 4px;
+      }
+      .questions,
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .questions {
+        margin-bottom: 16px;
+      }
+      label {
+        font-size: 14px;
+        font-weight: 650;
+        display: block;
+        margin-bottom: 8px;
+      }
+      textarea,
+      select {
+        width: 100%;
+        padding: 12px;
+        background: var(--paper);
+        border: 1px solid var(--muted);
+        margin-bottom: 12px;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 104px;
+      }
+      select {
+        min-height: 48px;
+      }
+      details {
+        border-top: 1px solid var(--line);
+        padding: 16px 0;
+        margin: 24px 0;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      blockquote {
+        margin: 8px 0 12px;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .source-section,
+      .hit {
+        border-top: 1px solid var(--line);
+        padding: 16px 0;
+      }
+      .source-section p {
+        white-space: pre-wrap;
+      }
+      .review {
+        padding: 20px;
+        background: var(--wash);
+        margin-top: 24px;
+      }
+      .review button {
+        background: var(--paper);
+        border-color: var(--muted);
+      }
+      .answer {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font-size: 18px;
+      }
+      .error {
+        color: #913520;
+      }
+      .citation {
+        text-align: left;
+      }
+      .citation small {
+        display: block;
+      }
+      #status {
+        min-height: 28px;
+        margin-top: 16px;
+      }
+      #criteria {
+        margin-top: 20px;
+      }
+      #metadata {
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+      footer {
+        margin-top: 40px;
+        border-top: 1px solid var(--line);
+        padding-top: 20px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      [hidden] {
+        display: none !important;
+      }
+      @media (max-width: 500px) {
+        main {
+          padding: 28px 20px;
+        }
+        .review {
+          padding: 16px;
+        }
+        .toolbar button {
+          padding: 10px 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">Een kleine proef · Eén verzonnen bron</div>
+      <h1>Vijf vragen.<br />Controleer zelf het antwoord.</h1>
+      <p>
+        Lees de bron, stel een vraag en bekijk wat Codex met de gevonden
+        passages doet. Geef eerst je eigen oordeel. Daarna kun je de verwachte
+        onderbouwing bekijken.
+      </p>
+      <small id="source-dates">Bron en referentiedatum worden geladen…</small>
+      <details id="source">
+        <summary>Lees het volledige brondocument</summary>
+        <p id="source-intro" class="muted"></p>
+        <div id="source-sections"></div>
+      </details>
+      <h2>Stel je vraag</h2>
+      <p class="muted">
+        Gebruik alleen verzonnen gegevens. Je kunt een vraag kiezen of zelf
+        aanpassen.
+      </p>
+      <div id="questions" class="questions" aria-label="Vijf testvragen"></div>
+      <form id="form">
+        <label for="question">Vraag aan Codex</label
+        ><textarea
+          id="question"
+          class="run-control"
+          maxlength="1000"
+          required
+        ></textarea
+        ><button class="primary run-control" type="submit">
+          Zoek en maak antwoord
+        </button>
+      </form>
+      <p id="status" role="status"></p>
+      <section id="result" hidden aria-label="Uitvoering en antwoord">
+        <h2 id="result-title">Het antwoord</h2>
+        <small id="run-caption"></small>
+        <p id="answer" class="answer" style="margin-top: 16px"></p>
+        <div id="unknowns"></div>
+        <div id="citations"></div>
+        <details id="tool-details">
+          <summary>Bekijk zoekvragen en gevonden passages</summary>
+          <p class="muted">
+            Dit is wat de zoekfunctie teruggaf. Een hoge overeenkomst betekent
+            niet dat iets klopt of bekend is.
+          </p>
+          <div id="tools"></div>
+        </details>
+        <div id="review" class="review" hidden>
+          <p>
+            <strong
+              >Klopt het antwoord met de bron, inclusief wat onbekend
+              is?</strong
+            >
+          </p>
+          <p id="informed" class="muted" hidden>
+            Je hebt de criteria voor deze vraag al gezien. Dit oordeel is met
+            voorkennis.
+          </p>
+          <div id="verdicts" class="toolbar">
+            <button type="button" data-verdict="correct">Goed</button
+            ><button type="button" data-verdict="needs_attention">
+              Aandacht nodig</button
+            ><button type="button" data-verdict="not_sure">Weet ik niet</button>
+          </div>
+          <p id="first-verdict" style="margin-top: 12px"></p>
+          <div id="diagnosis-wrap" hidden>
+            <label for="diagnosis">Waar zit het probleem? (optioneel)</label
+            ><select id="diagnosis">
+              <option value="">Kies een categorie</option>
+              <option value="retrieval">Er ontbreekt een bronpassage</option>
+              <option value="answer">
+                Het antwoord gebruikt de bron verkeerd
+              </option>
+              <option value="both">Beide</option>
+              <option value="unclear">Nog niet duidelijk</option>
+            </select>
+          </div>
+          <button id="reveal" type="button" hidden>
+            Bekijk verwachte onderbouwing
+          </button>
+          <p id="custom-note" class="muted" hidden>
+            Eigen vraag: geen voorbereide criteria en niet meegeteld bij de vijf
+            testvragen.
+          </p>
+          <div id="criteria" hidden></div>
+        </div>
+        <button
+          id="replay"
+          class="run-control"
+          type="button"
+          style="margin-top: 20px"
+        >
+          Voer opnieuw uit met dezelfde context
+        </button>
+        <p class="muted small">
+          Een nieuwe uitvoering krijgt een eigen run. De bron en instellingen
+          blijven gelijk; de nieuwe antwoordtekst kan verschillen.
+        </p>
+        <details>
+          <summary>Gegevens van deze uitvoering</summary>
+          <div id="metadata"></div>
+        </details>
+      </section>
+      <details id="session-details" open>
+        <summary>Je testsessie</summary>
+        <p id="progress" style="margin-top: 16px">
+          Nog geen vragen beoordeeld.
+        </p>
+        <p class="muted">
+          Eerste oordelen blijven bewaard. “Weet ik niet” blijft onzeker; dit is
+          geen automatisch oordeel over kwaliteit. Eigen vragen tellen niet mee.
+        </p>
+        <label for="history">Bekijk een eerdere uitvoering</label
+        ><select id="history">
+          <option value="">Nog geen uitvoeringen</option>
+        </select>
+        <div class="toolbar">
+          <button id="download" type="button">Download testverslag</button
+          ><button id="new-session" class="run-control" type="button">
+            Nieuwe testsessie
+          </button>
+        </div>
+        <p class="muted small" style="margin-top: 12px">
+          Runs en oordelen staan alleen in het geheugen van deze lokale server
+          en verdwijnen bij herstart. Een nieuwe sessie reset de voortgang.
+          Eerder bekeken criteria blijven in deze browser als voorkennis
+          gemarkeerd.
+        </p>
+      </details>
+      <footer>
+        Dit is een eigen leerproef, geen intern COA-plan. Alle brongegevens zijn
+        verzonnen. Meedoen is vrijwillig; een medewerker bespreekt opties met de
+        bewoner. De demo wijzigt geen dossiers, verstuurt geen berichten en
+        meldt niemand aan.
+      </footer>
+    </main>
+    <script>
+      const el = (id) => document.getElementById(id),
+        labels = {
+          correct: "Goed",
+          needs_attention: "Aandacht nodig",
+          not_sure: "Weet ik niet",
+        };
+      let session = "",
+        questions = [],
+        source = {},
+        current = null,
+        busy = false,
+        pollVersion = 0;
+      function known() {
+        try {
+          return [
+            ...new Set(
+              JSON.parse(localStorage.getItem("coa-criteria-seen") || "[]"),
+            ),
+          ].filter((id) => ["Q1", "Q2", "Q3", "Q4", "Q5"].includes(id));
+        } catch {
+          return [];
+        }
+      }
+      async function api(path, body, method) {
+        const response = await fetch(path, {
+          method: method || (body ? "POST" : "GET"),
+          headers: {
+            "Content-Type": "application/json",
+            "X-Test-Session": session,
+          },
+          ...(body ? { body: JSON.stringify(body) } : {}),
+        });
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { error: text };
+        }
+        if (!response.ok) throw new Error(data.error || "Verzoek mislukt.");
+        return data;
+      }
+      function setBusy(value) {
+        busy = value;
+        document
+          .querySelectorAll(".run-control,#history")
+          .forEach((node) => (node.disabled = value));
+      }
+      function message(text, error = false) {
+        el("status").textContent = text;
+        el("status").className = error ? "error" : "";
+      }
+      function node(tag, text, className) {
+        const item = document.createElement(tag);
+        if (text !== undefined) item.textContent = text;
+        if (className) item.className = className;
+        return item;
+      }
+      function markQuestion() {
+        document
+          .querySelectorAll("[data-question]")
+          .forEach((button) =>
+            button.setAttribute(
+              "aria-pressed",
+              String(
+                questions.find((q) => q.id === button.dataset.question).text ===
+                  el("question").value.trim(),
+              ),
+            ),
+          );
+      }
+      function choose(question) {
+        if (busy) return;
+        el("question").value = question.text;
+        markQuestion();
+        el("result").hidden = true;
+        current = null;
+        message("");
+      }
+      function inspectSection(id) {
+        el("source").open = true;
+        const target = el("source-" + id);
+        if (target) {
+          target.focus();
+          target.scrollIntoView({ behavior: "auto", block: "center" });
+        }
+      }
+      function failureMessage(error) {
+        if (error?.startsWith("tool:"))
+          return "De bronzoekfunctie is niet goed afgerond. Er is geen antwoord opgeslagen.";
+        if (error?.startsWith("output:"))
+          return "Het antwoord kon niet aan de gevonden bronpassages worden gekoppeld. Er is geen antwoord opgeslagen.";
+        return "Codex kon de vraag niet afronden. Controleer de aanmelding of probeer opnieuw. De foutdetails staan bij de gegevens van deze uitvoering.";
+      }
+      function showRun(run) {
+        const changed = !current || current.id !== run.id;
+        current = run;
+        el("result").hidden = false;
+        el("result-title").textContent =
+          run.status === "failed" ? "De uitvoering is mislukt" : "Het antwoord";
+        el("run-caption").textContent =
+          (run.question_id || "Eigen vraag") +
+          " · " +
+          run.id +
+          " · " +
+          source.source_date +
+          " · " +
+          (run.parent_id
+            ? "Nieuwe uitvoering van " + run.parent_id
+            : "Eerste uitvoering van deze run");
+        el("answer").textContent =
+          run.status === "failed"
+            ? failureMessage(run.error)
+            : run.result?.answer?.text || "Codex is nog bezig…";
+        el("answer").classList.toggle("error", run.status === "failed");
+        el("unknowns").replaceChildren();
+        if (run.result?.answer?.unknowns?.length) {
+          el("unknowns").append(node("h3", "Wat blijft onbekend?"));
+          const list = node("ul");
+          run.result.answer.unknowns.forEach((text) =>
+            list.append(node("li", text)),
+          );
+          el("unknowns").append(list);
+        }
+        el("citations").replaceChildren();
+        (run.result?.answer?.citations || []).forEach((citation) => {
+          const button = node("button", undefined, "citation");
+          button.type = "button";
+          button.append(
+            node("strong", citation.section_id + " · Bekijk de bron"),
+            node("blockquote", citation.quote),
+            node(
+              "small",
+              source.source_id + " · brondatum " + source.source_date,
+            ),
+          );
+          button.addEventListener("click", () =>
+            inspectSection(citation.section_id),
+          );
+          el("citations").append(button);
+        });
+        el("tools").replaceChildren();
+        (run.result?.tool_calls || []).forEach((call) => {
+          const item = node("article", undefined, "hit");
+          item.append(
+            node("h3", "Zoekvraag: " + call.query),
+            node(
+              "small",
+              "Gevraagde passages: " + call.top_k + " · " + call.status,
+            ),
+          );
+          (call.result?.hits || []).forEach((hit) => {
+            item.append(
+              node("h3", hit.section.id + " · " + hit.section.heading),
+              node("blockquote", hit.section.text),
+              node(
+                "small",
+                call.result.source_id +
+                  " · brondatum " +
+                  call.result.source_date +
+                  " · referentie " +
+                  call.result.as_of,
+              ),
+              node(
+                "small",
+                "Cosinusovereenkomst: " +
+                  Number(hit.similarity).toFixed(4) +
+                  " — geen kans of zekerheid.",
+              ),
+            );
+          });
+          if (call.error) item.append(node("p", call.error, "error"));
+          el("tools").append(item);
+        });
+        el("review").hidden = run.status !== "completed";
+        el("tool-details").hidden = run.status !== "completed";
+        const latest = run.reviews.at(-1) || run.first_judgement;
+        el("informed").hidden = !(
+          latest?.informed || known().includes(run.question_id)
+        );
+        el("first-verdict").textContent = run.first_judgement
+          ? "Eerste oordeel: " +
+            labels[run.first_judgement.verdict] +
+            (run.first_judgement.informed ? " (met voorkennis)." : ".") +
+            (run.reviews.length
+              ? " Aanvulling: " +
+                labels[latest.verdict] +
+                "; het eerste oordeel blijft staan."
+              : "")
+          : "";
+        el("diagnosis-wrap").hidden = latest?.verdict !== "needs_attention";
+        el("diagnosis").value = run.diagnosis || "";
+        el("reveal").hidden = !run.first_judgement || !run.question_id;
+        el("custom-note").hidden = !!run.question_id;
+        if (changed) {
+          el("criteria").hidden = true;
+          el("criteria").replaceChildren();
+        }
+        el("metadata").replaceChildren();
+        [
+          "Status: " + run.status,
+          "Foutdetails: " + (run.error || "geen"),
+          "Bron: " +
+            source.source_id +
+            " · " +
+            source.source_date +
+            " · referentie " +
+            source.as_of,
+          "Aangemaakt: " + new Date(run.created_at_ms).toLocaleString("nl-NL"),
+          "Antwoordmodel: " + (run.result?.model || "onbekend"),
+          "Codex-client: " + (run.result?.client_version || "onbekend"),
+          "Bronhash: " +
+            (run.context.retrieval_manifest?.source_sha256 || "onbekend"),
+          "Instellingen zoekmodel: " +
+            (run.context.retrieval_manifest?.settings_sha256 || "onbekend"),
+          "Promptversie: " +
+            (run.context.codex_configuration?.prompt_version || "onbekend"),
+        ].forEach((text) => el("metadata").append(node("p", text)));
+      }
+      async function refresh() {
+        const summary = await api("/api/session");
+        el("progress").textContent =
+          "Beoordeeld: " +
+          summary.judged +
+          "/5 · goed: " +
+          summary.correct +
+          " · aandacht nodig: " +
+          summary.attention +
+          " · onzeker: " +
+          summary.unsure +
+          " · met voorkennis: " +
+          summary.informed +
+          ".";
+        el("history").replaceChildren(node("option", "Kies een uitvoering"));
+        el("history").firstChild.value = "";
+        summary.runs
+          .slice()
+          .reverse()
+          .forEach((run) => {
+            const option = node(
+              "option",
+              (run.question_id || "Eigen vraag") +
+                " · " +
+                run.status +
+                " · " +
+                run.id,
+            );
+            option.value = run.id;
+            el("history").append(option);
+          });
+        if (current) el("history").value = current.id;
+        return summary;
+      }
+      async function watch(run) {
+        const version = ++pollVersion;
+        setBusy(true);
+        showRun(run);
+        message(
+          "Codex zoekt passages en maakt een antwoord. Dit duurt vaak ongeveer een minuut. Je kunt de bron blijven bekijken.",
+        );
+        try {
+          while (run.status === "pending") {
+            await new Promise((resolve) => setTimeout(resolve, 750));
+            run = await api("/api/runs/" + run.id);
+            if (version !== pollVersion) return;
+          }
+          showRun(run);
+          message(
+            run.status === "failed"
+              ? "Er is geen antwoord opgeslagen. Je kunt de uitvoering opnieuw proberen."
+              : "Antwoord en gebruikte bronnen zijn opgeslagen.",
+            run.status === "failed",
+          );
+          await refresh();
+        } catch (error) {
+          message(error.message, true);
+        } finally {
+          if (version === pollVersion) setBusy(false);
+        }
+      }
+      async function begin(path, body) {
+        if (busy) return;
+        setBusy(true);
+        message("Uitvoering starten…");
+        try {
+          const run = await api(path, body || {});
+          await watch(run);
+        } catch (error) {
+          setBusy(false);
+          message(error.message, true);
+        }
+      }
+      el("form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        begin("/api/runs", { question: el("question").value.trim(), top_k: 3 });
+      });
+      el("question").addEventListener("input", () => {
+        markQuestion();
+        el("result").hidden = true;
+        current = null;
+        message("");
+      });
+      el("replay").addEventListener("click", () => {
+        if (current) begin("/api/runs/" + current.id + "/replay", {});
+      });
+      el("history").addEventListener("change", async () => {
+        if (!el("history").value) return;
+        try {
+          const run = await api("/api/runs/" + el("history").value);
+          el("question").value = run.question;
+          markQuestion();
+          if (run.status === "pending") await watch(run);
+          else showRun(run);
+        } catch (error) {
+          message(error.message, true);
+        }
+      });
+      el("verdicts").addEventListener("click", async (event) => {
+        if (!current || !event.target.dataset.verdict) return;
+        try {
+          const run = await api("/api/runs/" + current.id + "/judgement", {
+            verdict: event.target.dataset.verdict,
+          });
+          showRun(run);
+          await refresh();
+        } catch (error) {
+          message(error.message, true);
+        }
+      });
+      el("diagnosis").addEventListener("change", async () => {
+        if (!current || !el("diagnosis").value) return;
+        try {
+          current = await api("/api/runs/" + current.id + "/diagnosis", {
+            diagnosis: el("diagnosis").value,
+          });
+        } catch (error) {
+          message(error.message, true);
+        }
+      });
+      el("reveal").addEventListener("click", async () => {
+        if (!current) return;
+        try {
+          const data = await api("/api/runs/" + current.id + "/criteria", {});
+          const seen = new Set(known());
+          seen.add(current.question_id);
+          localStorage.setItem("coa-criteria-seen", JSON.stringify([...seen]));
+          current = await api("/api/runs/" + current.id);
+          showRun(current);
+          const panel = el("criteria");
+          panel.replaceChildren(node("h3", "Vergelijk de onderbouwing"));
+          const required = data.expected.required_source_ids,
+            actual = data.actual_source_ids;
+          panel.append(
+            node(
+              "p",
+              "Verwacht: " +
+                (required.join(", ") || "geen bronsectie met deze informatie") +
+                ". Gevonden: " +
+                (actual.join(", ") || "geen") +
+                ".",
+            ),
+          );
+          const missing = required.filter((id) => !actual.includes(id));
+          if (missing.length)
+            panel.append(
+              node("p", "Ontbrekende bronsecties: " + missing.join(", ") + "."),
+            );
+          const list = node("ul");
+          data.expected.required_facts.forEach((text) =>
+            list.append(node("li", text)),
+          );
+          data.expected.forbidden_claims.forEach((text) =>
+            list.append(node("li", "Niet concluderen: " + text)),
+          );
+          panel.append(list);
+          panel.hidden = false;
+          await refresh();
+        } catch (error) {
+          message(error.message, true);
+        }
+      });
+      async function createSession() {
+        const data = await api("/api/session", { seen_question_ids: known() });
+        session = data.session_id;
+        sessionStorage.setItem("coa-test-session", session);
+        current = null;
+        el("result").hidden = true;
+        await refresh();
+        message(
+          "Nieuwe sessie. Eerder bekeken criteria blijven als voorkennis gemarkeerd.",
+        );
+      }
+      el("new-session").addEventListener("click", async () => {
+        if (busy) return;
+        try {
+          await createSession();
+        } catch (error) {
+          message(error.message, true);
+        }
+      });
+      el("download").addEventListener("click", async () => {
+        try {
+          const response = await fetch("/api/report", {
+            headers: { "X-Test-Session": session },
+          });
+          if (!response.ok) throw new Error("Verslag kon niet worden geladen.");
+          const url = URL.createObjectURL(await response.blob());
+          const link = node("a");
+          link.href = url;
+          link.download = "meedoen-testverslag.txt";
+          link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) {
+          message(error.message, true);
+        }
+      });
+      (async () => {
+        setBusy(true);
+        try {
+          [source, questions] = await Promise.all([
+            api("/api/source"),
+            api("/api/questions"),
+          ]);
+          el("source-dates").textContent =
+            source.source_id +
+            " · brondatum " +
+            source.source_date +
+            " · referentiedatum " +
+            source.as_of;
+          el("source-intro").textContent = source.document.split("## ")[0];
+          source.sections.forEach((section) => {
+            const item = node("section", undefined, "source-section");
+            item.id = "source-" + section.id;
+            item.tabIndex = -1;
+            item.append(
+              node("h3", section.id + " · " + section.heading),
+              node("p", section.text),
+              node(
+                "small",
+                "Bron " + source.source_id + " · " + source.source_date,
+              ),
+            );
+            el("source-sections").append(item);
+          });
+          questions.forEach((question) => {
+            const button = node("button", question.id, "run-control");
+            button.type = "button";
+            button.dataset.question = question.id;
+            button.setAttribute(
+              "aria-label",
+              question.id + ": " + question.text,
+            );
+            button.addEventListener("click", () => choose(question));
+            el("questions").append(button);
+          });
+          session = sessionStorage.getItem("coa-test-session") || "";
+          let summary;
+          try {
+            if (!session) throw new Error();
+            summary = await refresh();
+          } catch {
+            await createSession();
+            summary = await refresh();
+          }
+          setBusy(false);
+          choose(questions[0]);
+          const pending = summary.runs.find((run) => run.status === "pending");
+          if (pending) {
+            el("question").value = pending.question;
+            markQuestion();
+            await watch(pending);
+          } else if (!source.runtime_ready)
+            message(
+              "Codex is nog niet beschikbaar: " + source.runtime_error,
+              true,
+            );
+        } catch (error) {
+          message("De proef kon niet worden geladen: " + error.message, true);
+          setBusy(false);
+        }
+      })();
+    </script>
+  </body>
+</html>
