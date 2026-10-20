@@ -19,6 +19,19 @@ cargo run --locked -- search 'Waar en wanneer is het tuinieren?'
 cargo test --locked
 ```
 
+## Compare retrieval on the five questions
+
+```sh
+cargo run --locked -- eval > /tmp/meedoen-eval.json
+cargo run --locked -- search --top-k 2 'Wanneer is het tuinieren?'
+```
+
+`eval` calls the same dense search as the page and compares it with a simple keyword baseline. The JSON report includes exact hits, missing source IDs, source-section coverage, separate unknown criteria and input/model/settings hashes. Top-k is bounded from 1 to 6; the default remains 3. No settings were tuned to the five questions.
+
+The recorded [live evaluation](reports/one-document-eval.json) retains the known Q1 location miss and Q5's unrelated closest passages. Source coverage is not answer correctness: Q4's historical availability still requires human review, and Q5 has no relevant source section, so its coverage is undefined. There is no 90% target or held-out claim for these five learning questions. [Decisions](decisions.md) describes provenance, date handling and replay limits.
+
+CI runs `cargo fmt --all --check`, clippy, deterministic tests and build. Tests do not load/download the embedding model or require credentials; the live evaluation above is separate.
+
 ## What it does
 
 - `fixtures/document.md` is the only indexed document, split into six sections. Each short section is embedded once in memory.

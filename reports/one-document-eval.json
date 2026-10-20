@@ -1,0 +1,387 @@
+{
+  "cases": [
+    {
+      "dense": {
+        "hits": [
+          {
+            "section": {
+              "heading": "Wat doen we?",
+              "id": "S1",
+              "text": "We verzorgen samen groenten en bloemen in de buurttuin. Je werkt buiten met je handen. Ervaring met tuinieren is niet nodig."
+            },
+            "similarity": 0.6288501024246216
+          },
+          {
+            "section": {
+              "heading": "Wat neem je mee?",
+              "id": "S5",
+              "text": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+            },
+            "similarity": 0.3560313582420349
+          },
+          {
+            "section": {
+              "heading": "Wanneer?",
+              "id": "S2",
+              "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+            },
+            "similarity": 0.31021708250045776
+          }
+        ],
+        "missing_source_ids": [
+          "S3"
+        ],
+        "scoring": "cosine similarity, not probability",
+        "source_section_coverage": 0.5
+      },
+      "expected_unknown_flags": [],
+      "keyword": {
+        "hits": [
+          {
+            "section": {
+              "heading": "Wat doen we?",
+              "id": "S1",
+              "text": "We verzorgen samen groenten en bloemen in de buurttuin. Je werkt buiten met je handen. Ervaring met tuinieren is niet nodig."
+            },
+            "similarity": 0.125
+          },
+          {
+            "section": {
+              "heading": "Waar?",
+              "id": "S3",
+              "text": "Buurttuin De Linde, achter het fictieve buurthuis aan de Lindenlaan 12 in het fictieve Lindedorp."
+            },
+            "similarity": 0.11764705926179886
+          },
+          {
+            "section": {
+              "heading": "Taal en hulp",
+              "id": "S4",
+              "text": "De begeleider spreekt eenvoudig Nederlands en doet het werk eerst voor. Je hoeft niet goed Nederlands te spreken. De begeleider is tijdens de activiteit aanwezig."
+            },
+            "similarity": 0.11538461595773697
+          }
+        ],
+        "scoring": "Jaccard overlap of lowercase alphanumeric tokens; no stopword tuning",
+        "source_section_coverage": 0.5
+      },
+      "question": "Waar en wanneer is het tuinieren?",
+      "question_id": "Q1",
+      "required_source_ids": [
+        "S2",
+        "S3"
+      ],
+      "unknown_handling_assessment": "not_applicable"
+    },
+    {
+      "dense": {
+        "hits": [
+          {
+            "section": {
+              "heading": "Wat doen we?",
+              "id": "S1",
+              "text": "We verzorgen samen groenten en bloemen in de buurttuin. Je werkt buiten met je handen. Ervaring met tuinieren is niet nodig."
+            },
+            "similarity": 0.6702603697776794
+          },
+          {
+            "section": {
+              "heading": "Wat neem je mee?",
+              "id": "S5",
+              "text": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+            },
+            "similarity": 0.5422884225845337
+          },
+          {
+            "section": {
+              "heading": "Beschikbaarheid",
+              "id": "S6",
+              "text": "Op 2026-09-01 waren er twee vrije plekken. Sindsdien is het aantal plekken niet opnieuw gecontroleerd."
+            },
+            "similarity": 0.15038156509399414
+          }
+        ],
+        "missing_source_ids": [],
+        "scoring": "cosine similarity, not probability",
+        "source_section_coverage": 1.0
+      },
+      "expected_unknown_flags": [],
+      "keyword": {
+        "hits": [
+          {
+            "section": {
+              "heading": "Wat neem je mee?",
+              "id": "S5",
+              "text": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+            },
+            "similarity": 0.03125
+          },
+          {
+            "section": {
+              "heading": "Wat doen we?",
+              "id": "S1",
+              "text": "We verzorgen samen groenten en bloemen in de buurttuin. Je werkt buiten met je handen. Ervaring met tuinieren is niet nodig."
+            },
+            "similarity": 0.02857142873108387
+          },
+          {
+            "section": {
+              "heading": "Wanneer?",
+              "id": "S2",
+              "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+            },
+            "similarity": 0.0
+          }
+        ],
+        "scoring": "Jaccard overlap of lowercase alphanumeric tokens; no stopword tuning",
+        "source_section_coverage": 1.0
+      },
+      "question": "Ik wil graag buiten bezig zijn, maar heb nog nooit planten verzorgd. Kan dat hier?",
+      "question_id": "Q2",
+      "required_source_ids": [
+        "S1"
+      ],
+      "unknown_handling_assessment": "not_applicable"
+    },
+    {
+      "dense": {
+        "hits": [
+          {
+            "section": {
+              "heading": "Taal en hulp",
+              "id": "S4",
+              "text": "De begeleider spreekt eenvoudig Nederlands en doet het werk eerst voor. Je hoeft niet goed Nederlands te spreken. De begeleider is tijdens de activiteit aanwezig."
+            },
+            "similarity": 0.6807630062103271
+          },
+          {
+            "section": {
+              "heading": "Wanneer?",
+              "id": "S2",
+              "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+            },
+            "similarity": 0.40625718235969543
+          },
+          {
+            "section": {
+              "heading": "Wat neem je mee?",
+              "id": "S5",
+              "text": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+            },
+            "similarity": 0.2584918439388275
+          }
+        ],
+        "missing_source_ids": [],
+        "scoring": "cosine similarity, not probability",
+        "source_section_coverage": 1.0
+      },
+      "expected_unknown_flags": [],
+      "keyword": {
+        "hits": [
+          {
+            "section": {
+              "heading": "Beschikbaarheid",
+              "id": "S6",
+              "text": "Op 2026-09-01 waren er twee vrije plekken. Sindsdien is het aantal plekken niet opnieuw gecontroleerd."
+            },
+            "similarity": 0.1034482792019844
+          },
+          {
+            "section": {
+              "heading": "Taal en hulp",
+              "id": "S4",
+              "text": "De begeleider spreekt eenvoudig Nederlands en doet het werk eerst voor. Je hoeft niet goed Nederlands te spreken. De begeleider is tijdens de activiteit aanwezig."
+            },
+            "similarity": 0.08571428805589676
+          },
+          {
+            "section": {
+              "heading": "Wat neem je mee?",
+              "id": "S5",
+              "text": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+            },
+            "similarity": 0.06451612710952759
+          }
+        ],
+        "scoring": "Jaccard overlap of lowercase alphanumeric tokens; no stopword tuning",
+        "source_section_coverage": 0.5
+      },
+      "question": "Kan ik op dinsdagochtend komen als ik weinig Nederlands spreek, en is er iemand die helpt?",
+      "question_id": "Q3",
+      "required_source_ids": [
+        "S2",
+        "S4"
+      ],
+      "unknown_handling_assessment": "not_applicable"
+    },
+    {
+      "dense": {
+        "hits": [
+          {
+            "section": {
+              "heading": "Beschikbaarheid",
+              "id": "S6",
+              "text": "Op 2026-09-01 waren er twee vrije plekken. Sindsdien is het aantal plekken niet opnieuw gecontroleerd."
+            },
+            "similarity": 0.6370962858200073
+          },
+          {
+            "section": {
+              "heading": "Wanneer?",
+              "id": "S2",
+              "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+            },
+            "similarity": 0.39724770188331604
+          },
+          {
+            "section": {
+              "heading": "Wat neem je mee?",
+              "id": "S5",
+              "text": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+            },
+            "similarity": 0.220159113407135
+          }
+        ],
+        "missing_source_ids": [],
+        "scoring": "cosine similarity, not probability",
+        "source_section_coverage": 1.0
+      },
+      "expected_unknown_flags": [
+        "CURRENT_AVAILABILITY_UNKNOWN"
+      ],
+      "keyword": {
+        "hits": [
+          {
+            "section": {
+              "heading": "Beschikbaarheid",
+              "id": "S6",
+              "text": "Op 2026-09-01 waren er twee vrije plekken. Sindsdien is het aantal plekken niet opnieuw gecontroleerd."
+            },
+            "similarity": 0.1818181872367859
+          },
+          {
+            "section": {
+              "heading": "Wat neem je mee?",
+              "id": "S5",
+              "text": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+            },
+            "similarity": 0.03846153989434242
+          },
+          {
+            "section": {
+              "heading": "Wat doen we?",
+              "id": "S1",
+              "text": "We verzorgen samen groenten en bloemen in de buurttuin. Je werkt buiten met je handen. Ervaring met tuinieren is niet nodig."
+            },
+            "similarity": 0.0
+          }
+        ],
+        "scoring": "Jaccard overlap of lowercase alphanumeric tokens; no stopword tuning",
+        "source_section_coverage": 1.0
+      },
+      "question": "Zijn er op 20 oktober 2026 nog plekken vrij?",
+      "question_id": "Q4",
+      "required_source_ids": [
+        "S6"
+      ],
+      "unknown_handling_assessment": "requires human or future answer-level review; retrieval does not infer facts"
+    },
+    {
+      "dense": {
+        "hits": [
+          {
+            "section": {
+              "heading": "Wanneer?",
+              "id": "S2",
+              "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+            },
+            "similarity": 0.2941739857196808
+          },
+          {
+            "section": {
+              "heading": "Waar?",
+              "id": "S3",
+              "text": "Buurttuin De Linde, achter het fictieve buurthuis aan de Lindenlaan 12 in het fictieve Lindedorp."
+            },
+            "similarity": 0.2748548984527588
+          },
+          {
+            "section": {
+              "heading": "Wat neem je mee?",
+              "id": "S5",
+              "text": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+            },
+            "similarity": 0.27356335520744324
+          }
+        ],
+        "missing_source_ids": [],
+        "scoring": "cosine similarity, not probability",
+        "source_section_coverage": null
+      },
+      "expected_unknown_flags": [
+        "TRANSPORT_UNKNOWN"
+      ],
+      "keyword": {
+        "hits": [
+          {
+            "section": {
+              "heading": "Wat neem je mee?",
+              "id": "S5",
+              "text": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+            },
+            "similarity": 0.03846153989434242
+          },
+          {
+            "section": {
+              "heading": "Wat doen we?",
+              "id": "S1",
+              "text": "We verzorgen samen groenten en bloemen in de buurttuin. Je werkt buiten met je handen. Ervaring met tuinieren is niet nodig."
+            },
+            "similarity": 0.03448275849223137
+          },
+          {
+            "section": {
+              "heading": "Taal en hulp",
+              "id": "S4",
+              "text": "De begeleider spreekt eenvoudig Nederlands en doet het werk eerst voor. Je hoeft niet goed Nederlands te spreken. De begeleider is tijdens de activiteit aanwezig."
+            },
+            "similarity": 0.032258063554763794
+          }
+        ],
+        "scoring": "Jaccard overlap of lowercase alphanumeric tokens; no stopword tuning",
+        "source_section_coverage": null
+      },
+      "question": "Kan iemand mij ophalen en na afloop weer thuisbrengen?",
+      "question_id": "Q5",
+      "required_source_ids": [],
+      "unknown_handling_assessment": "requires human or future answer-level review; retrieval does not infer facts"
+    }
+  ],
+  "labels_sha256": "9f6395d7f610189b71f1ffc1d3e12e994dee03d4f8e8779b2ac49b946f64be03",
+  "manifest": {
+    "as_of": "2026-10-20",
+    "chunking": "section-headings-v1",
+    "dimensions": 384,
+    "document_vectors_sha256": "cb84334b59da9dda6b856d5124e3c3e4959522971a489fc0318d98917392920f",
+    "encoding": "unprefixed sentence transformer; heading + newline + text for sections",
+    "filter": "single fictional document; no eligibility inference",
+    "max_tokens": 512,
+    "model": "Qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q",
+    "platform": "macos-aarch64",
+    "sdk": "fastembed 7.1.2",
+    "settings_sha256": "52196bc0469c4e9f5f0890b971fb9325d4833e609d2112b2e1f362a7c7aab285",
+    "source_sha256": "6f70dd16aab821a2dda754f8c64b6c211ce0d9d7b57412e1c90eeca12ce191a2"
+  },
+  "questions_sha256": "d56a327281761d361bd2cd516142dd7d03414eabb1601420e51c764d1d8da6bd",
+  "report_version": "one-document-source-evidence-v1",
+  "run_unix_seconds": 1792496126,
+  "summary": {
+    "cases_with_source_labels": 4,
+    "dense_mean_source_section_coverage": 0.875,
+    "keyword_mean_source_section_coverage": 0.75,
+    "limitations": "Five learning questions only; no held-out set, quality gate, no-match threshold, eligibility or generated-answer assessment. Historical evidence coverage does not establish current availability.",
+    "question_count": 5,
+    "unknown_cases_requiring_separate_review": 2
+  },
+  "top_k": 3
+}
