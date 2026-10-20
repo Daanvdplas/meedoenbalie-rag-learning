@@ -81,8 +81,12 @@ pub fn run(index: &mut Index, top_k: usize) -> Result<Value, String> {
             .iter()
             .find(|case| case.question_id == question.id)
             .ok_or("Missing question labels")?;
+        let started = std::time::Instant::now();
         let dense = index.search_with_top_k(&question.text, top_k)?;
+        let dense_ms = started.elapsed().as_secs_f64() * 1000.0;
+        let started = std::time::Instant::now();
         let keyword = keyword_search(index.source(), &question.text, top_k)?;
+        let keyword_ms = started.elapsed().as_secs_f64() * 1000.0;
         let dense_ids: Vec<_> = dense
             .hits
             .iter()
@@ -104,8 +108,8 @@ pub fn run(index: &mut Index, top_k: usize) -> Result<Value, String> {
             .collect();
         cases.push(json!({
             "question_id":question.id,"question":question.text,"required_source_ids":gold.required_source_ids,
-            "dense":{"hits":dense.hits,"source_section_coverage":dense_score,"missing_source_ids":missing,"scoring":"cosine similarity, not probability"},
-            "keyword":{"hits":keyword,"source_section_coverage":keyword_score,"scoring":"Jaccard overlap of lowercase alphanumeric tokens; no stopword tuning"},
+            "dense":{"search_elapsed_ms":dense_ms,"hits":dense.hits,"source_section_coverage":dense_score,"missing_source_ids":missing,"scoring":"cosine similarity, not probability"},
+            "keyword":{"search_elapsed_ms":keyword_ms,"hits":keyword,"source_section_coverage":keyword_score,"scoring":"Jaccard overlap of lowercase alphanumeric tokens; no stopword tuning"},
             "expected_unknown_flags":gold.unknown_flags,
             "unknown_handling_assessment":if gold.unknown_flags.is_empty(){"not_applicable"}else{"requires human or future answer-level review; retrieval does not infer facts"},
         }));
@@ -119,6 +123,8 @@ pub fn run(index: &mut Index, top_k: usize) -> Result<Value, String> {
     }
     Ok(json!({
         "report_version":"one-document-source-evidence-v1","manifest":index.manifest(),"top_k":top_k,
+        "source_id":index.source().id,"source_date":index.source().date,
+        "timing_note":"Measured warm-index search time per question; model/source-vector initialization excluded. Dense includes query embedding and ranking; keyword includes tokenization and ranking. One local run, not a performance claim.",
         "questions_sha256":hash(QUESTIONS.as_bytes()),"labels_sha256":hash(EXPECTATIONS.as_bytes()),
         "run_unix_seconds":std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_err(|e|e.to_string())?.as_secs(),
         "summary":{"question_count":questions.len(),"cases_with_source_labels":dense_coverage.len(),
@@ -131,6 +137,26 @@ pub fn run(index: &mut Index, top_k: usize) -> Result<Value, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    #[ignore = "requires the real local embedding model; run separately from deterministic CI"]
+    fn live_report_retains_source_provenance_and_measured_search_times() {
+        let mut index = Index::load().unwrap();
+        let report = run(&mut index, 3).unwrap();
+        assert_eq!(report["source_id"], "ACT-TUIN-001");
+        assert_eq!(report["source_date"], "2026-10-20");
+        for case in report["cases"].as_array().unwrap() {
+            assert!(
+                case["dense"]["search_elapsed_ms"]
+                    .as_f64()
+                    .is_some_and(|ms| ms >= 0.0)
+            );
+            assert!(
+                case["keyword"]["search_elapsed_ms"]
+                    .as_f64()
+                    .is_some_and(|ms| ms >= 0.0)
+            );
+        }
+    }
     #[test]
     fn coverage_counts_distinct_source_evidence_not_repeated_hits() {
         let expected = vec!["S2".into(), "S3".into()];
