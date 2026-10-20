@@ -98,6 +98,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         args.remove(0)
     };
     match command.as_str() {
+        "mcp" if args.is_empty() => {
+            let mut index: Option<Index> = None;
+            meedoen_retrieval::mcp::serve(
+                std::io::stdin().lock(),
+                std::io::stdout().lock(),
+                |query, top_k| {
+                    if index.is_none() {
+                        index = Some(Index::load()?);
+                    }
+                    let result = index.as_mut().unwrap().search_with_top_k(query, top_k)?;
+                    serde_json::to_value(result).map_err(|error| error.to_string())
+                },
+            )
+            .map_err(std::io::Error::other)?;
+            return Ok(());
+        }
+        "ask" => {
+            let top_k = parse_top_k(&mut args).map_err(std::io::Error::other)?;
+            let runner =
+                meedoen_retrieval::codex::CodexRunner::new().map_err(std::io::Error::other)?;
+            let result = runner
+                .run(&args.join(" "), top_k)
+                .await
+                .map_err(std::io::Error::other)?;
+            println!("{}", serde_json::to_string_pretty(&result)?);
+            return Ok(());
+        }
         "search" | "eval" => {
             let top_k = parse_top_k(&mut args).map_err(std::io::Error::other)?;
             if command == "eval" && !args.is_empty() {
@@ -127,7 +154,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "serve" if args.is_empty() => {}
         _ => {
             return Err(
-                "Usage: [serve | search [--top-k 1..6] QUESTION | eval [--top-k 1..6]]".into(),
+                "Usage: [serve | search [--top-k 1..6] QUESTION | eval [--top-k 1..6] | mcp | ask [--top-k 1..6] QUESTION]".into(),
             );
         }
     }
