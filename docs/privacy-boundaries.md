@@ -1,0 +1,57 @@
+# Privacygrenzen van de lokale proef
+
+**Besluit nu: uitsluitend fictieve activiteiten en fictieve vragen.** Lokale embeddings houden de tekst voor het antwoord niet lokaal: de vraag en gevonden passages gaan via Codex naar OpenAI. Echte bewonersgegevens en interne COA-documenten zijn niet toegestaan. Dit eigen prototype is geen intern COA-plan of privacycertificering.
+
+Code-inventaris op **21 oktober 2026**, basis `68fcc77ec52e8628ba29d1f234f074d5d77ed7ee`. Dit is een controle van de repository, geen audit van de actieve provideraccount, netwerkverkeer, bestandsrechten, schijfversleuteling of backups. De lopende demo is hiervoor niet gewijzigd. [#20](https://github.com/Daanvdplas/meedoenbalie-rag-learning/issues/20) blijft open voor een organisatiebesluit; [#22](https://github.com/Daanvdplas/meedoenbalie-rag-learning/issues/22) beschrijft opslag-, transport- en geheimengrenzen.
+
+## Waar gaat wat naartoe?
+
+De huidige lokale beheerder beheert de proef. Rollen voor toekomstig organisatiegebruik zijn hieronder voorgestelde verantwoordelijkheden; er is nog niemand namens een organisatie aangewezen. “Tot herstart” betekent dat de app geen duurzame opslag maakt, niet dat RAM veilig wordt overschreven of dat OS-swap en crashdumps zijn gecontroleerd.
+
+| Onderdeel en doel | Locatie en ontvanger | Bewaren en eigenaar | Huidige grens / nodig voor echte data |
+| --- | --- | --- | --- |
+| Vijf activiteitdocumenten: zoekbron | `fixtures/*.md`, Git-kopieën en appbinary via `include_str!`; `/api/source` stuurt alle vijf naar de browser | Tot eigenaar bestanden, Gitgeschiedenis en artifacts opruimt; lokale/repositorybeheerder | Alleen fictief. Geen documentrechten; iedereen die de lokale API bereikt kan alle activiteiten lezen. Interne bronnen vereisen een andere laad- en toegangsgrens vóór distributie. |
+| Modelgewichten/tokenizer: lokaal rekenen | `.model-cache/`, gebruikt door fastembed | Blijven op schijf na herstart; lokale beheerder | Modelbestanden zijn geen opgeslagen documentvectoren. Download en hostbescherming apart controleren; `.gitignore` is geen beveiliging. |
+| Document- en vraagvectoren: tekst vergelijken | `Index` in RAM; webproces en per run het MCP-proces maken hun eigen index | Proceslevensduur; lokale beheerder | Geen vectordatabase of persistente vectorcache. Geen zeroization-/swapgarantie; embeddings en hashes zijn niet automatisch anoniem of versleuteld. |
+| Vraag en zoekresultaten: antwoordcontext | Browser → lokale webserver → Codex; MCP retourneert passages, zoekvraag, bronlijst en manifest naar Codex | App verwerkt dit in RAM; providertermijnen onbekend; lokale beheerder plus nog te benoemen accounteigenaar/provider | Hele vrije vraag wordt doorgestuurd; alleen lengtecontrole, geen verbod op persoonsgegevens afgedwongen. Alle vijf brontitels/IDs/datums/hashes staan ook in het zoekmanifest, niet alleen die van de hits. |
+| Antwoord, passages, zoekacties en historie: inspectie/replay | `RunStore` in server-RAM; antwoorden en historie in browser-DOM | Geen TTL; maximaal 16 sessies × 40 runs, tot serverherstart; lokale beheerder | Een nieuwe sessie wist de oude niet. Replay controleert context, geen actuele organisatierechten. Sessies zijn geen gebruikersidentiteit of sterke toegangscontrole. |
+| Browser: sessie terugvinden | `sessionStorage` bevat `coa-test-session`; bron- en runinhoud wordt zichtbaar in de pagina | Volgens browserlevenscyclus; tester beheert browser | Geen vraagopslag in `localStorage` door deze UI. Browserherstel, extensies, screenshots en systeemopslag niet onderzocht. Sluiten van een tab bewijst geen serverwisactie. |
+| Testverslag: handmatig delen | Bestaande `/api/report` kan TXT teruggeven; demo heeft geen downloadknop meer | Downloads/kopieën tot hun eigenaar wist; tester | Kan vragen, antwoorden, fout en configuratie bevatten; op deze basis ook een absoluut runtimepad. Verbergen van de knop verwijdert de API niet. Deel geen ongelezen verslag. |
+| Codex-uitvoering en diagnostiek: model laten antwoorden | Bestaande lokale Codex-runtime/login; gepipete stdout/stderr in app-RAM; tijdelijke runmap bevat schema | App begrenst buffers en probeert eigen runmap op te ruimen; Codex-/OS-logs, telemetry en provideropslag niet geïnventariseerd | `--ephemeral`/`--no-daemon` zijn geen bewijs van nul diagnostiek of providerretentie. Geen aanmeldbestanden of loginhoud voor deze inventaris geopend. |
+| Git, build/CI, exports en backups: ontwikkeling/herstel | Lokale clones/worktrees, remote repository, buildoutput en eventueel OS-/cloudbackups | Volgens betreffende beheerder; onbekende kopieën/termijnen | CI bouwt de fictieve bronnen mee. Geen backup-, artifact- of verwijderaudit gedaan. Echte data mag niet eerst in Git/binaries terechtkomen. |
+
+Codebewijs: [Index en broninvoer](../src/lib.rs), [CLI/MCP-proces](../src/main.rs), [web-API en verslag](../src/web.rs), [runopslag/replay](../src/runs.rs), [browser](../static/index.html), [Codex-runner](../src/codex.rs), [CI](../.github/workflows/checks.yml).
+
+## Welk besluit ontbreekt?
+
+De huidige route hergebruikt de eerder voor deze demo geverifieerde ChatGPT-aanmelding. De app dwingt geen organisatieaccount of werkruimte af en inventariseert de overeenkomst niet. `COA_CODEX_MODEL` en `COA_CODEX_BIN` zijn lokale overrides, geen door een organisatie goedgekeurde routeselectie.
+
+De organisatie moet vóór echte data benoemen: **gegevenseigenaar, dataklassen/velden, doel, ontvangers, goedgekeurde modelroute en account/werkruimte**. De accountbeheerder bevestigt overeenkomst, verwerking-/opslaglocaties en eventuele doorgifte. Traininggebruik, veiligheidslogs, applicatiestatus en verwijderen worden afzonderlijk gecontroleerd voor precies die route en functies. Deze gegevens en eigenaren zijn nu **onbekend**. Host-/gegevenseigenaar bepalen toegangsrechten, bewaartermijnen en incidentcontact. Niets hiervan is namens hen besloten.
+
+**Go/no-go:** zolang een relevant veld onbekend is, geen echte interne gegevens. Als externe verwerking niet is toegestaan: alleen lokale retrieval op toegestane gegevens, zonder Codex-antwoord, tot een goedgekeurde route bestaat. Een zakelijke/API-route kan worden onderzocht maar wordt hiermee niet gekozen of ingericht. Publiek synthetisch testen heeft een apart plan in [#25](https://github.com/Daanvdplas/meedoenbalie-rag-learning/issues/25); de persoonlijke Codex-omgeving wordt niet openbaar doorgestuurd.
+
+## Kleine technische grenzen
+
+**Opslag/geheimen.** De app heeft geen eigen encryptielaag. Hostbeheer controleert lezers en opslagbescherming, ook voor RAM-afgeleide swap/crashdumps, downloads en backups. Embeddings, hashes en `.gitignore` vervangen dat niet. Codex-credentialstore en rechten zijn hier niet geïnspecteerd. De runner verwijdert enkele `CODEX_*`-variabelen, maar gebruikt geen algemene allowlist voor de hostomgeving. Een bevoegde accounteigenaar bepaalt minimale rechten, veilige opslag buiten bron/browser/rapporten en intrekken/roteren. Geen persoonlijke login/home-directory naar een publieke demo kopiëren; bewijs bevat geen tokens.
+
+**Transport.** Browser/server: HTTP op loopback `127.0.0.1`, geen HTTPS of gebruikersauthenticatie. Codex/MCP: lokale stdin/stdout-pipes, geen publieke MCP-poort. Fastembed downloadt modelbestanden; bron-/vraagvectoren worden lokaal berekend. Codex maakt externe modelverbindingen. De werkelijke download-/modelhosts, TLS/certificaatketen en eventuele proxy zijn niet geïnspecteerd. Controleer ze bij beheerde installatie; localhost doorsturen is geen openbare vrijgave.
+
+**MCP/processen.** Eén afgedwongen leestool: `query` (1–1000 tekens) en `top_k` (1–6), maximaal vier zoekacties en 16 KiB/request; geen bestanden/URLs/rechten/providerargumenten. Andere tools staan uit; het commandoprofiel weigert root-bestanden, laat minimale runtimelezingen toe en schakelt commandonetwerk uit. MCP draait zelf buiten die commandsandbox als hostgebruiker. De grens blokkeert dus niet alle hostprocessen of noodzakelijke modelverbindingen. Exacte citaatcontrole bewijst herkomst, geen inhoudelijke juistheid of organisatieautorisatie. Zie [bestaande koppelingsgrenzen/tests](codex.md); ontbrekende toegangstests staan in [#21](https://github.com/Daanvdplas/meedoenbalie-rag-learning/issues/21) en [#24](https://github.com/Daanvdplas/meedoenbalie-rag-learning/issues/24).
+
+## Controle vóór een ruimere vrijgave
+
+Nog uit te voeren door de genoemde rollen; geen afgevinkte deploymentaudit:
+
+1. **Gegevenseigenaar:** vul de besluitregel in; leg één toegestane fictieve vraag en één geweigerde dataklasse vast. Bewaar alleen synthetisch bewijs. Onbekende account- of routekeuze weigert echte data.
+2. **Host-/accountbeheerder:** controleer effectieve loginmethode/werkruimte zonder geheimen te exporteren; inspecteer lezers en opslagbescherming van de genoemde plekken, download-/model-eindpunten en certificaatketen. Controleer apart succes, fout en timeout op achterblijvende diagnostiek. Noteer onbekenden en stel bewaartermijnen vast; geen ongeteste encryptieclaim.
+3. **Onafhankelijke reviewer:** controleer exact binary/configuratie en fictieve tool-, bestands- en netwerkcanaries; alleen de benodigde zoektool mag werken. Voer voor interne bronnen ook de scopes-, intrekkings-, input- en wistests van #24 uit. Huidige loopback/sessie-IDs vervangen die grens niet.
+4. **Stopprocedure bij een lek:** beheerder stopt de betreffende demo en verdere modelcalls, schermt route/artifacts af en trekt betrokken credentials in via de bevoegde accounteigenaar. Breng gegevenseigenaar en relevante opslag-/providerbeheerders op de hoogte, inventariseer kopieën en laat hen volgens afgesproken procedure verwijderen/roteren. Noteer onbeheersbare downloads of providerbeperkingen. Hervat pas na onafhankelijk bewijs van herstel; beloof geen terughalen van andermans kopie.
+
+Dit werk wijzigt geen account, provider, OS-instelling, bronset of live demo. Het geeft geen toestemming voor publicatie, echte gegevens of nieuwe uitgaven.
+
+## Geverifieerde providerbronnen
+
+- [Codex authentication](https://learn.chatgpt.com/docs/auth) — HTTP **Last-Modified 21 oktober 2026, 06:22:09 UTC**, opgehaald 21 oktober 2026. Aanmeldmethode bepaalt welke account-/werkruimte- of API-organisatiecontroles gelden; de pagina beschrijft ook verschillende credentialstores. Dit bevestigt niet de instelling van deze machine.
+- [API data controls](https://developers.openai.com/api/docs/guides/your-data) — HTTP **Last-Modified 21 oktober 2026, 06:22:15 UTC**, opgehaald 21 oktober 2026. Deze API-pagina onderscheidt veiligheidslogs en applicatiestatus; Zero Data Retention hangt af van goedkeuring en gebruikte mogelijkheden. De voorwaarden worden hier niet op de huidige ChatGPT-login toegepast.
+
+HTTP-metadata toont een in 2026 gewijzigde webpagina; het is geen opgegeven redactionele publicatiedatum. De account/overeenkomst en actuele functies moeten bij uitvoering opnieuw door hun eigenaar worden bevestigd.

@@ -55,6 +55,8 @@ CI controleert formattering, clippy, deterministische tests en build zonder mode
 
 ## Grenzen en werkwijze
 
+Lees de [privacygrenzen en open besluiten](docs/privacy-boundaries.md) voordat je gegevens of toegang uitbreidt.
+
 Alle gegevens zijn verzonnen. Suggesties behouden bron en datum; ontbrekende of oude feiten blijven onbekend. Deelname is vrijwillig en een medewerker bespreekt opties met de bewoner. Geen dossierwijzigingen, berichten of aanmeldingen. De demo luistert alleen op localhost.
 
 Alle codewijzigingen gaan via branches en pull requests, met onafhankelijke beoordeling. Niet rechtstreeks naar `main` committen; alleen mergen met toestemming van de gebruiker.
