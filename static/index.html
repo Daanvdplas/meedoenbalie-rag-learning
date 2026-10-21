@@ -14,7 +14,6 @@
       h2 { font-size:26px; margin:24px 0 10px; }
       h3 { font-size:17px; margin:10px 0 6px; }
       p { max-width:72ch; margin:0 0 10px; }
-      .eyebrow { font-size:12px; color:var(--muted); }
       .muted,small { color:var(--muted); }
       small,.small { font-size:13px; }
       button,textarea,select { font:inherit; color:inherit; }
@@ -55,12 +54,10 @@
       .source-document>small { display:none; }
       .source-document[open]>small { display:block; }
       mark { background:oklch(84% .09 90); color:var(--ink); }
-      .retrieved button { margin-top:6px; font-size:13px; }
       .source-document>small { margin-top:6px; }
       .source-section { border-top:1px solid color-mix(in oklch,var(--ink) 15%,transparent); margin-top:10px; padding-top:4px; }
       .source-section p { white-space:pre-wrap; font-size:15px; }
       #tool-details { background:oklch(95% .008 245); padding:12px 14px; border:1px solid var(--line); border-radius:5px; }
-      #tool-details>p { margin-top:8px; font-size:14px; }
       .hit { margin-top:14px; }
       .retrieved { padding:8px 12px; margin-top:8px; border-left:3px solid; font-size:14px; }
       .retrieved h3 { font-size:15px; margin-top:0; }
@@ -76,15 +73,12 @@
     <main>
       <section id="source" aria-labelledby="source-heading">
         <h2 id="source-heading">Activiteiten</h2>
-        <p class="muted small">Verzonnen vrijwilligersactiviteiten. Geen betaalde banen.</p>
         <div id="source-sections"></div>
       </section>
-      <div class="eyebrow">Activiteiten verkennen · Fictieve demo</div>
       <h1>Wat wil je doen?</h1>
       <form id="form">
         <label for="question">Stel je vraag over de activiteiten</label>
-        <textarea id="question" class="run-control" aria-describedby="question-help" maxlength="1000" required placeholder="Bijvoorbeeld: welk werk is mogelijk op dinsdag?"></textarea>
-        <p id="question-help" class="muted small">Gebruik geen echte persoonsgegevens.</p>
+        <textarea id="question" class="run-control" maxlength="1000" required placeholder="Bijvoorbeeld: welk werk is mogelijk op dinsdag?"></textarea>
         <div class="toolbar">
           <button class="primary run-control" type="submit">Zoek een antwoord</button>
           <button id="new-question" class="run-control" type="button">Nieuwe vraag</button>
@@ -97,17 +91,9 @@
       <p id="status" role="status"></p>
       <section id="result" hidden aria-label="Uitvoering en antwoord">
         <h2 id="result-title">Het antwoord</h2>
-        <small id="run-caption"></small>
         <div class="answer-panel"><p id="answer" class="answer"></p><div id="unknowns"></div></div>
         <details id="tool-details">
-          <summary>Bekijk zoekvragen en gevonden passages</summary>
-          <h3>Zoekacties van Codex</h3>
-          <p class="muted">
-            Codex kan meerdere keren zoeken om de informatie voor je antwoord te verzamelen.
-            Dit zijn zoekopdrachten van Codex, geen extra vragen van jou.
-            Gemarkeerde tekst is gebruikt als citaat.
-          </p>
-          <p class="muted small">Vraag je waar en wanneer je kunt tuinieren? Codex kan eerst een tijd vinden en daarna gerichter naar de locatie zoeken. Die informatie komt samen in één antwoord.</p>
+          <summary>Bekijk de resultaten</summary>
           <div id="tools"></div>
         </details>
         <button
@@ -209,14 +195,6 @@
         el("history").value = "";
         message("");
       }
-      function inspectSection(sourceId, id) {
-        const target = el("source-" + sourceId + "-" + id);
-        if (target) {
-          target.closest("details").open = true;
-          target.focus();
-          target.scrollIntoView({ behavior: "auto", block: "center" });
-        }
-      }
       function failureMessage(error) {
         if (error?.startsWith("tool:"))
           return "De bronzoekfunctie is niet goed afgerond. Er is geen antwoord opgeslagen.";
@@ -241,7 +219,6 @@
         el("result").hidden = false;
         el("result-title").textContent =
           run.status === "failed" ? "De uitvoering is mislukt" : "Het antwoord";
-        el("run-caption").textContent = "Dit heb jij gevraagd: " + run.question;
         el("answer").textContent =
           run.status === "failed"
             ? failureMessage(run.error)
@@ -287,10 +264,6 @@
                   " — geen kans of zekerheid.",
               ),
             );
-            const open = node("button", "Bekijk activiteit: " + sourceTitle(hit.section.source_id));
-            open.type = "button";
-            open.addEventListener("click", () => inspectSection(hit.section.source_id, hit.section.id));
-            evidence.append(open);
             item.append(evidence);
           });
           if (call.error) item.append(node("p", call.error, "error"));
@@ -352,7 +325,7 @@
           message(
             run.status === "failed"
               ? "Er is geen antwoord opgeslagen. Je kunt de uitvoering opnieuw proberen."
-              : "Antwoord en gebruikte bronnen zijn opgeslagen.",
+              : "",
             run.status === "failed",
           );
           await refresh();
@@ -435,11 +408,11 @@
           ]);
           source.sources.forEach(doc => {
             const document = node("details", undefined, "source-document " + sourceClass(doc.id));
+            document.name = "activity";
             document.append(node("summary", doc.title), node("small", "Brondatum " + doc.date + " · referentie " + source.as_of));
             doc.sections.forEach(section => {
               const item = node("section", undefined, "source-section");
               item.id = "source-" + doc.id + "-" + section.id;
-              item.tabIndex = -1;
               item.append(node("h3", section.id + " · " + section.heading), node("p", section.text));
               document.append(item);
             });

@@ -18,10 +18,10 @@ Een andere lokale poort kan met `COA_PORT=8767 cargo run --locked`. `COA_CODEX_M
 
 ## Zelf testen
 
-1. Bovenaan staan vijf compacte activiteiten: **Tuinieren**, **Fietsen opknappen**, **Taalcafé**, **Samen koken** en **Wandelen**. Klik een titel om het volledige fictieve document met bron en datum te lezen.
+1. Bovenaan staan vijf compacte activiteiten: **Tuinieren**, **Fietsen opknappen**, **Taalcafé**, **Samen koken** en **Wandelen**. Klik een titel om het volledige fictieve document met bron en datum te lezen. Er staat steeds maximaal één activiteit open.
 2. Schrijf één eigen vraag, of kies een optioneel voorbeeld. Alle documenten beschrijven vrijwillige activiteiten, geen betaalde banen.
-3. Codex maakt één antwoord. Onder **Bekijk zoekvragen en gevonden passages** staan de echte zoekacties van Codex. Codex kan meerdere keren zoeken om ontbrekende informatie voor dat ene antwoord te verzamelen; dit zijn geen extra gebruikersvragen.
-4. Exact geciteerde tekst is gemarkeerd in de werkelijk gevonden passages. Bron, datum en een klik naar de juiste activiteit staan erbij. Er is geen afzonderlijk bewijsblok of beoordelingsflow.
+3. Codex maakt één antwoord. Onder **Bekijk de resultaten** staan de echte zoekacties van Codex. Codex kan meerdere keren zoeken om ontbrekende informatie voor dat ene antwoord te verzamelen; dit zijn geen extra gebruikersvragen.
+4. Exact geciteerde tekst is gemarkeerd in de werkelijk gevonden passages. Bron en datum staan erbij; de volledige activiteiten blijven bovenaan leesbaar. Er is geen afzonderlijk bewijsblok of beoordelingsflow.
 5. Stel direct een nieuwe vraag, bekijk een eerdere uitvoering of voer die opnieuw uit. Een nieuwe generatie krijgt een eigen run; gewijzigde bron/runtime-instellingen worden niet stilzwijgend hergebruikt.
 
 Een Codex-antwoord kan ongeveer een minuut duren; de bron blijft ondertussen leesbaar. Er kan één modeluitvoering tegelijk lopen. Fouten blijven zichtbaar. Vraaggeschiedenis staat in begrensd servergeheugen en verdwijnt bij herstart. Er is geen beoordelings- of criteriaflow; cosinusovereenkomsten staan alleen bij de technische zoekresultaten.
