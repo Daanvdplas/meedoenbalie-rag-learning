@@ -51,7 +51,6 @@ pub struct CodexRun {
     pub as_of: String,
     pub manifest: Value,
     pub client_version: String,
-    pub runtime_path: String,
     pub model: String,
     pub elapsed_ms: u64,
 }
@@ -264,8 +263,9 @@ impl CodexRunner {
         }
         let executable = std::fs::canonicalize(runtime_path()?)
             .map_err(|_| "runtime: Codex executable unavailable")?;
-        let mcp_executable = std::env::current_exe().map_err(|e| e.to_string())?;
-        let workspace = std::env::current_dir().map_err(|e| e.to_string())?;
+        let mcp_executable =
+            std::env::current_exe().map_err(|_| "runtime: Cannot locate MCP executable")?;
+        let workspace = std::env::current_dir().map_err(|_| "runtime: Cannot locate workspace")?;
         let version = std::process::Command::new(&executable)
             .arg("--version")
             .output()
@@ -273,12 +273,25 @@ impl CodexRunner {
         if !version.status.success() {
             return Err("runtime: Cannot read Codex version".into());
         }
-        let version = String::from_utf8_lossy(&version.stdout).trim().to_owned();
+        let version = std::str::from_utf8(&version.stdout)
+            .map_err(|_| "runtime: Invalid Codex version")?
+            .trim();
+        if !version.strip_prefix("codex-cli ").is_some_and(|number| {
+            !number.is_empty()
+                && number.len() <= 80
+                && number.as_bytes()[0].is_ascii_digit()
+                && number
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || b".-+".contains(&byte))
+        }) {
+            return Err("runtime: Invalid Codex version".into());
+        }
+        let version = version.to_owned();
         let model = std::env::var("COA_CODEX_MODEL").unwrap_or_else(|_| "gpt-6.1-sol".into());
         if model.is_empty() || model.len() > 100 {
             return Err("runtime: Invalid model setting".into());
         }
-        let configuration = json!({"prompt_version":PROMPT_VERSION,"output_schema_version":2,"tool_policy_version":1,"runtime_path":executable,"client_version":version,"model":model,"reasoning_effort":"low","binaries":runtime_fingerprints(&executable,&mcp_executable)?});
+        let configuration = json!({"prompt_version":PROMPT_VERSION,"output_schema_version":2,"tool_policy_version":1,"client_version":version,"model":model,"reasoning_effort":"low","binaries":runtime_fingerprints(&executable,&mcp_executable)?});
         Ok(Self {
             executable,
             mcp_executable,
@@ -290,7 +303,21 @@ impl CodexRunner {
         })
     }
     pub fn configuration(&self) -> Value {
-        self.configuration.clone()
+        // Shared records contain only the reproducibility fields below. Paths and
+        // future private diagnostics stay inside the runner.
+        [
+            "prompt_version",
+            "output_schema_version",
+            "tool_policy_version",
+            "client_version",
+            "model",
+            "reasoning_effort",
+            "binaries",
+        ]
+        .into_iter()
+        .map(|key| (key.to_owned(), self.configuration[key].clone()))
+        .collect::<serde_json::Map<_, _>>()
+        .into()
     }
 
     pub async fn run(&self, query: &str, top_k: usize) -> Result<CodexRun, String> {
@@ -313,11 +340,12 @@ impl CodexRunner {
             std::process::id(),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .map_err(|e| e.to_string())?
+                .map_err(|_| "runtime: System clock is unavailable")?
                 .as_nanos()
         );
         let directory = std::env::temp_dir().join(format!("coa-{id}"));
-        std::fs::create_dir(&directory).map_err(|e| e.to_string())?;
+        std::fs::create_dir(&directory)
+            .map_err(|_| "runtime: Cannot create temporary run directory")?;
         let directory = RunDirectory(directory);
         self.run_in(&directory.0, &id, &query, top_k).await
     }
@@ -330,7 +358,8 @@ impl CodexRunner {
         top_k: usize,
     ) -> Result<CodexRun, String> {
         let schema_path = directory.join("answer-schema.json");
-        std::fs::write(&schema_path, output_schema().to_string()).map_err(|e| e.to_string())?;
+        std::fs::write(&schema_path, output_schema().to_string())
+            .map_err(|_| "runtime: Cannot write answer schema")?;
         let mut command = Command::new(&self.executable);
         command
             .arg("--no-daemon")
@@ -421,7 +450,8 @@ impl CodexRunner {
             ));
             command.env(
                 "PATH",
-                std::env::join_paths(paths).map_err(|e| e.to_string())?,
+                std::env::join_paths(paths)
+                    .map_err(|_| "runtime: Cannot configure executable search path")?,
             );
         }
         let prompt = format!(
@@ -434,7 +464,6 @@ impl CodexRunner {
         parsed["id"] = json!(id);
         parsed["question"] = json!(query);
         parsed["client_version"] = json!(self.version);
-        parsed["runtime_path"] = json!(self.executable);
         parsed["model"] = json!(self.model);
         parsed["elapsed_ms"] = json!(started.elapsed().as_millis() as u64);
         serde_json::from_value(parsed).map_err(|_| "output: Invalid run record".into())
@@ -579,6 +608,113 @@ mod tests {
     }
     fn good_answer() -> Value {
         json!({"text":"Dinsdag van 10 tot 12 (S2).","citations":[{"source_id":"ACT-TUIN-001","source_date":"2026-10-20","section_id":"S2","quote":"Iedere dinsdag van 10.00 tot 12.00 uur."}],"unknowns":[]})
+    }
+
+    #[cfg(unix)]
+    fn fake_runner(directory: &Path, script: &str) -> CodexRunner {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::create_dir_all(directory).unwrap();
+        let executable = directory.join("codex");
+        let host = directory.join("codex-code-mode-host");
+        let mcp = directory.join("meedoen");
+        std::fs::write(&executable, script).unwrap();
+        std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
+        std::fs::write(&host, b"fake host").unwrap();
+        std::fs::write(&mcp, b"fake MCP").unwrap();
+        let configuration = json!({"runtime_path":executable,"private_diagnostic":"FAKE-PRIVATE-TOKEN","prompt_version":PROMPT_VERSION,"output_schema_version":2,"tool_policy_version":1,"client_version":"codex-cli test","model":"test-model","reasoning_effort":"low","binaries":runtime_fingerprints(&executable,&mcp).unwrap()});
+        CodexRunner {
+            executable,
+            mcp_executable: mcp,
+            workspace: directory.to_path_buf(),
+            version: "codex-cli test".into(),
+            model: "test-model".into(),
+            configuration,
+            active: Arc::new(Semaphore::new(1)),
+        }
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn shared_run_and_configuration_omit_host_paths_but_keep_fingerprints() {
+        let directory = RunDirectory(std::env::temp_dir().join(format!(
+            "coa-FAKE-PRIVATE-HOME-{}",
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+        )));
+        let events = stream(good_answer(), true);
+        let script =
+            format!("#!/bin/sh\ncat >/dev/null\ncat <<'COA_EVENTS'\n{events}\nCOA_EVENTS\n");
+        let runner = fake_runner(&directory.0, &script);
+        let configuration = runner.configuration();
+        let exported = configuration.to_string();
+        assert!(
+            !exported.contains("FAKE-PRIVATE"),
+            "private runtime metadata exported"
+        );
+        assert!(configuration.get("runtime_path").is_none());
+        assert_eq!(configuration["binaries"], runner.configuration["binaries"]);
+        let run = runner.run("Wanneer?", 3).await.unwrap();
+        let run = serde_json::to_value(run).unwrap();
+        assert!(
+            run.get("runtime_path").is_none(),
+            "runtime path exported in successful result"
+        );
+        assert!(!run.to_string().contains("FAKE-PRIVATE-HOME"));
+        assert_eq!(run["answer"]["citations"][0]["section_id"], "S2");
+        std::fs::write(&runner.executable, "changed").unwrap();
+        assert!(
+            runner
+                .run("Wanneer?", 3)
+                .await
+                .unwrap_err()
+                .contains("Executable changed")
+        );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn schema_write_failure_reports_a_safe_operation_category() {
+        let directory = RunDirectory(std::env::temp_dir().join(format!(
+            "coa-FAKE-PRIVATE-HOME-{}",
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+        )));
+        let runner = fake_runner(&directory.0, "#!/bin/sh\nexit 1\n");
+        let error = runner
+            .run_in(&directory.0.join("missing"), "test", "Wanneer?", 3)
+            .await
+            .unwrap_err();
+        assert_eq!(error, "runtime: Cannot write answer schema");
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn diagnostics_and_timeout_do_not_forward_fake_secrets() {
+        for (body, expected, timeout) in [
+            (
+                "printf 'FAKE-PRIVATE-TOKEN /Users/FAKE-PRIVATE-HOME' >&2; exit 1",
+                "exited unsuccessfully",
+                1000,
+            ),
+            (
+                "printf 'FAKE-PRIVATE-TOKEN /Users/FAKE-PRIVATE-HOME' >&2; sleep 5",
+                "timed out",
+                30,
+            ),
+        ] {
+            let mut command = Command::new("/bin/sh");
+            command.args(["-c", body]);
+            let error = execute(command, b"", Duration::from_millis(timeout))
+                .await
+                .unwrap_err();
+            assert!(error.contains(expected));
+            assert!(!error.contains("FAKE-PRIVATE"));
+        }
+    }
+
+    #[test]
+    fn failed_provider_events_do_not_forward_diagnostics() {
+        let event = json!({"type":"turn.failed","error":{"message":"FAKE-PRIVATE-TOKEN /Users/FAKE-PRIVATE-HOME"}});
+        let error = parse_events(&event.to_string()).unwrap_err();
+        assert_eq!(error, "runtime: Codex turn failed");
     }
 
     #[test]
