@@ -3,6 +3,7 @@ use std::io::{BufRead, Read, Write};
 
 pub const MAX_SEARCH_CALLS: usize = 4;
 const MAX_LINE_BYTES: u64 = 16_384;
+const SEARCH_LIMIT_MESSAGE: &str = "Search call limit reached (four per Codex run)";
 
 fn rpc_error(id: Value, code: i32, message: &str) -> Value {
     json!({"jsonrpc":"2.0","id":id,"error":{"code":code,"message":message}})
@@ -55,7 +56,14 @@ where
                 Ok(value) => {
                     json!({"content":[{"type":"text","text":value.to_string()}],"isError":false})
                 }
-                Err(error) => json!({"content":[{"type":"text","text":error}],"isError":true}),
+                Err(error) => {
+                    let message = if error == SEARCH_LIMIT_MESSAGE {
+                        SEARCH_LIMIT_MESSAGE
+                    } else {
+                        "Local retrieval failed; check the model cache and restart the app"
+                    };
+                    json!({"content":[{"type":"text","text":message}],"isError":true})
+                }
             }
         }
         _ => return Some(rpc_error(id, -32601, "Method not found")),
@@ -76,7 +84,7 @@ where
     let mut bounded = |query: &str, top_k: usize| {
         calls += 1;
         if calls > MAX_SEARCH_CALLS {
-            return Err("Search call limit reached (four per Codex run)".into());
+            return Err(SEARCH_LIMIT_MESSAGE.into());
         }
         search(query, top_k)
     };
@@ -163,10 +171,49 @@ mod tests {
     }
 
     #[test]
+    fn retrieval_errors_do_not_expose_host_diagnostics_to_codex() {
+        let mut fail =
+            |_: &str, _: usize| Err("FAKE-PRIVATE-TOKEN /Users/FAKE-PRIVATE-HOME/cache".into());
+        let result = handle_request(json!({"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"search_document","arguments":{"query":"Wanneer?","top_k":3}}}), &mut fail).unwrap();
+        assert_eq!(result["result"]["isError"], true);
+        assert!(!result.to_string().contains("FAKE-PRIVATE"));
+        assert_eq!(
+            result["result"]["content"][0]["text"],
+            "Local retrieval failed; check the model cache and restart the app"
+        );
+    }
+
+    #[test]
+    fn call_limit_remains_distinct_from_a_private_retrieval_error() {
+        let request = json!({"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"search_document","arguments":{"query":"Wanneer?","top_k":3}}}).to_string();
+        let input = format!("{}\n", vec![request; MAX_SEARCH_CALLS + 1].join("\n"));
+        let mut output = Vec::new();
+        serve(std::io::Cursor::new(input), &mut output, |_, _| {
+            Ok(json!({"hits":[]}))
+        })
+        .unwrap();
+        let replies: Vec<Value> = std::str::from_utf8(&output)
+            .unwrap()
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        assert!(
+            replies[..MAX_SEARCH_CALLS]
+                .iter()
+                .all(|reply| reply["result"]["isError"] == false)
+        );
+        assert_eq!(replies[MAX_SEARCH_CALLS]["result"]["isError"], true);
+        assert_eq!(
+            replies[MAX_SEARCH_CALLS]["result"]["content"][0]["text"],
+            SEARCH_LIMIT_MESSAGE
+        );
+    }
+
+    #[test]
     fn search_failure_is_an_explicit_tool_error() {
         let mut fail = |_: &str, _: usize| Err("Model unavailable".into());
         let result = handle_request(json!({"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"search_document","arguments":{"query":"Wanneer?","top_k":3}}}), &mut fail).unwrap();
         assert_eq!(result["result"]["isError"], true);
-        assert!(result.to_string().contains("Model unavailable"));
+        assert!(result.to_string().contains("Local retrieval failed"));
     }
 }

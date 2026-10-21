@@ -285,6 +285,86 @@ mod tests {
         assert_eq!(value["sources"][1]["date"], "2026-10-18");
         assert!(!String::from_utf8_lossy(&bytes).contains("required_source_ids"));
     }
+    #[tokio::test]
+    async fn api_history_and_export_share_safe_metadata_for_success_failure_and_timeout() {
+        use meedoen_retrieval::codex::CodexRun;
+        use tower::ServiceExt;
+        let app = Arc::new(WebState {
+            store: Mutex::new(RunStore::new()),
+            runner: None,
+            runner_error: None,
+            manifest: json!({"source_sha256":"synthetic-source-hash","sources":[]}),
+            sources: json!([]),
+            configuration: json!({"model":"test-model","binaries":{"codex":"synthetic-fingerprint"}}),
+        });
+        let (session, ids) = {
+            let mut store = app.store.lock().unwrap();
+            let session = store.session(&[]).unwrap();
+            let snapshot = context(&app, 3);
+            // Legacy private metadata is not part of the exported CodexRun schema.
+            let result: CodexRun = serde_json::from_value(json!({
+                "id":"synthetic-result", "status":"completed", "question":"Wanneer tuinieren?",
+                "answer":{"text":"Dinsdag 10–12.","citations":[],"unknowns":[]},
+                "tool_calls":[],"sources":[],"as_of":AS_OF,"manifest":{},
+                "client_version":"codex-cli 0.163.0","model":"test-model","elapsed_ms":1,
+                "runtime_path":"/Users/FAKE-PRIVATE-HOME/codex"
+            }))
+            .unwrap();
+            let results = [
+            Ok(serde_json::to_value(result).unwrap()),
+            Err("runtime: Codex exited unsuccessfully; check authentication and runtime configuration".into()),
+            Err("runtime: Codex run timed out".into()),
+        ];
+            let mut ids = Vec::new();
+            for result in results {
+                let run = store
+                    .begin(&session, "Wanneer tuinieren?", 3, snapshot.clone(), None)
+                    .unwrap();
+                store.complete(&session, &run.id, result).unwrap();
+                assert!(store.replay(&session, &run.id, &snapshot).is_ok());
+                let mut changed = snapshot.clone();
+                changed["codex_configuration"]["binaries"]["codex"] = json!("changed-fingerprint");
+                assert!(store.replay(&session, &run.id, &changed).is_err());
+                ids.push(run.id);
+            }
+            (session, ids)
+        };
+        let routes = [
+            "/api/session".to_string(),
+            format!("/api/runs/{}", ids[0]),
+            format!("/api/runs/{}", ids[1]),
+            format!("/api/runs/{}", ids[2]),
+            "/api/report".to_string(),
+        ];
+        for path in routes {
+            let response = router(app.clone())
+                .oneshot(
+                    axum::http::Request::builder()
+                        .uri(&path)
+                        .header("x-test-session", &session)
+                        .body(axum::body::Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::OK);
+            let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+                .await
+                .unwrap();
+            let text = String::from_utf8(bytes.to_vec()).unwrap();
+            assert!(!text.contains("FAKE-PRIVATE"), "private metadata in {path}");
+            assert!(!text.contains("runtime_path"), "host path field in {path}");
+            assert!(
+                text.contains("synthetic-fingerprint"),
+                "fingerprint missing in {path}"
+            );
+            assert!(
+                text.contains("Wanneer tuinieren?"),
+                "question missing in {path}"
+            );
+        }
+    }
+
     #[test]
     fn browser_cannot_submit_gold_or_a_fabricated_answer() {
         assert!(
