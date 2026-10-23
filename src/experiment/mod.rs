@@ -1,6 +1,8 @@
 pub mod arms;
 pub mod budget;
+pub mod calibration;
 pub mod dataset;
+pub mod judge;
 pub mod metrics;
 pub mod runner;
 pub mod types;
@@ -47,7 +49,7 @@ pub async fn cli(args: &[String]) -> Result<(), String> {
             println!("{}", json!({"schema_version":1,"arms":types::Arm::ALL}));
             Ok(())
         }
-        Some("run" | "grade") if !args.iter().any(|arg| arg == "--live") => {
+        Some("run" | "grade" | "calibrate") if !args.iter().any(|arg| arg == "--live") => {
             Err("Live experiment execution requires --live".into())
         }
         Some("validate") if args.len() == 1 => {
@@ -57,6 +59,81 @@ pub async fn cli(args: &[String]) -> Result<(), String> {
                 json!({"schema_version":1,"cases":questions.cases.len(),"criteria":labels.cases.len(),"questions_sha256":dataset::questions_hash(&questions)?})
             );
             Ok(())
+        }
+        Some("calibrate") => {
+            let flags = parse_flags(
+                &args[1..],
+                &[
+                    "--output",
+                    "--ledger",
+                    "--reference",
+                    "--max-judgements",
+                    "--max-seconds",
+                ],
+            )?;
+            let get = |key: &str| {
+                flags
+                    .get(key)
+                    .cloned()
+                    .ok_or_else(|| format!("Missing {key}"))
+            };
+            let number = |key: &str| {
+                get(key)?
+                    .parse::<usize>()
+                    .map_err(|_| format!("Invalid {key}"))
+            };
+            calibration::calibrate(
+                std::path::Path::new(&get("--output")?),
+                std::path::Path::new(&get("--ledger")?),
+                flags.get("--reference").map(std::path::Path::new),
+                judge::GradingLimits {
+                    max_judgements: number("--max-judgements")?,
+                    max_seconds: number("--max-seconds")? as u64,
+                    per_call_seconds: 120,
+                    concurrency: 1,
+                },
+            )
+            .await
+        }
+        Some("grade") => {
+            let flags = parse_flags(
+                &args[1..],
+                &[
+                    "--input",
+                    "--output",
+                    "--ledger",
+                    "--max-judgements",
+                    "--max-seconds",
+                ],
+            )?;
+            let get = |key: &str| {
+                flags
+                    .get(key)
+                    .cloned()
+                    .ok_or_else(|| format!("Missing {key}"))
+            };
+            let number = |key: &str| {
+                get(key)?
+                    .parse::<usize>()
+                    .map_err(|_| format!("Invalid {key}"))
+            };
+            // Read/validate an existing result before discovering a live runtime.
+            runner::read_records(std::path::Path::new(&get("--input")?))?;
+            let (questions, labels) = dataset::validate_bundled()?;
+            judge::grade(
+                std::path::Path::new(&get("--input")?),
+                std::path::Path::new(&get("--output")?),
+                std::path::Path::new(&get("--ledger")?),
+                judge::GradingLimits {
+                    max_judgements: number("--max-judgements")?,
+                    max_seconds: number("--max-seconds")? as u64,
+                    per_call_seconds: 120,
+                    concurrency: 1,
+                },
+                questions,
+                labels,
+            )
+            .await
         }
         Some("run") => {
             let flags = parse_flags(

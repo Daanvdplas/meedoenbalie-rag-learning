@@ -253,9 +253,29 @@ pub fn validate_record(record: &ExperimentRecord) -> Result<(), String> {
             }
         }
     }
-    // Strictly typed grading/metric validation is added with their respective modules.
-    if record.metrics.is_some() || record.judgement.is_some() {
-        return Err("Unsupported assessment payload version".into());
+    if let Some(value) = &record.judgement {
+        let judgement: super::judge::Judgement = serde_json::from_value(value.clone())
+            .map_err(|_| "Invalid semantic judgement schema")?;
+        let answer = record
+            .answer
+            .as_ref()
+            .ok_or("Graded record has no answer")?;
+        super::judge::validate_judgement(
+            &judgement,
+            &record.question,
+            answer,
+            &record.offered_sections,
+            &judgement.rubric_criteria,
+        )?;
+        if record.manifest.rubric_sha256 != judgement.rubric_sha256
+            || record.manifest.rubric_version != judgement.rubric_version
+            || record.manifest.grader_route != judgement.route
+        {
+            return Err("Grader manifest mismatch".into());
+        }
+    }
+    if record.metrics.is_some() {
+        return Err("Unsupported metric payload version".into());
     }
     Ok(())
 }
