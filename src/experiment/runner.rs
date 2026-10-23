@@ -246,7 +246,22 @@ pub fn validate_record(record: &ExperimentRecord) -> Result<(), String> {
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct CanonicalSearch {
+    question: String,
+    top_k: usize,
+    as_of: String,
+    sources: Vec<SourceIdentity>,
+    manifest: RetrievalManifest,
     hits: Vec<CanonicalHit>,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RetrievalManifest {
+    source_sha256: String,
+    embedding_inputs_sha256: String,
+    document_vectors_sha256: String,
+    model: String,
+    dimensions: usize,
+    settings_sha256: String,
 }
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -261,6 +276,7 @@ fn validate_retrieval_contract(record: &ExperimentRecord) -> Result<(), String> 
             return Err("MCP trace/call count mismatch".into());
         }
         let mut successful = false;
+        let mut previous_manifest = None;
         for (call, step) in record.tool_calls.iter().zip(&record.retrieval_steps) {
             if call.server != "coa"
                 || call.tool != "search_document"
@@ -284,6 +300,28 @@ fn validate_retrieval_contract(record: &ExperimentRecord) -> Result<(), String> 
                             .ok_or("Successful MCP call lacks canonical result")?,
                     )
                     .map_err(|_| "MCP result contains unsupported fields")?;
+                    if search.question != call.query
+                        || search.top_k != call.top_k
+                        || search.as_of != record.manifest.as_of
+                        || serde_json::to_value(&search.sources).unwrap()
+                            != serde_json::to_value(&record.manifest.sources).unwrap()
+                        || search.manifest.source_sha256 != record.manifest.corpus_sha256
+                        || search.manifest.model != crate::MODEL
+                        || search.manifest.dimensions != 384
+                        || !hex(&search.manifest.embedding_inputs_sha256)
+                        || !hex(&search.manifest.document_vectors_sha256)
+                        || !hex(&search.manifest.settings_sha256)
+                    {
+                        return Err("Invalid canonical retrieval manifest/source identity".into());
+                    }
+                    let manifest = serde_json::to_value(&search.manifest).unwrap();
+                    if previous_manifest
+                        .as_ref()
+                        .is_some_and(|previous| previous != &manifest)
+                    {
+                        return Err("Retrieval manifest changed between hops".into());
+                    }
+                    previous_manifest = Some(manifest);
                     if search.hits.is_empty() || search.hits.len() != step.hits.len() {
                         return Err("MCP result/step hits mismatch".into());
                     }
@@ -340,6 +378,34 @@ fn validate_retrieval_contract(record: &ExperimentRecord) -> Result<(), String> 
                 || step.hits.len() != record.offered_sections.len()
             {
                 return Err("One-shot retrieval arm/provenance mismatch".into());
+            }
+        }
+    }
+    if record.arm != Arm::FullContext {
+        let hits: std::collections::BTreeSet<_> = record
+            .retrieval_steps
+            .iter()
+            .flat_map(|step| &step.hits)
+            .map(|hit| (&hit.section.source_id, &hit.section.id))
+            .collect();
+        let offered: std::collections::BTreeSet<_> = record
+            .offered_sections
+            .iter()
+            .map(|s| (&s.source_id, &s.id))
+            .collect();
+        if hits != offered {
+            return Err("Offered evidence is not the exact union of actual retrieval hits".into());
+        }
+        for step in &record.retrieval_steps {
+            if step
+                .hits
+                .iter()
+                .map(|h| (&h.section.source_id, &h.section.id))
+                .collect::<std::collections::BTreeSet<_>>()
+                .len()
+                != step.hits.len()
+            {
+                return Err("Duplicate retrieval hit".into());
             }
         }
     }
@@ -415,6 +481,47 @@ mod tests {
                 score_kind: "cosine".into(),
             }],
         }];
+        assert!(validate_record(&item).is_err());
+    }
+
+    #[test]
+    fn canonical_mcp_ingestion_requires_exact_evidence_union_and_no_nested_extras() {
+        let section =
+            crate::source::parse_sources(crate::DOCUMENTS).unwrap()[0].sections[0].clone();
+        let mut item = record();
+        item.arm = Arm::AgenticDense;
+        item.offered_sections = vec![section.clone()];
+        item.retrieval_steps = vec![RetrievalStep {
+            origin: "mcp".into(),
+            query: item.question.clone(),
+            top_k: 3,
+            hits: vec![RankedSection {
+                section: section.clone(),
+                score: 0.5,
+                score_kind: "cosine".into(),
+            }],
+        }];
+        let result = json!({"question":item.question,"top_k":3,"as_of":crate::AS_OF,"sources":item.manifest.sources,"manifest":{"source_sha256":item.manifest.corpus_sha256,"embedding_inputs_sha256":"1".repeat(64),"document_vectors_sha256":"2".repeat(64),"model":crate::MODEL,"dimensions":384,"settings_sha256":"3".repeat(64)},"hits":[{"section":section,"similarity":0.5}]});
+        item.tool_calls = vec![crate::codex::ToolCall {
+            server: "coa".into(),
+            tool: "search_document".into(),
+            query: item.question.clone(),
+            top_k: 3,
+            status: "completed".into(),
+            result: Some(result),
+            error: None,
+        }];
+        assert!(validate_record(&item).is_ok());
+        let mut extra = item.clone();
+        extra
+            .offered_sections
+            .push(crate::source::parse_sources(crate::DOCUMENTS).unwrap()[0].sections[1].clone());
+        assert!(validate_record(&extra).is_err());
+        let mut secret = item.clone();
+        secret.tool_calls[0].result.as_mut().unwrap()["hits"][0]["section"]["PRIVATE_TOKEN"] =
+            json!("secret");
+        assert!(validate_record(&secret).is_err());
+        item.tool_calls[0].result.as_mut().unwrap()["manifest"]["model"] = json!("different-model");
         assert!(validate_record(&item).is_err());
     }
 
@@ -795,20 +902,24 @@ fn canonicalize_agent(
             top_k: call.top_k,
             hits: hits.clone(),
         });
-        // Replace arbitrary runtime JSON with an explicit shareable allowlist.
-        if call.result.is_some() {
-            call.result = Some(
-                serde_json::json!({"hits":hits.iter().map(|h|serde_json::json!({"section":h.section,"similarity":h.score})).collect::<Vec<_>>()}),
-            );
+        // Replace arbitrary runtime JSON with a strict, owned shareable allowlist.
+        if let Some(raw) = call.result.as_ref() {
+            let manifest = &raw["manifest"];
+            let result = serde_json::json!({"question":raw["question"],"top_k":raw["top_k"],"as_of":raw["as_of"],"sources":raw["sources"],"manifest":{
+                "source_sha256":manifest["source_sha256"],"embedding_inputs_sha256":manifest["embedding_inputs_sha256"],"document_vectors_sha256":manifest["document_vectors_sha256"],"model":manifest["model"],"dimensions":manifest["dimensions"],"settings_sha256":manifest["settings_sha256"]},"hits":hits.iter().map(|h|serde_json::json!({"section":h.section,"similarity":h.score})).collect::<Vec<_>>()});
+            let _: CanonicalSearch = serde_json::from_value(result.clone())
+                .map_err(|_| "output: Invalid canonical retrieval provenance")?;
+            call.result = Some(result);
         }
         if call.error.is_some() {
             call.error = Some("Search tool failed".into());
         }
     }
+    record.tool_calls = calls;
+    validate_retrieval_contract(record)?;
     super::arms::validate_answer(&run.answer, &record.offered_sections)?;
     record.answer = Some(run.answer);
     record.usage = run.usage;
-    record.tool_calls = calls;
     record.trace_complete = true;
     Ok(())
 }
