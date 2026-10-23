@@ -441,13 +441,33 @@ pub fn evaluate(
         ),
         criteria,
     ));
-    metrics.push(count("search_calls", Some(if record.arm == Arm::AgenticDense { record.tool_calls.len() } else { record.retrieval_steps.len() } as u64), "diagnostic", "Actual retrieval requests, including failed MCP calls; quality has no one-call success rule"));
-    metrics.push(count(
+    let mut searches = count(
+        "search_calls",
+        Some(if record.arm == Arm::AgenticDense {
+            record.tool_calls.len()
+        } else {
+            record.retrieval_steps.len()
+        } as u64),
+        "diagnostic",
+        "Actual retrieval requests, including failed MCP calls; quality has no one-call success rule",
+    );
+    let mut mcp_calls = count(
         "mcp_calls",
         Some(record.tool_calls.len() as u64),
         "diagnostic",
         "Actual MCP calls only; local preselection is not an MCP call",
-    ));
+    );
+    if record.arm == Arm::AgenticDense && !record.trace_complete {
+        searches = unavailable(
+            searches,
+            "Incomplete agent trace: actual search count is unknown",
+        );
+        mcp_calls = unavailable(
+            mcp_calls,
+            "Incomplete agent trace: actual MCP count is unknown",
+        );
+    }
+    metrics.extend([searches, mcp_calls]);
     metrics.push(count("elapsed_ms", Some(record.elapsed_ms), "lower_is_better", "Recorded wall-clock milliseconds for this execution; not an aggregate concurrency estimate"));
     metrics.push(count(
         "input_tokens",
@@ -821,6 +841,29 @@ mod tests {
         assert_eq!(metric(&report, "all_hop_fact_coverage").value, Some(0.0));
         assert_eq!(metric(&report, "all_hop_section_recall").value, Some(0.0));
         assert!(report.hard_checks_passed);
+    }
+
+    #[test]
+    fn incomplete_agent_trace_has_unknown_actual_calls_while_local_preselection_stays_known() {
+        let (mut item, gold) = live_agent();
+        item.execution_status = ExecutionStatus::TimedOut;
+        item.answer = None;
+        item.error = Some("timeout".into());
+        item.trace_complete = false;
+        item.tool_calls.clear();
+        item.retrieval_steps.clear();
+        item.offered_sections.clear();
+        let report = evaluate(&item, &gold).unwrap();
+        assert_eq!(metric(&report, "search_calls").value, None);
+        assert_eq!(metric(&report, "mcp_calls").value, None);
+        let (mut item, gold) = record("P01", vec![section("ACT-TUIN-001", "S2")]);
+        item.execution_status = ExecutionStatus::TimedOut;
+        item.answer = None;
+        item.error = Some("timeout".into());
+        item.trace_complete = false;
+        let report = evaluate(&item, &gold).unwrap();
+        assert_eq!(metric(&report, "search_calls").value, Some(1.0));
+        assert_eq!(metric(&report, "mcp_calls").value, Some(0.0));
     }
 
     #[test]
