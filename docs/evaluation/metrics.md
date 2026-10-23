@@ -1,0 +1,17 @@
+# Betekenis van de meetwaarden
+
+Een vaste berekening kan een float opleveren. Een score van `0.5` betekent hier bijvoorbeeld één van twee bewijsdoelen; het is geen kans dat het antwoord juist is.
+
+`first_hop_fact_coverage` meet hoeveel bronondersteunde feitcriteria na de eerste zoekpoging bewijs hebben. `all_hop_fact_coverage` gebruikt de gezamenlijke resultaten. Een criterium met alternatieven telt zodra één volledige bewijscombinatie beschikbaar is: OR tussen groepen, AND binnen een groep. Een expliciet onbekend gegeven kan een eigen bewijssectie hebben. Bij een vraag waarvoor het corpus helemaal geen bewijs bevat is er geen positieve noemer; dat wordt N.v.t. Bestaat bewijs wel en vindt de zoekactie niets, dan is de dekking nul.
+
+Secties worden op document én sectienummer ontdubbeld. Een gewijzigd document, datum, titel, kop of bronfragment levert geen geldig bewijs op. `precision` deelt het aantal relevante, geldige secties door alle unieke teruggegeven secties. `section_recall` deelt het aantal relevante gevonden secties door alle vooraf relevant gelabelde secties. Nuttig uitsluitingsbewijs telt daarbij mee: de dagsecties van de andere activiteiten kunnen een volledige dinsdaglijst onderbouwen. Deze twee maten vereisen complete relevantielabels; feitdekking kan wel met een onvolledige relevantielijst worden gemeten.
+
+De reciprocal-rankmaat gebruikt de oorspronkelijke positie van de eerste relevante passage in de eerste zoekpoging. Geen relevante passage geeft nul wanneer relevante passages wel bestaan. Een mislukte eerste MCP-poging krijgt geen bewijscredit van de latere succesvolle poging. Precision met nul teruggegeven secties is ongedefinieerd; recall met bestaande relevante secties is dan nul.
+
+De full-contextarm voert geen retrieval uit en krijgt daarvoor N.v.t. De aparte `offered_fact_coverage` beschrijft wel welke bewijsdoelen in de aangeboden context aanwezig zijn. Dat is geen score voor het kunnen zoeken of voor het antwoord. Bij een gedeeltelijk mislukte uitvoering blijven daadwerkelijk waargenomen zoekresultaten meetbaar. Zonder waargenomen zoekpoging is een retrievalmaat ongedefinieerd; de mislukte uitvoeringsstatus blijft zichtbaar.
+
+De harde controles zijn voorwaarden, geen inhoudelijk eindoordeel: voltooid, een complete live trace, een geldig artifact met vaste bronhashes en limieten, exacte broninhoud en overeenstemming tussen echte toolresultaten en aangeboden context. Een fixture is een test van het meetinstrument en krijgt nooit geslaagde live voorwaarden. Een hoge modelbeoordeling kan een harde fout niet opheffen. Ook een volledig geldige bronverwijzing bewijst nog niet dat een conclusie logisch uit die bron volgt; dat vraagt afzonderlijke inhoudelijke beoordeling.
+
+Zoekacties, MCP-calls, gemeten tijd en beschikbaar tokengebruik staan ernaast. Lokale preselectie wordt niet als MCP-call geregistreerd. Eén zoekactie is geen universele slaagvoorwaarde. Niet beschikbaar tokengebruik blijft onbekend, nooit nul. Het rapport bevat per maat de definitie, richting, teller/noemer of waarde en reden voor N.v.t.
+
+Opgeslagen JSON-rapporten krijgen een strikt schema en consistente tellers, maar zijn geen ondertekende attesten. De runner moet de berekeningen opnieuw uitvoeren op de opgeslagen brontrace om een gewijzigd artifact te controleren. Een bestand met `execution_kind: live` alleen bewijst geen provideruitvoering; die herkomst komt van de echte runner en zijn opgeslagen runtime-identiteit.

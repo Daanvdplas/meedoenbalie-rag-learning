@@ -1,6 +1,7 @@
 pub mod arms;
 pub mod budget;
 pub mod dataset;
+pub mod metrics;
 pub mod runner;
 pub mod types;
 
