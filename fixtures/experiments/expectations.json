@@ -1,0 +1,619 @@
+{
+  "schema_version": "1",
+  "dataset_version": "activities-evaluation-v1",
+  "questions_sha256": "161363c4b8dff29047894e0a5492e90a27f3044777268a66cf88cff5943ba264",
+  "evaluation_only_canary": "EVAL-GOLD-ONLY-9d27b684-do-not-send-to-generator",
+  "review_note": "Descriptions are semantic criteria, not exact-match answer strings. Empty evidence alternatives mean no positive source evidence exists; judge the required unknown separately. Complete relevance labels follow direct fact/condition support, including useful exclusion evidence. P06 labels are deliberately incomplete, so precision must remain N/A.",
+  "cases": [
+    {
+      "case_id": "P01",
+      "facts": [
+        {
+          "id": "garden-time",
+          "description": "Iedere dinsdag van 10.00 tot 12.00 uur.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "garden-location",
+          "description": "Buurttuin De Linde, achter het buurthuis aan Lindenlaan 12 in het fictieve Lindedorp.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S3"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Tuinieren vindt op donderdag of vrijdag plaats."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": true,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S3"
+        }
+      ]
+    },
+    {
+      "case_id": "P02",
+      "facts": [
+        {
+          "id": "garden-outdoors",
+          "description": "Samen buiten groenten en bloemen verzorgen.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S1"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "garden-no-experience",
+          "description": "Tuinervaring is niet nodig.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S1"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Tuinervaring is verplicht."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": true,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S1"
+        }
+      ]
+    },
+    {
+      "case_id": "P03",
+      "facts": [
+        {
+          "id": "garden-tuesday",
+          "description": "Tuinieren is op dinsdag van 10.00 tot 12.00 uur.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "garden-language",
+          "description": "Goed Nederlands spreken is niet nodig.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S4"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "garden-help",
+          "description": "Een aanwezige begeleider legt eenvoudig uit en demonstreert het werk eerst.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S4"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Een begeleider haalt deelnemers op.",
+        "Er is gegarandeerd hulp in een andere specifieke taal."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": true,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S4"
+        }
+      ]
+    },
+    {
+      "case_id": "P04",
+      "facts": [
+        {
+          "id": "garden-historical-places",
+          "description": "De melding van twee vrije plekken is historisch (1 september 2026) en niet opnieuw gecontroleerd. Een gelijkwaardige historische beperking zonder de exacte datum te herhalen is ook juist.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S6"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "garden-current-places-unknown",
+          "description": "De actuele beschikbaarheid op 20 oktober 2026 is onbekend.",
+          "kind": "unknown",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S6"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Er zijn nu twee vrije plekken.",
+        "De activiteit is nu vol.",
+        "De brondatum bevestigt actuele plekken."
+      ],
+      "required_unknowns": [
+        "Actuele vrije plekken zijn onbekend."
+      ],
+      "relevance_labels_complete": true,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S6"
+        }
+      ]
+    },
+    {
+      "case_id": "P05",
+      "facts": [
+        {
+          "id": "garden-transport-unknown",
+          "description": "De tuinbron geeft geen informatie over ophalen of thuisbrengen.",
+          "kind": "unknown",
+          "evidence_alternatives": []
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Er is vervoer geregeld.",
+        "Er is zeker geen vervoer.",
+        "De begeleider haalt deelnemers op."
+      ],
+      "required_unknowns": [
+        "Vervoer bij tuinieren is onbekend."
+      ],
+      "relevance_labels_complete": true,
+      "relevant_sections": []
+    },
+    {
+      "case_id": "P06",
+      "facts": [
+        {
+          "id": "walking-nature",
+          "description": "Wandelen is buiten en bij/in het park.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S1"
+              }
+            ],
+            [
+              {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S3"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "walking-thursday",
+          "description": "Wandelen is op donderdag van 9.30 tot 10.30 uur.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [
+        "Respecteer zowel natuur/buiten als beschikbaarheid donderdag of vrijdag.",
+        "Onderzoek vrije plaatsen niet als vervanging van de gevraagde beschikbare dagen."
+      ],
+      "forbidden_claims": [
+        "Tuinieren is op donderdag of vrijdag.",
+        "Samen koken is een buiten- of natuuractiviteit.",
+        "Er is bewezen een passende natuuractiviteit op vrijdag."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S1"
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S3"
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S3"
+        }
+      ]
+    },
+    {
+      "case_id": "P07",
+      "facts": [
+        {
+          "id": "garden-tuesday-slot",
+          "description": "Tuinieren: dinsdag 10.00 tot 12.00 uur.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "bicycle-tuesday-slot",
+          "description": "Fietsen opknappen: dinsdag 14.00 tot 16.00 uur.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [
+        "Noem beide passende activiteiten.",
+        "Presenteer activiteiten niet als betaalde vacatures; het antwoord hoeft vrijwilligheid niet ongevraagd te noemen."
+      ],
+      "forbidden_claims": [
+        "Er is maar één dinsdagactiviteit.",
+        "Wandelen is op dinsdag."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": true,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S2"
+        }
+      ]
+    },
+    {
+      "case_id": "P08",
+      "facts": [
+        {
+          "id": "bicycle-no-experience",
+          "description": "Bij fietsen opknappen kan je banden plakken en is geen ervaring nodig.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S1"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "bicycle-time",
+          "description": "Iedere dinsdag van 14.00 tot 16.00 uur.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "bicycle-location",
+          "description": "Werkplaats De Werkbank, wijkgebouw aan Esdoornstraat 8 in het fictieve Lindedorp.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S3"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Ervaring met reparaties is verplicht.",
+        "Het is een betaalde baan."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": true,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S1"
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S3"
+        }
+      ]
+    },
+    {
+      "case_id": "P09",
+      "facts": [
+        {
+          "id": "language-beginner",
+          "description": "Je mag meedoen als je nog weinig Nederlands spreekt.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TAAL-003",
+                "section_id": "S1"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "language-help",
+          "description": "Een taalvrijwilliger begeleidt en legt woorden eenvoudig uit.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TAAL-003",
+                "section_id": "S4"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "language-time",
+          "description": "Iedere woensdag van 14.00 tot 15.30 uur.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TAAL-003",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Goed Nederlands spreken is verplicht.",
+        "Ondersteuning in een specifieke andere taal is gegarandeerd."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": true,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S1"
+        },
+        {
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S4"
+        }
+      ]
+    },
+    {
+      "case_id": "P10",
+      "facts": [
+        {
+          "id": "cooking-friday",
+          "description": "Samen koken is op vrijdag van 11.00 tot 13.00 uur.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "cooking-no-experience",
+          "description": "Kookervaring is niet nodig.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S1"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "cooking-allergens-unknown",
+          "description": "Informatie over allergenen en alternatieve diëten ontbreekt; glutenvrij is niet bevestigd.",
+          "kind": "unknown",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S5"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "De maaltijd is gegarandeerd glutenvrij.",
+        "De maaltijd bevat zeker gluten."
+      ],
+      "required_unknowns": [
+        "Glutenvrije geschiktheid is onbekend."
+      ],
+      "relevance_labels_complete": true,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S1"
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S5"
+        }
+      ]
+    },
+    {
+      "case_id": "P11",
+      "facts": [
+        {
+          "id": "walking-accessibility-unknown",
+          "description": "Rolstoeltoegankelijkheid van de route is niet beschreven.",
+          "kind": "unknown",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S4"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "De route is rolstoeltoegankelijk.",
+        "De route is niet rolstoeltoegankelijk."
+      ],
+      "required_unknowns": [
+        "Rolstoeltoegankelijkheid is onbekend."
+      ],
+      "relevance_labels_complete": true,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S4"
+        }
+      ]
+    },
+    {
+      "case_id": "P12",
+      "facts": [
+        {
+          "id": "badminton-no-evidence",
+          "description": "Deze vijf fictieve documenten bevatten geen informatie over badminton op zaterdag.",
+          "kind": "unknown",
+          "evidence_alternatives": []
+        }
+      ],
+      "conditions": [
+        "Beperk onbekendheid tot dit aanbod; beweer niet dat badminton nergens bestaat."
+      ],
+      "forbidden_claims": [
+        "Er is een badmintonactiviteit op zaterdag.",
+        "Wandelen of een andere activiteit is een badmintonles."
+      ],
+      "required_unknowns": [
+        "Een badmintonactiviteit op zaterdag is niet aangetoond in dit aanbod."
+      ],
+      "relevance_labels_complete": true,
+      "relevant_sections": []
+    }
+  ]
+}

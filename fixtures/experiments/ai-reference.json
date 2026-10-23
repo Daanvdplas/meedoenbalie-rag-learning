@@ -1,0 +1,131 @@
+{
+  "schema_version": "1",
+  "reference_version": "activities-ai-reference-v1",
+  "worksheet_version": "activities-human-review-v1",
+  "worksheet_sha256": "b2e4e3327f0a7a5b24883549703523b9275840d0b8676e2c0ec5bb7900a31bb6",
+  "origin": "ai_agent",
+  "human_calibration": false,
+  "reviewer": {
+    "agent": "/root/eval_review",
+    "runtime": "Codex conversation agent",
+    "model": "not_exposed_to_reviewer",
+    "reference_revision": "ai-reference-v1",
+    "reviewed_at": "2026-10-23"
+  },
+  "limitations": [
+    "Provisional AI reference, not human ground truth.",
+    "Eight deliberately constructed examples; four development and four validation examples. No general judge-reliability claim.",
+    "Reviewer previously inspected source labels and worksheet construction; this is source-bound review, not a blinded independent human study.",
+    "Model/version weights for this conversation reviewer are not exposed."
+  ],
+  "cases": [
+    {
+      "id": "H01",
+      "label": "good",
+      "note": "Dag, tijd en locatie zijn juist weergegeven.",
+      "evidence": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S3"
+        }
+      ]
+    },
+    {
+      "id": "H02",
+      "label": "bad",
+      "note": "Donderdag is onjuist; de bron zegt dinsdag.",
+      "evidence": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2"
+        }
+      ]
+    },
+    {
+      "id": "H03",
+      "label": "bad",
+      "note": "De vraag vraagt alle dinsdagactiviteiten; fietsen opknappen van 14.00 tot 16.00 ontbreekt.",
+      "evidence": [
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2"
+        }
+      ]
+    },
+    {
+      "id": "H04",
+      "label": "good",
+      "note": "Beide dinsdagactiviteiten en hun tijden zijn juist; de andere drie activiteiten vallen op andere dagen.",
+      "evidence": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2"
+        }
+      ]
+    },
+    {
+      "id": "H05",
+      "label": "bad",
+      "note": "Glutenvrij wordt ten onrechte gegarandeerd terwijl informatie over allergenen en alternatieve diëten ontbreekt.",
+      "evidence": [
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S5"
+        }
+      ]
+    },
+    {
+      "id": "H06",
+      "label": "good",
+      "note": "Dag, tijd en gebrek aan ervaringseis zijn juist; ontbrekende allergeneninformatie blijft terecht onbekend.",
+      "evidence": [
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S1"
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S5"
+        }
+      ]
+    },
+    {
+      "id": "H07",
+      "label": "good",
+      "note": "De ontbrekende informatie over rolstoeltoegankelijkheid blijft terecht onbekend; navragen is een passende vervolgstap.",
+      "evidence": [
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S4"
+        }
+      ]
+    },
+    {
+      "id": "H08",
+      "label": "good",
+      "note": "De vraag specificeert geen activiteit of persoonlijke voorwaarden. Het antwoord vermijdt een ongefundeerd geschiktheidsoordeel en benoemt welke informatie ontbreekt.",
+      "evidence": [
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S1"
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S2"
+        }
+      ]
+    }
+  ]
+}

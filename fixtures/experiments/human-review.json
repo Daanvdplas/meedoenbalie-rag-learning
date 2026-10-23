@@ -1,0 +1,198 @@
+{
+  "schema_version": "1",
+  "worksheet_version": "activities-human-review-v1",
+  "as_of": "2026-10-20",
+  "instruction": "Judge each answer against the question and source. Good = correct, sufficiently complete and supported. Bad = a substantive wrong/unsupported claim or required fact missing. Needs review = the supplied information or task is too ambiguous to decide. An answer that correctly states an unknown or asks necessary clarification can be good. Needs review means you as the reviewer cannot decide; it is not a penalty merely for mentioning uncertainty. These are deliberately constructed candidate answers, not live model results. No model label has been used as a human label.",
+  "cases": [
+    {
+      "id": "H01",
+      "subset": "development",
+      "question": "Waar en wanneer kan ik tuinieren?",
+      "answer": "Tuinieren kan iedere dinsdag van 10.00 tot 12.00 uur bij Buurttuin De Linde, achter het buurthuis aan Lindenlaan 12 in Lindedorp.",
+      "source_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2",
+          "date": "2026-10-20",
+          "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S3",
+          "date": "2026-10-20",
+          "text": "Buurttuin De Linde, achter het fictieve buurthuis aan de Lindenlaan 12 in het fictieve Lindedorp."
+        }
+      ],
+      "human_label": null,
+      "human_note": null,
+      "clarification": ""
+    },
+    {
+      "id": "H02",
+      "subset": "development",
+      "question": "Waar en wanneer kan ik tuinieren?",
+      "answer": "Tuinieren kan iedere donderdag van 10.00 tot 12.00 uur bij Buurttuin De Linde aan Lindenlaan 12.",
+      "source_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2",
+          "date": "2026-10-20",
+          "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S3",
+          "date": "2026-10-20",
+          "text": "Buurttuin De Linde, achter het fictieve buurthuis aan de Lindenlaan 12 in het fictieve Lindedorp."
+        }
+      ],
+      "human_label": null,
+      "human_note": null,
+      "clarification": ""
+    },
+    {
+      "id": "H03",
+      "subset": "development",
+      "question": "Welke activiteiten zijn er allemaal op dinsdag en hoe laat zijn ze?",
+      "answer": "Op dinsdag kun je tuinieren van 10.00 tot 12.00 uur.",
+      "source_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2",
+          "date": "2026-10-20",
+          "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2",
+          "date": "2026-10-18",
+          "text": "Iedere dinsdag van 14.00 tot 16.00 uur."
+        }
+      ],
+      "human_label": null,
+      "human_note": null,
+      "clarification": ""
+    },
+    {
+      "id": "H04",
+      "subset": "development",
+      "question": "Welke activiteiten zijn er allemaal op dinsdag en hoe laat zijn ze?",
+      "answer": "Er zijn twee dinsdagactiviteiten: tuinieren van 10.00 tot 12.00 uur en fietsen opknappen van 14.00 tot 16.00 uur.",
+      "source_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2",
+          "date": "2026-10-20",
+          "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2",
+          "date": "2026-10-18",
+          "text": "Iedere dinsdag van 14.00 tot 16.00 uur."
+        }
+      ],
+      "human_label": null,
+      "human_note": null,
+      "clarification": ""
+    },
+    {
+      "id": "H05",
+      "subset": "validation",
+      "question": "Kan ik op vrijdag samen koken zonder ervaring, en is het eten gegarandeerd glutenvrij?",
+      "answer": "Je kunt vrijdag van 11.00 tot 13.00 uur samen koken zonder ervaring. De maaltijd is gegarandeerd glutenvrij.",
+      "source_sections": [
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S1",
+          "date": "2026-10-17",
+          "text": "We maken samen een eenvoudige groentemaaltijd en ruimen de keuken op. Je helpt met wassen, snijden en tafeldekken. Kookervaring is niet nodig. Dit is een vrijwillige activiteit, geen betaalde baan."
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S2",
+          "date": "2026-10-17",
+          "text": "Iedere vrijdag van 11.00 tot 13.00 uur."
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S5",
+          "date": "2026-10-17",
+          "text": "Deelname is gratis. Ingrediënten, schorten en keukengerei zijn aanwezig. Informatie over allergenen en alternatieve diëten ontbreekt."
+        }
+      ],
+      "human_label": null,
+      "human_note": null,
+      "clarification": ""
+    },
+    {
+      "id": "H06",
+      "subset": "validation",
+      "question": "Kan ik op vrijdag samen koken zonder ervaring, en is het eten gegarandeerd glutenvrij?",
+      "answer": "Samen koken is vrijdag van 11.00 tot 13.00 uur. Ervaring is niet nodig. Of de maaltijd glutenvrij is, weten we niet: allergenen en alternatieve diëten zijn niet beschreven.",
+      "source_sections": [
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S1",
+          "date": "2026-10-17",
+          "text": "We maken samen een eenvoudige groentemaaltijd en ruimen de keuken op. Je helpt met wassen, snijden en tafeldekken. Kookervaring is niet nodig. Dit is een vrijwillige activiteit, geen betaalde baan."
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S2",
+          "date": "2026-10-17",
+          "text": "Iedere vrijdag van 11.00 tot 13.00 uur."
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S5",
+          "date": "2026-10-17",
+          "text": "Deelname is gratis. Ingrediënten, schorten en keukengerei zijn aanwezig. Informatie over allergenen en alternatieve diëten ontbreekt."
+        }
+      ],
+      "human_label": null,
+      "human_note": null,
+      "clarification": ""
+    },
+    {
+      "id": "H07",
+      "subset": "validation",
+      "question": "Is de wandelroute geschikt voor een rolstoel?",
+      "answer": "De bron beschrijft niet of de wandelroute rolstoeltoegankelijk is. Dat moet eerst worden nagevraagd.",
+      "source_sections": [
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S4",
+          "date": "2026-10-20",
+          "text": "Een wandelvrijwilliger loopt met de groep mee. Goed Nederlands spreken is niet nodig. De toegankelijkheid van de route voor rolstoelen is niet beschreven."
+        }
+      ],
+      "human_label": null,
+      "human_note": null,
+      "clarification": ""
+    },
+    {
+      "id": "H08",
+      "subset": "validation",
+      "question": "Is de activiteit geschikt voor mij?",
+      "answer": "Misschien; ik kan zonder je wensen en mogelijkheden niet beoordelen welke activiteit bij je past.",
+      "source_sections": [
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S1",
+          "date": "2026-10-20",
+          "text": "We maken samen een rustige wandeling van ongeveer één kilometer door het park. Onderweg is er tijd om te praten. Dit is een vrijwillige activiteit, geen betaalde baan."
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S2",
+          "date": "2026-10-20",
+          "text": "Iedere donderdag van 9.30 tot 10.30 uur."
+        }
+      ],
+      "human_label": null,
+      "human_note": null,
+      "clarification": "De vraag noemt niet welke activiteit of welke persoonlijke voorwaarden bedoeld worden. Geef je eigen oordeel; er staat bewust geen voorgesteld oordeel bij."
+    }
+  ]
+}

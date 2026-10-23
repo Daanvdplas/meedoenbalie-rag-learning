@@ -1,0 +1,120 @@
+{
+  "schema_version": "1",
+  "dataset_version": "activities-evaluation-v1",
+  "as_of": "2026-10-20",
+  "corpus_sha256": "5e7143226ad250d1ed6e2e5242a740b6dc533a622d87147fb10b65dfcfbd71f8",
+  "sources": [
+    {
+      "id": "ACT-TUIN-001",
+      "date": "2026-10-20",
+      "sha256": "bca80ca505327a9d8882bc24da8643722c909b4a4a53d5b2dd7ab1affa9d6434"
+    },
+    {
+      "id": "ACT-FIETS-002",
+      "date": "2026-10-18",
+      "sha256": "325779cb17203fe2a8966e405c7e6671837a08a8cd74b12e0401f0492d233024"
+    },
+    {
+      "id": "ACT-TAAL-003",
+      "date": "2026-10-19",
+      "sha256": "18b7b85dec63666b1744c1ba0f1ad549fa6304c68c8ad184a13c2be7347910ef"
+    },
+    {
+      "id": "ACT-KOKEN-004",
+      "date": "2026-10-17",
+      "sha256": "3aacb079e7201f131bfc6e1134e113c4d0003bb4eed8167958e60c6b639fe053"
+    },
+    {
+      "id": "ACT-WANDEL-005",
+      "date": "2026-10-20",
+      "sha256": "f65335bb91b8fc17b68836916619dbaa459837c29c3396e47d658069376bd691"
+    }
+  ],
+  "selection_note": "Twelve instrument-pilot cases. P01–P06 are known development cases; P07–P12 broaden the pilot. No held-out quality claim. Never pass family/split/kind metadata or expectations to the generator.",
+  "cases": [
+    {
+      "id": "P01",
+      "family": "garden-time-location",
+      "split": "development",
+      "kind": "multiple_facts",
+      "question": "Waar en wanneer kan ik tuinieren?"
+    },
+    {
+      "id": "P02",
+      "family": "garden-beginner",
+      "split": "development",
+      "kind": "paraphrase",
+      "question": "Ik heb nog nooit planten verzorgd. Kan ik bij het tuinieren buiten met mijn handen bezig zijn?"
+    },
+    {
+      "id": "P03",
+      "family": "garden-language-help",
+      "split": "development",
+      "kind": "combined_conditions",
+      "question": "Kan ik op dinsdagochtend tuinieren als ik weinig Nederlands spreek, en is er iemand die helpt?"
+    },
+    {
+      "id": "P04",
+      "family": "garden-current-places",
+      "split": "development",
+      "kind": "stale_information",
+      "question": "Zijn er op 20 oktober 2026 nog twee plekken vrij bij het tuinieren?"
+    },
+    {
+      "id": "P05",
+      "family": "garden-transport",
+      "split": "development",
+      "kind": "missing_information",
+      "question": "Kan iemand mij ophalen en weer thuisbrengen voor het tuinieren?"
+    },
+    {
+      "id": "P06",
+      "family": "nature-thursday-friday",
+      "split": "development",
+      "kind": "combined_conditions",
+      "question": "Ik wil buiten in de natuur bezig zijn en kan alleen donderdag of vrijdag. Welke activiteit past?"
+    },
+    {
+      "id": "P07",
+      "family": "all-tuesday-activities",
+      "split": "pilot",
+      "kind": "all_matches",
+      "question": "Welke activiteiten zijn er allemaal op dinsdag en hoe laat zijn ze?"
+    },
+    {
+      "id": "P08",
+      "family": "bicycle-beginner-location",
+      "split": "pilot",
+      "kind": "multiple_facts",
+      "question": "Ik wil zonder ervaring leren banden plakken. Waar en wanneer kan ik helpen?"
+    },
+    {
+      "id": "P09",
+      "family": "language-beginner-schedule",
+      "split": "pilot",
+      "kind": "combined_conditions",
+      "question": "Ik spreek nog weinig Nederlands. Kan ik in het taalcafé oefenen, is er hulp en wanneer is het?"
+    },
+    {
+      "id": "P10",
+      "family": "cooking-allergens",
+      "split": "pilot",
+      "kind": "missing_information",
+      "question": "Kan ik op vrijdag samen koken zonder ervaring, en is het eten gegarandeerd glutenvrij?"
+    },
+    {
+      "id": "P11",
+      "family": "walking-wheelchair",
+      "split": "pilot",
+      "kind": "missing_information",
+      "question": "Is de wandelroute geschikt voor een rolstoel?"
+    },
+    {
+      "id": "P12",
+      "family": "badminton-saturday",
+      "split": "pilot",
+      "kind": "no_matching_activity",
+      "question": "Waar kan ik op zaterdag badmintonnen via dit aanbod?"
+    }
+  ]
+}
