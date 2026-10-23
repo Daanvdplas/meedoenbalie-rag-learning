@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "dataset_version": "activity-heldout-v1",
+  "frozen_on": "2026-10-23",
+  "questions_sha256": "008f5b4898c7defdbcc547570311d8f687754957c31142b9ac2cbe78a2119efc",
+  "expectations_sha256": "13b3aaef0558de1043957b3f313ddc22333a4b4cf44ff0c52db9fd90ff9294d0",
+  "live_execution_at_freeze": false,
+  "human_calibration": false,
+  "review_status": "independent_source_review_complete",
+  "scope": "Six exploratory intent families on the existing known synthetic corpus; no new-domain or general performance claim."
+}

@@ -1,0 +1,78 @@
+{
+  "schema_version": "1",
+  "dataset_version": "activity-heldout-v1",
+  "as_of": "2026-10-20",
+  "corpus_sha256": "5e7143226ad250d1ed6e2e5242a740b6dc533a622d87147fb10b65dfcfbd71f8",
+  "sources": [
+    {
+      "id": "ACT-TUIN-001",
+      "date": "2026-10-20",
+      "sha256": "bca80ca505327a9d8882bc24da8643722c909b4a4a53d5b2dd7ab1affa9d6434"
+    },
+    {
+      "id": "ACT-FIETS-002",
+      "date": "2026-10-18",
+      "sha256": "325779cb17203fe2a8966e405c7e6671837a08a8cd74b12e0401f0492d233024"
+    },
+    {
+      "id": "ACT-TAAL-003",
+      "date": "2026-10-19",
+      "sha256": "18b7b85dec63666b1744c1ba0f1ad549fa6304c68c8ad184a13c2be7347910ef"
+    },
+    {
+      "id": "ACT-KOKEN-004",
+      "date": "2026-10-17",
+      "sha256": "3aacb079e7201f131bfc6e1134e113c4d0003bb4eed8167958e60c6b639fe053"
+    },
+    {
+      "id": "ACT-WANDEL-005",
+      "date": "2026-10-20",
+      "sha256": "f65335bb91b8fc17b68836916619dbaa459837c29c3396e47d658069376bd691"
+    }
+  ],
+  "selection_note": "Six newly composed intent families frozen before their first live evaluation on 2026-10-23. They reuse known synthetic source facts and are a small exploratory comparison, not an independent domain-general benchmark. Pilot families remain development data; no generation tuning on this held-out set.",
+  "cases": [
+    {
+      "id": "T01",
+      "family": "materials-across-activities",
+      "split": "held_out",
+      "kind": "multiple_facts",
+      "question": "Moet ik eigen gereedschap of ingrediënten meenemen naar tuinieren, fietsen opknappen en samen koken? En welke kleding wordt bij tuinieren gevraagd?"
+    },
+    {
+      "id": "T02",
+      "family": "indoor-day-intersection",
+      "split": "held_out",
+      "kind": "combined_conditions",
+      "question": "Welke activiteit kan ik op dinsdag binnen doen, hoe laat is die en waar moet ik zijn?"
+    },
+    {
+      "id": "T03",
+      "family": "unlisted-assistance-language",
+      "split": "held_out",
+      "kind": "missing_information",
+      "question": "Is bij fietsen opknappen en het taalcafé gegarandeerd iemand die mij in het Frans kan begeleiden?"
+    },
+    {
+      "id": "T04",
+      "family": "walking-distance-limit",
+      "split": "held_out",
+      "kind": "combined_conditions",
+      "question": "Ik kan maximaal 500 meter lopen. Is de hele rustige wandeling kort genoeg, of kan ik zeker een kortere route kiezen?"
+    },
+    {
+      "id": "T05",
+      "family": "two-appointment-planning",
+      "split": "held_out",
+      "kind": "multiple_facts",
+      "question": "Ik wil op woensdag Nederlands oefenen en op vrijdag samen koken. Wat zijn voor beide activiteiten de tijden en adressen?"
+    },
+    {
+      "id": "T06",
+      "family": "bad-weather-procedure",
+      "split": "held_out",
+      "kind": "missing_information",
+      "question": "Waar gaan tuinieren en wandelen naartoe als het hard regent?"
+    }
+  ]
+}
