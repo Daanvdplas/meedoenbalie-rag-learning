@@ -322,7 +322,7 @@ fn validate_retrieval_contract(record: &ExperimentRecord) -> Result<(), String> 
                         return Err("Retrieval manifest changed between hops".into());
                     }
                     previous_manifest = Some(manifest);
-                    if search.hits.is_empty() || search.hits.len() != step.hits.len() {
+                    if search.hits.len() != step.hits.len() {
                         return Err("MCP result/step hits mismatch".into());
                     }
                     let mut unique = std::collections::BTreeSet::new();
@@ -373,7 +373,6 @@ fn validate_retrieval_contract(record: &ExperimentRecord) -> Result<(), String> 
             if step.origin != "preselection"
                 || step.query != record.question
                 || step.top_k != record.manifest.limits.top_k
-                || step.hits.is_empty()
                 || step.hits.iter().any(|h| h.score_kind != kind)
                 || step.hits.len() != record.offered_sections.len()
             {
@@ -523,6 +522,65 @@ mod tests {
         assert!(validate_record(&secret).is_err());
         item.tool_calls[0].result.as_mut().unwrap()["manifest"]["model"] = json!("different-model");
         assert!(validate_record(&item).is_err());
+    }
+
+    #[test]
+    fn invalid_second_hop_or_final_citation_does_not_commit_partial_evidence() {
+        let section =
+            crate::source::parse_sources(crate::DOCUMENTS).unwrap()[0].sections[0].clone();
+        let mut item = record();
+        item.arm = Arm::AgenticDense;
+        let result = json!({"question":item.question,"top_k":3,"as_of":crate::AS_OF,"sources":item.manifest.sources,"manifest":{"source_sha256":item.manifest.corpus_sha256,"embedding_inputs_sha256":"1".repeat(64),"document_vectors_sha256":"2".repeat(64),"model":crate::MODEL,"dimensions":384,"settings_sha256":"3".repeat(64)},"hits":[{"section":section,"similarity":0.5}]});
+        let call = crate::codex::ToolCall {
+            server: "coa".into(),
+            tool: "search_document".into(),
+            query: item.question.clone(),
+            top_k: 3,
+            status: "completed".into(),
+            result: Some(result),
+            error: None,
+        };
+        for bad_citation in [false, true] {
+            let mut calls = vec![call.clone()];
+            let mut answer = item.answer.clone().unwrap();
+            if bad_citation {
+                answer.citations.push(crate::codex::Citation {
+                    source_id: section.source_id.clone(),
+                    source_date: section.source_date.clone(),
+                    section_id: section.id.clone(),
+                    quote: "A fabricated quote".into(),
+                });
+            } else {
+                let mut invalid = call.clone();
+                invalid.result.as_mut().unwrap()["hits"][0]["section"]["text"] =
+                    json!("Changed corpus");
+                calls.push(invalid);
+            }
+            let run = crate::codex::CodexRun {
+                id: "fixture".into(),
+                status: "completed".into(),
+                question: item.question.clone(),
+                answer,
+                tool_calls: calls,
+                sources: vec![],
+                as_of: crate::AS_OF.into(),
+                manifest: Value::Null,
+                client_version: "fixture".into(),
+                model: "fixture".into(),
+                elapsed_ms: 1,
+                usage: None,
+            };
+            assert!(canonicalize_agent(&mut item, run).is_err());
+            assert!(
+                item.offered_sections.is_empty()
+                    && item.tool_calls.is_empty()
+                    && item.retrieval_steps.is_empty()
+            );
+        }
+        item.answer = None;
+        item.execution_status = ExecutionStatus::Failed;
+        item.error = Some("invalid_output".into());
+        assert!(validate_record(&item).is_ok());
     }
 
     #[tokio::test]
@@ -848,6 +906,16 @@ async fn run_with_runtime(
 }
 
 fn canonicalize_agent(
+    record: &mut ExperimentRecord,
+    run: crate::codex::CodexRun,
+) -> Result<(), String> {
+    let mut working = record.clone();
+    canonicalize_agent_inner(&mut working, run)?;
+    *record = working;
+    Ok(())
+}
+
+fn canonicalize_agent_inner(
     record: &mut ExperimentRecord,
     run: crate::codex::CodexRun,
 ) -> Result<(), String> {
