@@ -243,6 +243,7 @@ fn trace_contract(record: &ExperimentRecord) -> Result<(), String> {
     }
     if record.tool_calls.is_empty()
         || record.tool_calls.len() > record.manifest.limits.max_search_calls
+        || record.tool_calls.len() != record.retrieval_steps.len()
     {
         return Err("Agent must record one to four actual MCP calls".into());
     }
@@ -250,15 +251,18 @@ fn trace_contract(record: &ExperimentRecord) -> Result<(), String> {
         .map_err(|_| "Cannot encode source identities")?;
     let mut completed = 0;
     let mut first_manifest = None;
-    for call in &record.tool_calls {
+    for (call, step) in record.tool_calls.iter().zip(&record.retrieval_steps) {
         if call.server != "coa"
             || call.tool != "search_document"
             || crate::validate_query(&call.query).is_err()
             || !(1..=6).contains(&call.top_k)
+            || step.origin != "mcp"
+            || step.query != call.query
+            || step.top_k != call.top_k
         {
             return Err("Unexpected tool or invalid search arguments".into());
         }
-        if call.status == "failed" && call.result.is_none() {
+        if call.status == "failed" && call.result.is_none() && step.hits.is_empty() {
             continue;
         }
         if call.status != "completed" || call.error.is_some() {
@@ -268,15 +272,8 @@ fn trace_contract(record: &ExperimentRecord) -> Result<(), String> {
             .result
             .as_ref()
             .ok_or("Successful MCP call is missing its actual result")?;
-        let step = record
-            .retrieval_steps
-            .get(completed)
-            .ok_or("Successful MCP call lacks a retrieval step")?;
         completed += 1;
-        if step.origin != "mcp"
-            || step.query != call.query
-            || step.top_k != call.top_k
-            || result["question"] != call.query
+        if result["question"] != call.query
             || result["top_k"].as_u64() != Some(call.top_k as u64)
             || result["as_of"] != record.manifest.as_of
             || result["sources"] != expected_sources
@@ -304,7 +301,7 @@ fn trace_contract(record: &ExperimentRecord) -> Result<(), String> {
             return Err("Retrieval step differs from actual MCP passages or scores".into());
         }
     }
-    if completed == 0 || completed != record.retrieval_steps.len() {
+    if completed == 0 {
         return Err("Agent has no completed retrieval or has invented retrieval steps".into());
     }
     Ok(())
@@ -804,6 +801,9 @@ mod tests {
         failed.result = None;
         failed.error = Some("Search tool failed".into());
         item.tool_calls.insert(0, failed);
+        let mut empty_step = item.retrieval_steps[0].clone();
+        empty_step.hits.clear();
+        item.retrieval_steps.insert(0, empty_step);
         let report = evaluate(&item, &gold).unwrap();
         assert_eq!(metric(&report, "first_hop_fact_coverage").value, Some(0.0));
         assert_eq!(metric(&report, "all_hop_fact_coverage").value, Some(1.0));
