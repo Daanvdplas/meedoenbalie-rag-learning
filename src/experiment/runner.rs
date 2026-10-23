@@ -126,6 +126,13 @@ pub fn validate_record(record: &ExperimentRecord) -> Result<(), String> {
                 .embedding_revision
                 .as_ref()
                 .is_none_or(|r| r.len() != 40 || !r.bytes().all(|b| b.is_ascii_hexdigit()))
+                || manifest
+                    .embedding_files
+                    .iter()
+                    .map(|f| &f.name)
+                    .collect::<std::collections::BTreeSet<_>>()
+                    .len()
+                    != 5
                 || manifest.embedding_files.len() != 5
                 || manifest.embedding_files.iter().any(|f| {
                     !hex(&f.sha256)
@@ -142,7 +149,11 @@ pub fn validate_record(record: &ExperimentRecord) -> Result<(), String> {
             return Err("Invalid embedding weights identity".into());
         }
     }
+    let mut unique_sections = std::collections::BTreeSet::new();
     for section in &record.offered_sections {
+        if !unique_sections.insert((&section.source_id, &section.id)) {
+            return Err("Duplicate offered source section".into());
+        }
         let original = sources
             .iter()
             .flat_map(|s| &s.sections)
@@ -177,12 +188,16 @@ pub fn validate_record(record: &ExperimentRecord) -> Result<(), String> {
                         s.source_id == hit.section.source_id
                             && s.id == hit.section.id
                             && s.text == hit.section.text
+                            && s.source_date == hit.section.source_date
+                            && s.source_title == hit.section.source_title
+                            && s.heading == hit.section.heading
                     })
             })
         {
             return Err("Invalid recorded retrieval step".into());
         }
     }
+    validate_retrieval_contract(record)?;
     match record.execution_status {
         ExecutionStatus::Completed => {
             let answer = record
@@ -228,6 +243,109 @@ pub fn validate_record(record: &ExperimentRecord) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CanonicalSearch {
+    hits: Vec<CanonicalHit>,
+}
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CanonicalHit {
+    section: crate::Section,
+    similarity: f64,
+}
+fn validate_retrieval_contract(record: &ExperimentRecord) -> Result<(), String> {
+    let completed = record.execution_status == ExecutionStatus::Completed;
+    if record.arm == Arm::AgenticDense {
+        if record.retrieval_steps.len() != record.tool_calls.len() {
+            return Err("MCP trace/call count mismatch".into());
+        }
+        let mut successful = false;
+        for (call, step) in record.tool_calls.iter().zip(&record.retrieval_steps) {
+            if call.server != "coa"
+                || call.tool != "search_document"
+                || crate::validate_query(&call.query).is_err()
+                || !(1..=6).contains(&call.top_k)
+                || step.origin != "mcp"
+                || step.query != call.query
+                || step.top_k != call.top_k
+                || step.hits.iter().any(|h| h.score_kind != "cosine")
+            {
+                return Err("Invalid genuine MCP call/step identity".into());
+            }
+            match call.status.as_str() {
+                "completed" => {
+                    if call.error.is_some() {
+                        return Err("Successful MCP call contains an error".into());
+                    }
+                    let search: CanonicalSearch = serde_json::from_value(
+                        call.result
+                            .clone()
+                            .ok_or("Successful MCP call lacks canonical result")?,
+                    )
+                    .map_err(|_| "MCP result contains unsupported fields")?;
+                    if search.hits.is_empty() || search.hits.len() != step.hits.len() {
+                        return Err("MCP result/step hits mismatch".into());
+                    }
+                    let mut unique = std::collections::BTreeSet::new();
+                    for (hit, actual) in search.hits.iter().zip(&step.hits) {
+                        if !unique.insert((&hit.section.source_id, &hit.section.id))
+                            || !hit.similarity.is_finite()
+                            || hit.similarity != actual.score
+                            || serde_json::to_value(&hit.section).unwrap()
+                                != serde_json::to_value(&actual.section).unwrap()
+                        {
+                            return Err("MCP result/step evidence mismatch".into());
+                        }
+                    }
+                    successful = true;
+                }
+                "failed" => {
+                    if call.result.is_some()
+                        || call.error.as_deref() != Some("Search tool failed")
+                        || !step.hits.is_empty()
+                    {
+                        return Err("Invalid failed MCP call".into());
+                    }
+                }
+                _ => return Err("Invalid MCP execution status".into()),
+            }
+        }
+        if completed && !successful {
+            return Err("Completed agent has no successful actual retrieval".into());
+        }
+    } else {
+        if !record.tool_calls.is_empty() {
+            return Err("No-tool arm contains MCP calls".into());
+        }
+        if record.arm == Arm::FullContext {
+            if !record.retrieval_steps.is_empty() {
+                return Err("Full-context arm contains retrieval steps".into());
+            }
+        } else if completed || !record.retrieval_steps.is_empty() {
+            if record.retrieval_steps.len() != 1 {
+                return Err("One-shot retrieval requires exactly one step".into());
+            }
+            let step = &record.retrieval_steps[0];
+            let kind = if record.arm == Arm::Bm25 {
+                "bm25"
+            } else {
+                "cosine"
+            };
+            if step.origin != "preselection"
+                || step.query != record.question
+                || step.top_k != record.manifest.limits.top_k
+                || step.hits.is_empty()
+                || step.hits.iter().any(|h| h.score_kind != kind)
+                || step.hits.len() != record.offered_sections.len()
+            {
+                return Err("One-shot retrieval arm/provenance mismatch".into());
+            }
+        }
+    }
+    Ok(())
+}
+
 pub fn write_record(file: &mut std::fs::File, record: &ExperimentRecord) -> Result<(), String> {
     validate_record(record)?;
     serde_json::to_writer(&mut *file, record).map_err(|_| "Cannot encode experiment result")?;
@@ -239,7 +357,7 @@ pub fn write_record(file: &mut std::fs::File, record: &ExperimentRecord) -> Resu
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
+    use serde_json::{Value, json};
 
     fn record() -> ExperimentRecord {
         let manifest = json!({"schema_version":1,"experiment_id":"test","created_at_unix_ms":1,"questions_version":"v1","questions_sha256":"a".repeat(64),"expectations_version":"v1","expectations_sha256":"b".repeat(64),"corpus_sha256":crate::manifest::hash(crate::DOCUMENTS.join("\n---document---\n").as_bytes()),"sources":crate::source::parse_sources(crate::DOCUMENTS).unwrap().iter().zip(crate::DOCUMENTS).map(|(s,raw)|json!({"id":s.id,"title":s.title,"date":s.date,"sha256":crate::manifest::hash(raw.as_bytes())})).collect::<Vec<_>>(),"as_of":crate::AS_OF,"generation_prompt_version":"v1","generation_prompt_sha256":"c".repeat(64),"rubric_version":"v1","rubric_sha256":"d".repeat(64),"model":"test-model","client_version":"codex-cli test","binary_sha256":"e".repeat(64),"runtime_sha256":"f".repeat(64),"code_mode_host_sha256":"a".repeat(64),"generator_route":"fixture","grader_route":"fixture","embedding_model":crate::MODEL,"embedding_files":[],"reproducibility_limitations":["fixture"],"limits":{"max_cases":2,"max_generations":4,"max_judgements":4,"max_seconds":600,"per_call_seconds":120,"concurrency":1,"max_search_calls":4,"top_k":3}});
@@ -260,6 +378,108 @@ mod tests {
         item = record();
         item.manifest.corpus_sha256 = "z".repeat(64);
         assert!(validate_record(&item).is_err());
+    }
+
+    #[test]
+    fn artifact_ingestion_rejects_duplicate_context_extra_tool_json_and_false_hit_date() {
+        let section =
+            crate::source::parse_sources(crate::DOCUMENTS).unwrap()[0].sections[0].clone();
+        let mut item = record();
+        item.offered_sections = vec![section.clone(), section.clone()];
+        assert!(validate_record(&item).is_err());
+        item = record();
+        item.arm = Arm::AgenticDense;
+        item.offered_sections = vec![section.clone()];
+        item.tool_calls = vec![crate::codex::ToolCall {
+            server: "coa".into(),
+            tool: "search_document".into(),
+            query: item.question.clone(),
+            top_k: 3,
+            status: "completed".into(),
+            result: Some(json!({"hits":[],"PRIVATE_TOKEN":"secret"})),
+            error: None,
+        }];
+        assert!(validate_record(&item).is_err());
+        item = record();
+        item.arm = Arm::DenseOnce;
+        item.offered_sections = vec![section.clone()];
+        let mut false_section = section;
+        false_section.source_date = "1900-01-01".into();
+        item.retrieval_steps = vec![RetrievalStep {
+            origin: "preselection".into(),
+            query: item.question.clone(),
+            top_k: 3,
+            hits: vec![RankedSection {
+                section: false_section,
+                score: 0.5,
+                score_kind: "cosine".into(),
+            }],
+        }];
+        assert!(validate_record(&item).is_err());
+    }
+
+    #[tokio::test]
+    async fn actual_orchestrator_sends_no_gold_to_fixture_process_and_records_failures() {
+        let directory = std::env::temp_dir().join(format!(
+            "coa-runner-boundary-{}",
+            super::super::budget::now_ms().unwrap()
+        ));
+        std::fs::create_dir(&directory).unwrap();
+        let (questions, labels) = super::super::dataset::validate_bundled().unwrap();
+        let canary = labels.evaluation_only_canary.clone();
+        let events=[json!({"type":"item.completed","item":{"type":"agent_message","text":json!({"text":"Onbekend.","citations":[],"unknowns":["Niet vastgesteld."]}).to_string()}}),json!({"type":"turn.completed"})].iter().map(Value::to_string).collect::<Vec<_>>().join("\n");
+        for (name, exit, expected) in [
+            ("success", false, ExecutionStatus::Completed),
+            ("failed", true, ExecutionStatus::Failed),
+        ] {
+            let request = directory.join(format!("{name}-stdin"));
+            let script = format!(
+                "#!/bin/sh\ncat > '{}'\ncase \"$(cat '{}')\" in *{}*) exit 71;; esac\n{}\ncat <<'COA_EVENTS'\n{}\nCOA_EVENTS\n",
+                request.display(),
+                request.display(),
+                canary,
+                if exit { "exit 9" } else { ":" },
+                events
+            );
+            let runtime = crate::codex::fixture_runner(&directory.join(name), &script);
+            let output = directory.join(format!("{name}.jsonl"));
+            let options = RunOptions {
+                output: output.clone(),
+                ledger: directory.join(format!("{name}-ledger.json")),
+                arms: vec![Arm::FullContext],
+                cases: vec!["P01".into()],
+                limits: Limits {
+                    max_cases: 1,
+                    max_generations: 1,
+                    max_judgements: 0,
+                    max_seconds: 10,
+                    per_call_seconds: 3,
+                    concurrency: 1,
+                    max_search_calls: 4,
+                    top_k: 3,
+                },
+            };
+            run_with_runtime(options, questions.clone(), labels.clone(), Some(runtime))
+                .await
+                .unwrap();
+            let actual = std::fs::read_to_string(request).unwrap();
+            assert!(!actual.contains(&canary));
+            assert!(!actual.contains("forbidden_claims"));
+            assert!(!actual.contains("required_unknowns"));
+            let rows = read_records(&output).unwrap();
+            assert_eq!(rows[0].execution_kind, ExecutionKind::Fixture);
+            assert_eq!(rows[0].execution_status, expected);
+            assert_eq!(
+                rows[0]
+                    .manifest
+                    .budget
+                    .as_ref()
+                    .unwrap()
+                    .generation_sessions_used,
+                1
+            );
+        }
+        std::fs::remove_dir_all(directory).unwrap();
     }
 
     #[test]
@@ -288,6 +508,15 @@ pub async fn run(
     options: RunOptions,
     questions: super::dataset::QuestionSet,
     labels: super::dataset::LabelSet,
+) -> Result<(), String> {
+    run_with_runtime(options, questions, labels, None).await
+}
+
+async fn run_with_runtime(
+    options: RunOptions,
+    questions: super::dataset::QuestionSet,
+    labels: super::dataset::LabelSet,
+    runtime_override: Option<crate::codex::CodexRunner>,
 ) -> Result<(), String> {
     use std::{
         fs::OpenOptions,
@@ -322,7 +551,11 @@ pub async fn run(
         })
         .collect::<Result<Vec<_>, String>>()?;
     let mut ledger = super::budget::Ledger::open(&options.ledger)?;
-    let runtime = crate::codex::CodexRunner::new()?;
+    let is_fixture = runtime_override.is_some();
+    let runtime = match runtime_override {
+        Some(runtime) => runtime,
+        None => crate::codex::CodexRunner::new()?,
+    };
     let sources = crate::source::parse_sources(crate::DOCUMENTS)?;
     let mut index = if options.arms.contains(&Arm::DenseOnce) {
         Some(crate::Index::load().map_err(|_| "Cannot load local embedding index")?)
@@ -366,7 +599,7 @@ pub async fn run(
     for case in &cases {
         for arm in &options.arms {
             let mut record=ExperimentRecord {
-            schema_version:1,run_id:format!("{experiment_id}-{}-{}",case.id,arm.name()),case_id:case.id.clone(),family:case.family.clone(),split:case.split.clone(),kind:case.kind.clone(),arm:*arm,execution_kind:ExecutionKind::Live,execution_status:ExecutionStatus::Skipped,question:case.question.clone(),
+            schema_version:1,run_id:format!("{experiment_id}-{}-{}",case.id,arm.name()),case_id:case.id.clone(),family:case.family.clone(),split:case.split.clone(),kind:case.kind.clone(),arm:*arm,execution_kind:if is_fixture {ExecutionKind::Fixture} else {ExecutionKind::Live},execution_status:ExecutionStatus::Skipped,question:case.question.clone(),
             manifest:Manifest {schema_version:1,experiment_id:experiment_id.clone(),created_at_unix_ms:super::budget::now_ms()?,questions_version:questions.dataset_version.clone(),questions_sha256:super::dataset::questions_hash(&questions)?,expectations_version:labels.dataset_version.clone(),expectations_sha256:crate::manifest::hash(&serde_json::to_vec(&labels).map_err(|_|"Cannot hash criteria")?),corpus_sha256:questions.corpus_sha256.clone(),sources:sources.iter().zip(crate::DOCUMENTS).map(|(s,raw)|SourceIdentity{id:s.id.clone(),title:s.title.clone(),date:s.date.clone(),sha256:crate::manifest::hash(raw.as_bytes())}).collect(),as_of:crate::AS_OF.into(),generation_prompt_version:if *arm==Arm::AgenticDense {text("prompt_version")} else {super::arms::CONTEXT_PROMPT_VERSION.into()},generation_prompt_sha256:String::new(),rubric_version:"semantic-rubric-v1-unvalidated".into(),rubric_sha256:crate::manifest::hash(b"semantic-rubric-v1-unvalidated"),model:text("model"),client_version:text("client_version"),binary_sha256:fingerprint("mcp"),runtime_sha256:fingerprint("codex"),code_mode_host_sha256:fingerprint("code_mode_host"),generator_route:"OpenAI via locally authenticated Codex CLI".into(),grader_route:"not graded".into(),embedding_model:crate::MODEL.into(),embedding_files:embedding_files.clone(),embedding_revision:revision.clone(),reproducibility_limitations:vec!["Model alias/provider routing may change; binary and input hashes do not guarantee bitwise model reproduction.".into(),"Session budgets count Codex sessions, not hidden provider requests.".into(),"Semantic grading is provisional; no human calibration.".into()],limits:options.limits.clone(),budget:Some(ledger.state.clone())},answer:None,tool_calls:vec![],retrieval_steps:vec![],trace_complete:false,offered_sections:vec![],elapsed_ms:0,usage:None,error:Some("not_run".into()),metrics:None,judgement:None,
         };
             if *arm != Arm::AgenticDense {
@@ -431,7 +664,23 @@ pub async fn run(
                 record.error = Some("budget_exhausted".into());
             } else {
                 record.manifest.budget = Some(ledger.state.clone());
-                let timeout = timeout.unwrap();
+                // Recompute after durable reservation; slow fsync must not extend a deadline.
+                let after_reservation = ledger
+                    .remaining()
+                    .ok()
+                    .zip(
+                        Duration::from_secs(options.limits.max_seconds)
+                            .checked_sub(started.elapsed()),
+                    )
+                    .map(|(a, b)| {
+                        a.min(b)
+                            .min(Duration::from_secs(options.limits.per_call_seconds))
+                    });
+                let Some(timeout) = after_reservation.filter(|t| !t.is_zero()) else {
+                    record.error = Some("budget_exhausted".into());
+                    write_record(&mut output, &record)?;
+                    continue;
+                };
                 let call_started = Instant::now();
                 let generation = async {
                     if *arm == Arm::AgenticDense {

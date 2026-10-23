@@ -18,6 +18,7 @@ const RUN_TIMEOUT: Duration = Duration::from_secs(120);
 const PROMPT_VERSION: &str = "five-activity-grounding-v3";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Citation {
     pub source_id: String,
     pub source_date: String,
@@ -25,12 +26,14 @@ pub struct Citation {
     pub quote: String,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct GroundedAnswer {
     pub text: String,
     pub citations: Vec<Citation>,
     pub unknowns: Vec<String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ToolCall {
     pub server: String,
     pub tool: String,
@@ -594,6 +597,11 @@ pub fn generation_prompt(query: &str, top_k: usize) -> String {
     )
 }
 
+#[cfg(test)]
+pub(crate) fn fixture_runner(directory: &Path, script: &str) -> CodexRunner {
+    tests::fake_runner(directory, script)
+}
+
 async fn read_bounded(reader: impl AsyncRead + Unpin, maximum: usize) -> Result<Vec<u8>, String> {
     let mut data = Vec::new();
     reader
@@ -760,7 +768,7 @@ mod tests {
     }
 
     #[cfg(unix)]
-    fn fake_runner(directory: &Path, script: &str) -> CodexRunner {
+    pub(super) fn fake_runner(directory: &Path, script: &str) -> CodexRunner {
         use std::os::unix::fs::PermissionsExt;
         std::fs::create_dir_all(directory).unwrap();
         let executable = directory.join("codex");
@@ -1005,7 +1013,11 @@ mod tests {
         let task =
             tokio::spawn(async move { execute(shell, b"", Duration::from_millis(200)).await });
         for _ in 0..100 {
-            if pid_path.exists() {
+            if std::fs::read_to_string(&pid_path)
+                .ok()
+                .and_then(|s| s.trim().parse::<i32>().ok())
+                .is_some()
+            {
                 break;
             }
             tokio::time::sleep(Duration::from_millis(5)).await;

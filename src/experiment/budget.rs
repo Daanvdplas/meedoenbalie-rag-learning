@@ -25,15 +25,24 @@ pub struct Ledger {
 impl Ledger {
     pub fn open(path: &Path) -> Result<Self, String> {
         let mut options = OpenOptions::new();
-        options.read(true).write(true).create(true).truncate(false);
+        options.read(true).write(true).create_new(true);
         #[cfg(unix)]
         {
             use std::os::unix::fs::OpenOptionsExt;
             options.mode(0o600);
         }
-        let mut file = options
-            .open(path)
-            .map_err(|_| "Cannot open experiment budget ledger")?;
+        let (mut file, is_new) = match options.open(path) {
+            Ok(file) => (file, true),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => (
+                OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .open(path)
+                    .map_err(|_| "Cannot open experiment budget ledger")?,
+                false,
+            ),
+            Err(_) => return Err("Cannot create experiment budget ledger".into()),
+        };
         #[cfg(unix)]
         {
             use std::os::fd::AsRawFd;
@@ -55,7 +64,7 @@ impl Ledger {
         file.read_to_string(&mut text)
             .map_err(|_| "Cannot read budget ledger")?;
         let now = now_ms()?;
-        let state = if text.is_empty() {
+        let state = if is_new {
             LedgerState {
                 schema_version: 1,
                 id: format!("budget-{now}-{}", std::process::id()),
@@ -81,7 +90,9 @@ impl Ledger {
             return Err("Invalid or unsupported budget ledger limits".into());
         }
         let mut ledger = Self { file, state };
-        ledger.persist()?;
+        if is_new {
+            ledger.persist()?;
+        }
         Ok(ledger)
     }
     pub fn remaining(&self) -> Result<std::time::Duration, String> {
@@ -131,6 +142,13 @@ pub fn now_ms() -> Result<u64, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn existing_empty_ledger_is_corruption_not_a_fresh_budget() {
+        let path = std::env::temp_dir().join(format!("coa-empty-ledger-{}", now_ms().unwrap()));
+        std::fs::write(&path, b"").unwrap();
+        assert!(Ledger::open(&path).is_err());
+        std::fs::remove_file(path).unwrap();
+    }
     #[test]
     fn ledger_persists_failed_attempts_and_locks_concurrent_sessions() {
         let path = std::env::temp_dir().join(format!(
