@@ -32,3 +32,50 @@ fn live_execution_requires_explicit_opt_in_before_runtime_or_file_access() {
     assert!(!path.exists());
     assert!(!String::from_utf8_lossy(&output.stderr).contains("PRIVATE-CANARY"));
 }
+
+#[test]
+fn validates_bundled_data_without_authentication() {
+    let result = std::process::Command::new(env!("CARGO_BIN_EXE_meedoen-retrieval"))
+        .args(["experiment", "validate"])
+        .env("COA_CODEX_BIN", "/missing/PRIVATE-CANARY")
+        .output()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert!(String::from_utf8_lossy(&result.stdout).contains("12"));
+}
+
+#[test]
+fn live_run_checks_selection_before_runtime_or_creating_artifacts() {
+    let result = std::process::Command::new(env!("CARGO_BIN_EXE_meedoen-retrieval"))
+        .args([
+            "experiment",
+            "run",
+            "--live",
+            "--cases",
+            "NOT-A-CASE",
+            "--arms",
+            "full_context",
+            "--output",
+            "/missing/output.jsonl",
+            "--ledger",
+            "/missing/budget.json",
+            "--max-cases",
+            "1",
+            "--max-generations",
+            "1",
+            "--max-judgements",
+            "0",
+            "--max-seconds",
+            "120",
+        ])
+        .env("COA_CODEX_BIN", "/missing/PRIVATE-CANARY")
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("Unknown experiment case"));
+    assert!(!String::from_utf8_lossy(&result.stderr).contains("PRIVATE-CANARY"));
+}

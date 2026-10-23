@@ -138,6 +138,10 @@ pub struct Manifest {
     pub embedding_files: Vec<ModelFile>,
     pub reproducibility_limitations: Vec<String>,
     pub limits: Limits,
+    #[serde(default)]
+    pub budget: Option<super::budget::LedgerState>,
+    #[serde(default)]
+    pub embedding_revision: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -156,10 +160,31 @@ pub struct ExperimentRecord {
     pub manifest: Manifest,
     pub answer: Option<GroundedAnswer>,
     pub tool_calls: Vec<ToolCall>,
+    #[serde(default)]
+    pub retrieval_steps: Vec<RetrievalStep>,
+    #[serde(default)]
+    pub trace_complete: bool,
     pub offered_sections: Vec<Section>,
     pub elapsed_ms: u64,
     pub usage: Option<TokenUsage>,
     pub error: Option<String>,
     pub metrics: Option<serde_json::Value>,
     pub judgement: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RankedSection {
+    pub section: Section,
+    pub score: f64,
+    pub score_kind: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RetrievalStep {
+    pub origin: String,
+    pub query: String,
+    pub top_k: usize,
+    pub hits: Vec<RankedSection>,
 }

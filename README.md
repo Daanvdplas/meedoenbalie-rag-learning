@@ -62,3 +62,22 @@ Alle gegevens zijn verzonnen. Suggesties behouden bron en datum; ontbrekende of 
 Alle codewijzigingen gaan via branches en pull requests, met onafhankelijke beoordeling. Niet rechtstreeks naar `main` committen; alleen mergen met toestemming van de gebruiker.
 
 Bron: [fastembed 7.1.2](https://github.com/anush008/fastembed-rs/releases/tag/v7.1.2), gepubliceerd **19 oktober 2026**. Zie verder [projectinstructies](AGENTS.md), [use case](user_journey.md) en [2026-oriëntatie](agent-harness-landscape.md). Het langetermijndoel blijft een kleine, uitlegbare agent harness; deze proef houdt bewust vijf activiteiten en vrije vragen, met vijf interne tuinvragen als regressieset.
+
+## Reproduceerbare experimenten
+
+`experiment` staat los van de demo en de historische vijf tuinvragen. Validatie gebruikt geen modelaanmelding:
+
+```sh
+cargo run --locked -- experiment arms
+cargo run --locked -- experiment validate
+```
+
+Start modeluitvoeringen uitsluitend expliciet. Dit voorbeeld selecteert twee vragen en twee armen, dus maximaal vier generatie-sessies. Het maakt een nieuw JSONL-bestand; bestaande bestanden worden nooit overschreven. Voer het uit vanuit de map met de bestaande `.model-cache`.
+
+```sh
+cargo run --locked -- experiment run --live --cases P01,P02 --arms agentic_dense,full_context --output /tmp/rag-smoke.jsonl --ledger /tmp/rag-evaluation-budget.json --max-cases 2 --max-generations 4 --max-judgements 0 --max-seconds 600
+```
+
+Gebruik voor alle vervolgopdrachten hetzelfde ledger-bestand. Dit reserveert vóór iedere poging een sessie en begrenst het gezamenlijke traject op 40 generatie-sessies, 56 beoordelingssessies en vier uur, met één uitvoering tegelijk. Ook mislukte pogingen tellen mee. Iedere sessie duurt maximaal 120 seconden; Ctrl+C stopt de actieve subprocessen en schrijft de resterende gevallen als geannuleerd. Een Codex-sessie kan intern meerdere providerrequests bevatten; die zijn niet apart zichtbaar.
+
+`agentic_dense` gebruikt de bestaande echte MCP-zoekfunctie, `full_context` alle dertig bronsecties zonder tools. `dense_once` zoekt één keer met MiniLM; `bm25` zoekt één keer met BM25 (k1=1.2, b=0.75, zonder stemming). De laatste twee geven uitsluitend hun geselecteerde passages aan hetzelfde antwoordmodel. BM25-scores zijn onbegrensde lexicale scores. Zoekstappen, aangeboden secties, brondata, letterlijke citaten, beschikbare usage, limieten en hashes worden opgeslagen. Onbekende usage blijft `null`; een gelukte uitvoering is nog geen inhoudelijke kwaliteitsbeoordeling. Modelaliassen en providerroute beperken exacte reproduceerbaarheid.
