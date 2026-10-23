@@ -138,6 +138,10 @@ pub struct Manifest {
     pub embedding_files: Vec<ModelFile>,
     pub reproducibility_limitations: Vec<String>,
     pub limits: Limits,
+    #[serde(default)]
+    pub budget: Option<super::budget::LedgerState>,
+    #[serde(default)]
+    pub embedding_revision: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

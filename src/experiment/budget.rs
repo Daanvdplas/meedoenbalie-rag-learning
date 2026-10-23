@@ -148,6 +148,9 @@ mod tests {
         let mut ledger = Ledger::open(&path).unwrap();
         assert_eq!(ledger.state.generation_sessions_used, 1);
         assert_eq!(ledger.state.grading_sessions_used, 1);
+        ledger.state.started_at_unix_ms = now_ms().unwrap() - 14_400_001;
+        assert!(ledger.remaining().is_err());
+        ledger.state.started_at_unix_ms = now_ms().unwrap();
         ledger.state.generation_sessions_used = 40;
         assert!(ledger.reserve_generation().is_err());
         drop(ledger);
