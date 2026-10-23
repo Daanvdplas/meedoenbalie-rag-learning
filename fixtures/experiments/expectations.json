@@ -126,7 +126,7 @@
         },
         {
           "id": "garden-help",
-          "description": "Een aanwezige begeleider legt eenvoudig uit en doet het werk voor.",
+          "description": "Een aanwezige begeleider legt eenvoudig uit en demonstreert het werk eerst.",
           "kind": "fact",
           "evidence_alternatives": [
             [
@@ -161,7 +161,7 @@
       "facts": [
         {
           "id": "garden-historical-places",
-          "description": "Twee vrije plekken waren alleen bevestigd op 1 september 2026.",
+          "description": "De melding van twee vrije plekken is historisch (1 september 2026) en niet opnieuw gecontroleerd. Een gelijkwaardige historische beperking zonder de exacte datum te herhalen is ook juist.",
           "kind": "fact",
           "evidence_alternatives": [
             [
@@ -331,7 +331,7 @@
       ],
       "conditions": [
         "Noem beide passende activiteiten.",
-        "Het aanbod beschrijft vrijwilligersactiviteiten, geen betaalde vacatures."
+        "Presenteer activiteiten niet als betaalde vacatures; het antwoord hoeft vrijwilligheid niet ongevraagd te noemen."
       ],
       "forbidden_claims": [
         "Er is maar één dinsdagactiviteit.",
