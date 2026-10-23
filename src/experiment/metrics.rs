@@ -812,6 +812,18 @@ mod tests {
     }
 
     #[test]
+    fn successful_empty_search_is_valid_but_has_zero_coverage_when_evidence_exists() {
+        let (mut item, gold) = live_agent();
+        item.offered_sections.clear();
+        item.retrieval_steps[0].hits.clear();
+        item.tool_calls[0].result.as_mut().unwrap()["hits"] = json!([]);
+        let report = evaluate(&item, &gold).unwrap();
+        assert_eq!(metric(&report, "all_hop_fact_coverage").value, Some(0.0));
+        assert_eq!(metric(&report, "all_hop_section_recall").value, Some(0.0));
+        assert!(report.hard_checks_passed);
+    }
+
+    #[test]
     fn metric_payload_rejects_inconsistent_hard_results_scores_and_missing_measures() {
         let (item, gold) = live_agent();
         let report = evaluate(&item, &gold).unwrap();
