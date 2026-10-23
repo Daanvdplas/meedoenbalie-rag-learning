@@ -1,4 +1,5 @@
 pub mod arms;
+pub mod dataset;
 pub mod types;
 
 use serde_json::json;
