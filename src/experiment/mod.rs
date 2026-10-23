@@ -52,8 +52,9 @@ pub async fn cli(args: &[String]) -> Result<(), String> {
         Some("run" | "grade" | "calibrate") if !args.iter().any(|arg| arg == "--live") => {
             Err("Live experiment execution requires --live".into())
         }
-        Some("validate") if args.len() == 1 => {
-            let (questions, labels) = dataset::validate_bundled()?;
+        Some("validate") => {
+            let flags = parse_flags(&args[1..], &["--questions", "--expectations"])?;
+            let (questions, labels) = selected_dataset(&flags)?;
             println!(
                 "{}",
                 json!({"schema_version":1,"cases":questions.cases.len(),"criteria":labels.cases.len(),"questions_sha256":dataset::questions_hash(&questions)?})
@@ -100,6 +101,8 @@ pub async fn cli(args: &[String]) -> Result<(), String> {
                 &args[1..],
                 &[
                     "--input",
+                    "--questions",
+                    "--expectations",
                     "--output",
                     "--ledger",
                     "--max-judgements",
@@ -119,7 +122,7 @@ pub async fn cli(args: &[String]) -> Result<(), String> {
             };
             // Read/validate an existing result before discovering a live runtime.
             runner::read_records(std::path::Path::new(&get("--input")?))?;
-            let (questions, labels) = dataset::validate_bundled()?;
+            let (questions, labels) = selected_dataset(&flags)?;
             judge::grade(
                 std::path::Path::new(&get("--input")?),
                 std::path::Path::new(&get("--output")?),
@@ -142,6 +145,8 @@ pub async fn cli(args: &[String]) -> Result<(), String> {
                     "--output",
                     "--ledger",
                     "--arms",
+                    "--questions",
+                    "--expectations",
                     "--cases",
                     "--max-cases",
                     "--max-generations",
@@ -175,7 +180,7 @@ pub async fn cli(args: &[String]) -> Result<(), String> {
                 max_search_calls: 4,
                 top_k: 3,
             };
-            let (questions, labels) = dataset::validate_bundled()?;
+            let (questions, labels) = selected_dataset(&flags)?;
             runner::run(
                 runner::RunOptions {
                     output: get("--output")?.into(),
@@ -216,4 +221,17 @@ fn parse_flags(
         i += 2;
     }
     Ok(flags)
+}
+
+fn selected_dataset(
+    flags: &std::collections::BTreeMap<String, String>,
+) -> Result<(dataset::QuestionSet, dataset::LabelSet), String> {
+    match (flags.get("--questions"), flags.get("--expectations")) {
+        (None, None) => dataset::validate_bundled(),
+        (Some(questions), Some(labels)) => dataset::load(
+            std::path::Path::new(questions),
+            std::path::Path::new(labels),
+        ),
+        _ => Err("Use --questions and --expectations together".into()),
+    }
 }
