@@ -1,0 +1,376 @@
+{
+  "schema_version": "1",
+  "dataset_version": "activity-heldout-v1",
+  "questions_sha256": "008f5b4898c7defdbcc547570311d8f687754957c31142b9ac2cbe78a2119efc",
+  "evaluation_only_canary": "EVALUATION_ONLY_HELDOUT_CRITERIA_v1_DO_NOT_SEND_TO_GENERATOR",
+  "review_note": "Frozen before live use. Six exploratory held-out intent families, not independent new source facts or a population estimate. All thirty sections are considered for relevance; unknown-only weather procedure has no positive source target. Agent-authored labels require independent review; no human calibration is claimed.",
+  "cases": [
+    {
+      "case_id": "T01",
+      "facts": [
+        {
+          "id": "garden-provided",
+          "description": "Tuiniersgereedschap is aanwezig; eigen gereedschap is niet nodig. Handschoenen zijn een optioneel detail, geen verplicht antwoordfeit.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S5"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "garden-shoes",
+          "description": "Bij tuinieren worden stevige schoenen gevraagd.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S5"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "bicycle-provided",
+          "description": "Gereedschap en materialen voor fietsen opknappen zijn aanwezig.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S5"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "cooking-provided",
+          "description": "Ingrediënten en keukengerei zijn aanwezig; je hoeft die niet zelf mee te nemen. Schorten zijn een optioneel detail.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S5"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Je moet zelf tuiniersgereedschap meenemen.",
+        "Je moet zelf ingrediënten meenemen."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": true,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S5"
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S5"
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S5"
+        }
+      ]
+    },
+    {
+      "case_id": "T02",
+      "facts": [
+        {
+          "id": "indoor-tuesday",
+          "description": "Fietsen opknappen vindt binnen plaats op dinsdag van 14.00 tot 16.00 uur.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S3"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "bicycle-address",
+          "description": "De activiteit is in Werkplaats De Werkbank, Esdoornstraat 8 in Lindedorp.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S3"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [
+        "Pas zowel de dinsdagvoorwaarde als de binnenvoorwaarde toe."
+      ],
+      "forbidden_claims": [
+        "Tuinieren is een binnenactiviteit.",
+        "Een rooster garandeert dat er nu een vrije plek is."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": true,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S1"
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S1"
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S3"
+        },
+        {
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S2"
+        }
+      ]
+    },
+    {
+      "case_id": "T03",
+      "facts": [
+        {
+          "id": "bicycle-french-unknown",
+          "description": "De fietsbron beschrijft eenvoudige Nederlandse begeleiding; begeleiding in het Frans is niet bevestigd.",
+          "kind": "unknown",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S4"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "language-french-unknown",
+          "description": "De taalcafébron bevestigt geen andere begeleidingstalen dan beschreven Nederlands.",
+          "kind": "unknown",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TAAL-003",
+                "section_id": "S4"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [
+        "Maak geen garantie of uitsluiting op basis van niet beschreven talen."
+      ],
+      "forbidden_claims": [
+        "Franse begeleiding is gegarandeerd.",
+        "Franse begeleiding is onmogelijk."
+      ],
+      "required_unknowns": [
+        "Of Franse begeleiding bij fietsen opknappen beschikbaar is.",
+        "Of Franse begeleiding bij het taalcafé beschikbaar is."
+      ],
+      "relevance_labels_complete": true,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S4"
+        },
+        {
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S4"
+        }
+      ]
+    },
+    {
+      "case_id": "T04",
+      "facts": [
+        {
+          "id": "distance",
+          "description": "De hele wandeling is ongeveer één kilometer; dat is langer dan maximaal 500 meter.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S1"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "shorter-route-unknown",
+          "description": "De bron bevestigt geen aangepaste of kortere route.",
+          "kind": "unknown",
+          "evidence_alternatives": []
+        }
+      ],
+      "conditions": [
+        "Een rustig tempo betekent niet dat de route korter is.",
+        "Geef geen persoonlijke geschiktheids- of aanpassingsgarantie."
+      ],
+      "forbidden_claims": [
+        "De hele wandeling is maximaal 500 meter.",
+        "Een route van 500 meter kan zeker gekozen worden."
+      ],
+      "required_unknowns": [
+        "Of een kortere route of aanpassing mogelijk is."
+      ],
+      "relevance_labels_complete": true,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S1"
+        }
+      ]
+    },
+    {
+      "case_id": "T05",
+      "facts": [
+        {
+          "id": "language-time",
+          "description": "Het taalcafé is op woensdag van 14.00 tot 15.30 uur.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TAAL-003",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "language-address",
+          "description": "Het taalcafé is in Het Woordhuis, Kastanjelaan 4 in Lindedorp. De vermelding dat het binnen is, is optioneel.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TAAL-003",
+                "section_id": "S3"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "cooking-time",
+          "description": "Samen koken is op vrijdag van 11.00 tot 13.00 uur.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "cooking-address",
+          "description": "Samen koken is in De Pan, Beukenstraat 6 in Lindedorp. De vermelding dat het binnen is, is optioneel.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S3"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [
+        "Koppel iedere tijd en ieder adres aan de juiste activiteit.",
+        "Het rooster bevestigt geen vrije plekken of inschrijving."
+      ],
+      "forbidden_claims": [
+        "Er is zeker plaats bij beide activiteiten.",
+        "De medewerker heeft je aangemeld."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": true,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S3"
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S3"
+        }
+      ]
+    },
+    {
+      "case_id": "T06",
+      "facts": [
+        {
+          "id": "garden-rain-unknown",
+          "description": "Er is geen slechtweerlocatie of regenprocedure voor tuinieren beschreven.",
+          "kind": "unknown",
+          "evidence_alternatives": []
+        },
+        {
+          "id": "walking-rain-unknown",
+          "description": "Er is geen slechtweerlocatie of regenprocedure voor wandelen beschreven.",
+          "kind": "unknown",
+          "evidence_alternatives": []
+        }
+      ],
+      "conditions": [
+        "Een buitenlocatie zegt niet of de activiteit bij regen wordt verplaatst of afgelast."
+      ],
+      "forbidden_claims": [
+        "Tuinieren verhuist bij regen naar het buurthuis.",
+        "De wandeling wordt bij regen afgelast.",
+        "Bij regen gaan beide activiteiten gewoon zeker door."
+      ],
+      "required_unknowns": [
+        "Waar of hoe tuinieren doorgaat bij harde regen.",
+        "Waar of hoe wandelen doorgaat bij harde regen."
+      ],
+      "relevance_labels_complete": true,
+      "relevant_sections": []
+    }
+  ]
+}
