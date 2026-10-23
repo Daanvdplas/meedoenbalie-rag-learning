@@ -1,12 +1,13 @@
 pub mod codex;
+pub mod experiment;
 pub mod manifest;
 pub mod mcp;
 pub mod ranking;
 pub mod runs;
 pub mod source;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Section {
     pub source_id: String,
     pub source_date: String,

@@ -12,6 +12,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         args.remove(0)
     };
     match command.as_str() {
+        "experiment" => {
+            meedoen_retrieval::experiment::cli(&args)
+                .await
+                .map_err(std::io::Error::other)?;
+            return Ok(());
+        }
         "mcp" if args.is_empty() => {
             let mut index: Option<Index> = None;
             meedoen_retrieval::mcp::serve(
