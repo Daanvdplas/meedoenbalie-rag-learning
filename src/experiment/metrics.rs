@@ -281,8 +281,8 @@ fn trace_contract(record: &ExperimentRecord) -> Result<(), String> {
             || result["as_of"] != record.manifest.as_of
             || result["sources"] != expected_sources
             || result["manifest"]["source_sha256"] != record.manifest.corpus_sha256
-            || result["manifest"]["as_of"] != record.manifest.as_of
-            || result["manifest"]["sources"] != expected_sources
+            || result["manifest"]["model"] != record.manifest.embedding_model
+            || result["manifest"]["dimensions"] != 384
         {
             return Err("MCP result, step and pinned source manifest disagree".into());
         }
@@ -714,7 +714,7 @@ mod tests {
         );
         item.retrieval_steps[0].origin = "mcp".into();
         let sources = serde_json::to_value(&item.manifest.sources).unwrap();
-        let result = json!({"question":item.question,"top_k":3,"model":crate::MODEL,"sources":sources,"as_of":crate::AS_OF,"manifest":{"source_sha256":item.manifest.corpus_sha256,"sources":sources,"as_of":crate::AS_OF},"hits":item.retrieval_steps[0].hits.iter().map(|h|json!({"section":h.section,"similarity":h.score})).collect::<Vec<_>>()});
+        let result = json!({"question":item.question,"top_k":3,"sources":sources,"as_of":crate::AS_OF,"manifest":{"source_sha256":item.manifest.corpus_sha256,"embedding_inputs_sha256":"a".repeat(64),"document_vectors_sha256":"b".repeat(64),"model":crate::MODEL,"dimensions":384,"settings_sha256":"c".repeat(64)},"hits":item.retrieval_steps[0].hits.iter().map(|h|json!({"section":h.section,"similarity":h.score})).collect::<Vec<_>>()});
         item.tool_calls.push(crate::codex::ToolCall {
             server: "coa".into(),
             tool: "search_document".into(),
