@@ -685,6 +685,33 @@ mod tests {
         );
         item.arm = Arm::AgenticDense;
         item.execution_kind = ExecutionKind::Live;
+        item.manifest.budget = Some(crate::experiment::budget::LedgerState {
+            schema_version: 1,
+            id: "fixture-ledger".into(),
+            started_at_unix_ms: 1,
+            max_generation_sessions: 40,
+            max_grading_sessions: 56,
+            max_seconds: 14400,
+            generation_sessions_used: 1,
+            grading_sessions_used: 0,
+        });
+        item.manifest.embedding_revision = Some("a".repeat(40));
+        item.manifest.embedding_files = [
+            "model_optimized.onnx",
+            "tokenizer.json",
+            "config.json",
+            "tokenizer_config.json",
+            "special_tokens_map.json",
+        ]
+        .into_iter()
+        .map(|name| ModelFile {
+            name: name.into(),
+            sha256: "a".repeat(64),
+        })
+        .collect();
+        item.manifest.generation_prompt_sha256 = crate::manifest::hash(
+            crate::codex::generation_prompt(&item.question, item.manifest.limits.top_k).as_bytes(),
+        );
         item.retrieval_steps[0].origin = "mcp".into();
         let sources = serde_json::to_value(&item.manifest.sources).unwrap();
         let result = json!({"question":item.question,"top_k":3,"model":crate::MODEL,"sources":sources,"as_of":crate::AS_OF,"manifest":{"source_sha256":item.manifest.corpus_sha256,"sources":sources,"as_of":crate::AS_OF},"hits":item.retrieval_steps[0].hits.iter().map(|h|json!({"section":h.section,"similarity":h.score})).collect::<Vec<_>>()});
