@@ -468,7 +468,7 @@ pub fn evaluate(
         );
     }
     metrics.extend([searches, mcp_calls]);
-    metrics.push(count("elapsed_ms", Some(record.elapsed_ms), "lower_is_better", "Recorded wall-clock milliseconds for this execution; not an aggregate concurrency estimate"));
+    metrics.push(count("elapsed_ms", Some(record.elapsed_ms), "lower_is_better", "Per-case preparation, local retrieval and generation wall-clock milliseconds; shared dense index setup excluded, agent MCP startup included; not a uniform cold-start benchmark"));
     metrics.push(count(
         "input_tokens",
         record.usage.as_ref().map(|u| u.input_tokens),
