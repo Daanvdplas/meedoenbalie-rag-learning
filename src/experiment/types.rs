@@ -168,6 +168,8 @@ pub struct ExperimentRecord {
     pub elapsed_ms: u64,
     pub usage: Option<TokenUsage>,
     pub error: Option<String>,
+    #[serde(default)]
+    pub diagnostic: Option<RuntimeDiagnostic>,
     pub metrics: Option<serde_json::Value>,
     pub judgement: Option<serde_json::Value>,
 }
@@ -187,4 +189,85 @@ pub struct RetrievalStep {
     pub query: String,
     pub top_k: usize,
     pub hits: Vec<RankedSection>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RuntimeDiagnostic {
+    pub stage: String,
+    pub category: String,
+    pub exit_code: Option<i32>,
+    pub event_types: Vec<String>,
+    pub item_types: Vec<String>,
+    pub provider_error_code: Option<String>,
+}
+impl RuntimeDiagnostic {
+    pub fn validate(&self) -> Result<(), String> {
+        if !matches!(
+            self.stage.as_str(),
+            "process_exit" | "isolated_event_validation" | "agent_event_validation" | "deadline"
+        ) || !matches!(
+            self.category.as_str(),
+            "runtime_failed"
+                | "provider_transport_failed"
+                | "provider_rate_limited"
+                | "provider_authentication_failed"
+                | "provider_request_rejected"
+                | "provider_server_failed"
+                | "unexpected_tool"
+                | "invalid_output"
+                | "timeout"
+        ) || self
+            .exit_code
+            .is_some_and(|code| !(0..=255).contains(&code))
+            || self.event_types.len() > 10
+            || self.item_types.len() > 10
+            || self.event_types.iter().any(|t| {
+                !matches!(
+                    t.as_str(),
+                    "thread.started"
+                        | "turn.started"
+                        | "turn.completed"
+                        | "turn.failed"
+                        | "error"
+                        | "item.started"
+                        | "item.updated"
+                        | "item.completed"
+                        | "unrecognized"
+                )
+            })
+            || self.item_types.iter().any(|t| {
+                !matches!(
+                    t.as_str(),
+                    "reasoning"
+                        | "agent_message"
+                        | "mcp_tool_call"
+                        | "command_execution"
+                        | "file_change"
+                        | "web_search"
+                        | "todo_list"
+                        | "error"
+                        | "unrecognized"
+                )
+            })
+            || self.provider_error_code.as_ref().is_some_and(|c| {
+                !matches!(
+                    c.as_str(),
+                    "rate_limit_exceeded"
+                        | "insufficient_quota"
+                        | "invalid_api_key"
+                        | "invalid_request_error"
+                        | "model_not_found"
+                        | "server_error"
+                        | "context_length_exceeded"
+                        | "unsupported_parameter"
+                        | "stream_disconnected"
+                        | "websocket_error"
+                )
+            })
+        {
+            return Err("Invalid public runtime diagnostic".into());
+        }
+        Ok(())
+    }
 }

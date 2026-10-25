@@ -57,6 +57,14 @@ pub fn validate_record(record: &ExperimentRecord) -> Result<(), String> {
         return Err("Invalid experiment record identity".into());
     }
     manifest.limits.validate()?;
+    if let Some(diagnostic) = &record.diagnostic {
+        diagnostic.validate()?;
+        if record.execution_status == ExecutionStatus::Completed
+            || record.error.as_deref() != Some(diagnostic.category.as_str())
+        {
+            return Err("Runtime diagnostic/status mismatch".into());
+        }
+    }
     for digest in [
         &manifest.questions_sha256,
         &manifest.expectations_sha256,
@@ -223,6 +231,12 @@ pub fn validate_record(record: &ExperimentRecord) -> Result<(), String> {
                     !matches!(
                         s,
                         "runtime_failed"
+                            | "provider_transport_failed"
+                            | "provider_rate_limited"
+                            | "provider_authentication_failed"
+                            | "provider_request_rejected"
+                            | "provider_server_failed"
+                            | "unexpected_tool"
                             | "timeout"
                             | "cancelled"
                             | "budget_exhausted"
@@ -648,6 +662,25 @@ mod tests {
     }
 
     #[test]
+    fn failed_artifact_accepts_only_known_safe_diagnostics() {
+        let mut item = record();
+        item.answer = None;
+        item.execution_status = ExecutionStatus::Failed;
+        item.error = Some("provider_transport_failed".into());
+        item.diagnostic = Some(RuntimeDiagnostic {
+            stage: "process_exit".into(),
+            category: "provider_transport_failed".into(),
+            exit_code: Some(1),
+            event_types: vec!["error".into()],
+            item_types: vec![],
+            provider_error_code: Some("stream_disconnected".into()),
+        });
+        assert!(validate_record(&item).is_ok());
+        item.diagnostic.as_mut().unwrap().provider_error_code = Some("PRIVATE-TOKEN".into());
+        assert!(validate_record(&item).is_err());
+    }
+
+    #[test]
     fn missing_or_malformed_artifact_is_never_an_empty_success() {
         assert!(read_records(Path::new("/missing/PRIVATE-CANARY.jsonl")).is_err());
         let path =
@@ -767,7 +800,7 @@ async fn run_with_runtime(
             let case_started = Instant::now();
             let mut record=ExperimentRecord {
             schema_version:1,run_id:format!("{experiment_id}-{}-{}",case.id,arm.name()),case_id:case.id.clone(),family:case.family.clone(),split:case.split.clone(),kind:case.kind.clone(),arm:*arm,execution_kind:if is_fixture {ExecutionKind::Fixture} else {ExecutionKind::Live},execution_status:ExecutionStatus::Skipped,question:case.question.clone(),
-            manifest:Manifest {schema_version:1,experiment_id:experiment_id.clone(),created_at_unix_ms:super::budget::now_ms()?,questions_version:questions.dataset_version.clone(),questions_sha256:super::dataset::questions_hash(&questions)?,expectations_version:labels.dataset_version.clone(),expectations_sha256:crate::manifest::hash(&serde_json::to_vec(&labels).map_err(|_|"Cannot hash criteria")?),corpus_sha256:questions.corpus_sha256.clone(),sources:sources.iter().zip(crate::DOCUMENTS).map(|(s,raw)|SourceIdentity{id:s.id.clone(),title:s.title.clone(),date:s.date.clone(),sha256:crate::manifest::hash(raw.as_bytes())}).collect(),as_of:crate::AS_OF.into(),generation_prompt_version:if *arm==Arm::AgenticDense {text("prompt_version")} else {super::arms::CONTEXT_PROMPT_VERSION.into()},generation_prompt_sha256:String::new(),rubric_version:"semantic-rubric-v1-unvalidated".into(),rubric_sha256:crate::manifest::hash(b"semantic-rubric-v1-unvalidated"),model:text("model"),client_version:text("client_version"),binary_sha256:fingerprint("mcp"),runtime_sha256:fingerprint("codex"),code_mode_host_sha256:fingerprint("code_mode_host"),generator_route:"OpenAI via locally authenticated Codex CLI".into(),grader_route:"not graded".into(),embedding_model:crate::MODEL.into(),embedding_files:embedding_files.clone(),embedding_revision:revision.clone(),reproducibility_limitations:vec!["Model alias/provider routing may change; binary and input hashes do not guarantee bitwise model reproduction.".into(),"Session budgets count Codex sessions, not hidden provider requests.".into(),"Elapsed time covers per-case preparation, retrieval and generation; dense index setup is shared and excluded, while agent MCP cold startup occurs inside each session.".into(),"Semantic grading is provisional; no human calibration.".into()],limits:options.limits.clone(),budget:Some(ledger.state.clone())},answer:None,tool_calls:vec![],retrieval_steps:vec![],trace_complete:false,offered_sections:vec![],elapsed_ms:0,usage:None,error:Some("not_run".into()),metrics:None,judgement:None,
+            manifest:Manifest {schema_version:1,experiment_id:experiment_id.clone(),created_at_unix_ms:super::budget::now_ms()?,questions_version:questions.dataset_version.clone(),questions_sha256:super::dataset::questions_hash(&questions)?,expectations_version:labels.dataset_version.clone(),expectations_sha256:crate::manifest::hash(&serde_json::to_vec(&labels).map_err(|_|"Cannot hash criteria")?),corpus_sha256:questions.corpus_sha256.clone(),sources:sources.iter().zip(crate::DOCUMENTS).map(|(s,raw)|SourceIdentity{id:s.id.clone(),title:s.title.clone(),date:s.date.clone(),sha256:crate::manifest::hash(raw.as_bytes())}).collect(),as_of:crate::AS_OF.into(),generation_prompt_version:if *arm==Arm::AgenticDense {text("prompt_version")} else {super::arms::CONTEXT_PROMPT_VERSION.into()},generation_prompt_sha256:String::new(),rubric_version:"semantic-rubric-v1-unvalidated".into(),rubric_sha256:crate::manifest::hash(b"semantic-rubric-v1-unvalidated"),model:text("model"),client_version:text("client_version"),binary_sha256:fingerprint("mcp"),runtime_sha256:fingerprint("codex"),code_mode_host_sha256:fingerprint("code_mode_host"),generator_route:"OpenAI via locally authenticated Codex CLI".into(),grader_route:"not graded".into(),embedding_model:crate::MODEL.into(),embedding_files:embedding_files.clone(),embedding_revision:revision.clone(),reproducibility_limitations:vec!["Model alias/provider routing may change; binary and input hashes do not guarantee bitwise model reproduction.".into(),"Session budgets count Codex sessions, not hidden provider requests.".into(),"Elapsed time covers per-case preparation, retrieval and generation; dense index setup is shared and excluded, while agent MCP cold startup occurs inside each session.".into(),"Semantic grading is provisional; no human calibration.".into()],limits:options.limits.clone(),budget:Some(ledger.state.clone())},answer:None,tool_calls:vec![],retrieval_steps:vec![],trace_complete:false,offered_sections:vec![],elapsed_ms:0,usage:None,error:Some("not_run".into()),diagnostic:None,metrics:None,judgement:None,
         };
             if *arm != Arm::AgenticDense {
                 let hits = match arm {
@@ -884,18 +917,8 @@ async fn run_with_runtime(
                         } else {
                             ExecutionStatus::Failed
                         };
-                        record.error = Some(
-                            if error.contains("timeout") {
-                                "timeout"
-                            } else if error == "cancelled" {
-                                "cancelled"
-                            } else if error.starts_with("output:") {
-                                "invalid_output"
-                            } else {
-                                "runtime_failed"
-                            }
-                            .into(),
-                        );
+                        record.diagnostic = crate::codex::public_diagnostic(&error);
+                        record.error = Some(crate::codex::public_error_code(&error).into());
                     }
                 }
             }

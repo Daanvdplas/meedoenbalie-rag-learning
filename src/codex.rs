@@ -84,6 +84,199 @@ fn usage_from_events(events: &str) -> Option<crate::experiment::types::TokenUsag
         .next_back()
 }
 
+fn safe_runtime_diagnostic(private_text: &str) -> &'static str {
+    let text = private_text.to_ascii_lowercase();
+    if text.contains("rate_limit_exceeded")
+        || text.contains("http 429")
+        || text.contains("insufficient_quota")
+    {
+        "provider_rate_limited"
+    } else if text.contains("invalid_api_key")
+        || text.contains("http 401")
+        || text.contains("authentication failed")
+    {
+        "provider_authentication_failed"
+    } else if text.contains("invalid_request_error")
+        || text.contains("model_not_found")
+        || text.contains("context_length_exceeded")
+        || text.contains("unsupported_parameter")
+    {
+        "provider_request_rejected"
+    } else if text.contains("stream disconnected")
+        || text.contains("stream_disconnected")
+        || text.contains("connection reset")
+        || text.contains("error sending request")
+        || text.contains("failed to connect")
+        || text.contains("websocket_error")
+    {
+        "provider_transport_failed"
+    } else if text.contains("server_error")
+        || text.contains("http 500")
+        || text.contains("http 503")
+    {
+        "provider_server_failed"
+    } else {
+        "runtime_failed"
+    }
+}
+pub fn public_error_code(error: &str) -> &'static str {
+    if let Some(diagnostic) = public_diagnostic(error) {
+        return match diagnostic.category.as_str() {
+            "provider_transport_failed" => "provider_transport_failed",
+            "provider_rate_limited" => "provider_rate_limited",
+            "provider_authentication_failed" => "provider_authentication_failed",
+            "provider_request_rejected" => "provider_request_rejected",
+            "provider_server_failed" => "provider_server_failed",
+            "unexpected_tool" => "unexpected_tool",
+            "invalid_output" => "invalid_output",
+            "timeout" => "timeout",
+            _ => "runtime_failed",
+        };
+    }
+    if error.contains("timed out") || error == "timeout" {
+        "timeout"
+    } else if error == "cancelled" {
+        "cancelled"
+    } else if error.starts_with("tool:") {
+        "unexpected_tool"
+    } else if error.starts_with("output:") {
+        "invalid_output"
+    } else {
+        "runtime_failed"
+    }
+}
+pub fn public_diagnostic(error: &str) -> Option<crate::experiment::types::RuntimeDiagnostic> {
+    if error == "timeout" || error.contains("run timed out") {
+        return Some(crate::experiment::types::RuntimeDiagnostic {
+            stage: "deadline".into(),
+            category: "timeout".into(),
+            exit_code: None,
+            event_types: vec![],
+            item_types: vec![],
+            provider_error_code: None,
+        });
+    }
+    let diagnostic = serde_json::from_str::<crate::experiment::types::RuntimeDiagnostic>(
+        error.strip_prefix("runtime-diagnostic:")?,
+    )
+    .ok()?;
+    diagnostic.validate().ok()?;
+    Some(diagnostic)
+}
+fn diagnostic_error(stage: &str, error: &str, events: &str, exit_code: Option<i32>) -> String {
+    use std::collections::BTreeSet;
+    let mut event_types = BTreeSet::new();
+    let mut item_types = BTreeSet::new();
+    let mut provider_error_code = None;
+    let mut terminal_messages = String::new();
+    for line in events.lines() {
+        if let Ok(event) = serde_json::from_str::<Value>(line) {
+            if let Some(kind) = event["type"].as_str() {
+                event_types.insert(
+                    if matches!(
+                        kind,
+                        "thread.started"
+                            | "turn.started"
+                            | "turn.completed"
+                            | "turn.failed"
+                            | "error"
+                            | "item.started"
+                            | "item.updated"
+                            | "item.completed"
+                    ) {
+                        kind
+                    } else {
+                        "unrecognized"
+                    }
+                    .to_owned(),
+                );
+            }
+            if let Some(kind) = event["item"]["type"].as_str() {
+                item_types.insert(
+                    if matches!(
+                        kind,
+                        "reasoning"
+                            | "agent_message"
+                            | "mcp_tool_call"
+                            | "command_execution"
+                            | "file_change"
+                            | "web_search"
+                            | "todo_list"
+                            | "error"
+                    ) {
+                        kind
+                    } else {
+                        "unrecognized"
+                    }
+                    .to_owned(),
+                );
+            }
+            if matches!(event["type"].as_str(), Some("error" | "turn.failed")) {
+                for message in [
+                    event["error"]["message"].as_str(),
+                    event["message"].as_str(),
+                ]
+                .into_iter()
+                .flatten()
+                {
+                    terminal_messages.push_str(message);
+                    terminal_messages.push('\n');
+                }
+            }
+            for code in [event["error"]["code"].as_str(), event["code"].as_str()]
+                .into_iter()
+                .flatten()
+            {
+                if matches!(
+                    code,
+                    "rate_limit_exceeded"
+                        | "insufficient_quota"
+                        | "invalid_api_key"
+                        | "invalid_request_error"
+                        | "model_not_found"
+                        | "server_error"
+                        | "context_length_exceeded"
+                        | "unsupported_parameter"
+                        | "stream_disconnected"
+                        | "websocket_error"
+                ) {
+                    provider_error_code = Some(code.to_owned());
+                }
+            }
+        }
+    }
+    let provider_category = provider_error_code
+        .as_ref()
+        .map(|code| safe_runtime_diagnostic(code))
+        .filter(|category| *category != "runtime_failed");
+    let category = if error.starts_with("tool:") {
+        "unexpected_tool"
+    } else if error.starts_with("output:") {
+        "invalid_output"
+    } else {
+        provider_category.unwrap_or_else(|| {
+            let terminal = safe_runtime_diagnostic(&terminal_messages);
+            if terminal != "runtime_failed" {
+                terminal
+            } else {
+                safe_runtime_diagnostic(error)
+            }
+        })
+    };
+    let diagnostic = crate::experiment::types::RuntimeDiagnostic {
+        stage: stage.into(),
+        category: category.into(),
+        exit_code,
+        event_types: event_types.into_iter().collect(),
+        item_types: item_types.into_iter().collect(),
+        provider_error_code,
+    };
+    format!(
+        "runtime-diagnostic:{}",
+        serde_json::to_string(&diagnostic).expect("typed diagnostic serialization")
+    )
+}
+
 fn parse_isolated_events(events: &str) -> Result<Value, String> {
     let mut answer = None;
     let mut completed = false;
@@ -356,7 +549,9 @@ impl CodexRunner {
         let started = Instant::now();
         let stdout = execute(command, prompt.as_bytes(), timeout).await?;
         Ok(IsolatedRun {
-            value: parse_isolated_events(&stdout)?,
+            value: parse_isolated_events(&stdout).map_err(|error| {
+                diagnostic_error("isolated_event_validation", &error, &stdout, Some(0))
+            })?,
             elapsed_ms: started.elapsed().as_millis() as u64,
             usage: usage_from_events(&stdout),
         })
@@ -578,7 +773,9 @@ impl CodexRunner {
         let prompt = generation_prompt(query, top_k);
         let started = Instant::now();
         let stdout = execute(command, prompt.as_bytes(), RUN_TIMEOUT).await?;
-        let mut parsed = parse_events(&stdout)?;
+        let mut parsed = parse_events(&stdout).map_err(|error| {
+            diagnostic_error("agent_event_validation", &error, &stdout, Some(0))
+        })?;
         parsed["usage"] = serde_json::to_value(usage_from_events(&stdout))
             .map_err(|_| "output: Invalid usage")?;
         parsed["id"] = json!(id);
@@ -669,7 +866,7 @@ async fn execute(mut command: Command, input: &[u8], timeout: Duration) -> Resul
             .await
             .map_err(|_| "runtime: Cannot send question")?;
         drop(stdin);
-        let (stdout, _stderr, status) = tokio::try_join!(
+        let (stdout, private_stderr, status) = tokio::try_join!(
             read_bounded(stdout, OUTPUT_LIMIT),
             read_bounded(stderr, 16 * 1024),
             async {
@@ -685,7 +882,13 @@ async fn execute(mut command: Command, input: &[u8], timeout: Duration) -> Resul
             }
         )?;
         if !status.success() {
-            return Err("runtime: Codex exited unsuccessfully; check authentication and runtime configuration".into());
+            let private_text = String::from_utf8_lossy(&private_stderr);
+            return Err(diagnostic_error(
+                "process_exit",
+                &private_text,
+                &String::from_utf8_lossy(&stdout),
+                status.code(),
+            ));
         }
         String::from_utf8(stdout).map_err(|_| "output: Codex output is not UTF-8".into())
     };
@@ -759,6 +962,30 @@ mod tests {
         assert!(usage_from_events("{\"type\":\"turn.completed\"}").is_none());
     }
 
+    #[test]
+    fn runtime_diagnostics_are_allowlisted_and_never_export_private_text() {
+        assert_eq!(
+            safe_runtime_diagnostic("PRIVATE-TOKEN: stream disconnected before completion"),
+            "provider_transport_failed"
+        );
+        assert_eq!(
+            safe_runtime_diagnostic("HTTP 429 PRIVATE-TOKEN"),
+            "provider_rate_limited"
+        );
+        assert_eq!(
+            safe_runtime_diagnostic("invalid_request_error: secret host path"),
+            "provider_request_rejected"
+        );
+        assert_eq!(
+            safe_runtime_diagnostic("unknown PRIVATE-TOKEN diagnostic"),
+            "runtime_failed"
+        );
+        assert_eq!(
+            public_error_code("tool: Unexpected isolated tool"),
+            "unexpected_tool"
+        );
+    }
+
     fn stream(answer: Value, success: bool) -> String {
         let result = json!({"question":"Wanneer?","sources":[{"id":"ACT-TUIN-001","date":"2026-10-20"}],"as_of":"2026-10-20","manifest":{"source_hash":"abc"},"hits":[{"section":{"source_id":"ACT-TUIN-001","source_date":"2026-10-20","id":"S2","text":"Iedere dinsdag van 10.00 tot 12.00 uur."},"similarity":0.8}]});
         [json!({"type":"item.completed","item":{"type":"mcp_tool_call","server":"coa","tool":"search_document","arguments":{"query":"Wanneer?","top_k":3},"status":if success {"completed"} else {"failed"},"result":{"content":[{"type":"text","text":result.to_string()}]}}}),json!({"type":"item.completed","item":{"type":"agent_message","text":answer.to_string()}}),json!({"type":"turn.completed"})].iter().map(Value::to_string).collect::<Vec<_>>().join("\n")
@@ -829,6 +1056,34 @@ mod tests {
                 .unwrap();
             assert_eq!(result.value, json!({"checked":true}));
         }
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn failing_fixture_process_preserves_only_safe_runtime_diagnostic() {
+        let directory = RunDirectory(std::env::temp_dir().join(format!(
+                "coa-public-diagnostic-{}",
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            )));
+        let script = "#!/bin/sh\ncat >/dev/null\nprintf '%s\\n' '{\"type\":\"turn.failed\",\"error\":{\"code\":\"rate_limit_exceeded\",\"message\":\"PRIVATE-PROVIDER-TOKEN /private/path\"}}'\nprintf 'PRIVATE-STDERR-TOKEN' >&2\nexit 1\n";
+        let runner = fake_runner(&directory.0, script);
+        let error = runner
+            .run_isolated_json(
+                "Fictional question",
+                &json!({"type":"object"}),
+                Duration::from_secs(3),
+            )
+            .await
+            .unwrap_err();
+        let diagnostic = public_diagnostic(&error).unwrap();
+        assert_eq!(diagnostic.category, "provider_rate_limited");
+        assert_eq!(diagnostic.stage, "process_exit");
+        assert_eq!(diagnostic.exit_code, Some(1));
+        assert_eq!(diagnostic.event_types, vec!["turn.failed"]);
+        assert!(!error.contains("PRIVATE") && !error.contains("/private/path"));
     }
 
     #[cfg(unix)]
@@ -920,7 +1175,7 @@ mod tests {
         for (body, expected, timeout) in [
             (
                 "printf 'FAKE-PRIVATE-TOKEN /Users/FAKE-PRIVATE-HOME' >&2; exit 1",
-                "exited unsuccessfully",
+                "runtime_failed",
                 1000,
             ),
             (
