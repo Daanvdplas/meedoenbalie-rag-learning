@@ -211,10 +211,13 @@ fn diagnostic_error(stage: &str, error: &str, events: &str, exit_code: Option<i3
                     .to_owned(),
                 );
             }
-            if matches!(event["type"].as_str(), Some("error" | "turn.failed")) {
+            if matches!(event["type"].as_str(), Some("error" | "turn.failed"))
+                || event["item"]["type"] == "error"
+            {
                 for message in [
                     event["error"]["message"].as_str(),
                     event["message"].as_str(),
+                    event["item"]["message"].as_str(),
                 ]
                 .into_iter()
                 .flatten()
@@ -290,6 +293,11 @@ fn parse_isolated_events(events: &str) -> Result<Value, String> {
                 .as_str()
             {
                 Some("reasoning") => {}
+                Some("error") => {
+                    return Err(
+                        "runtime: Isolated evaluation emitted an unresolved error item".into(),
+                    );
+                }
                 Some("agent_message") => {
                     if event["type"] == "item.completed" {
                         answer = event["item"]["text"].as_str().map(str::to_owned);
@@ -745,6 +753,7 @@ impl CodexRunner {
                 command.env_remove(key);
             }
         }
+        command.env_remove("COA_PRIVATE_DIAGNOSTICS_DIR");
         if let Some(parent) = self.executable.parent() {
             let mut paths = vec![parent.to_path_buf()];
             paths.extend(std::env::split_paths(
@@ -837,6 +846,67 @@ impl Drop for RunDirectory {
     }
 }
 
+/// Explicit local diagnosis only. No private text enters return values or public artifacts.
+fn write_private_error_items(directory: &Path, events: &str) -> Result<(), String> {
+    use std::io::Write;
+    let directory = directory
+        .canonicalize()
+        .map_err(|_| "Private diagnostic directory unavailable")?;
+    let system_temp = std::env::temp_dir()
+        .canonicalize()
+        .map_err(|_| "Temporary directory unavailable")?;
+    let unix_temp = Path::new("/tmp")
+        .canonicalize()
+        .map_err(|_| "Temporary directory unavailable")?;
+    if !directory.starts_with(system_temp) && !directory.starts_with(unix_temp) {
+        return Err("Private diagnostics require a temporary directory".into());
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        let metadata = directory
+            .metadata()
+            .map_err(|_| "Private diagnostic metadata unavailable")?;
+        if metadata.mode() & 0o077 != 0 || metadata.uid() != unsafe { libc::geteuid() } {
+            return Err("Private diagnostics require an owned 0700 directory".into());
+        }
+    }
+    let messages = events
+        .lines()
+        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+        .filter(|event| event["item"]["type"] == "error")
+        .filter_map(|event| {
+            event["item"]["message"]
+                .as_str()
+                .map(|message| message.chars().take(4096).collect::<String>())
+        })
+        .take(16)
+        .collect::<Vec<_>>();
+    if messages.is_empty() {
+        return Ok(());
+    }
+    let name = format!(
+        "private-error-items-{}-{}.json",
+        std::process::id(),
+        crate::experiment::budget::now_ms()?
+    );
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let mut file = options
+        .open(directory.join(name))
+        .map_err(|_| "Cannot create private diagnostic file")?;
+    serde_json::to_writer(&mut file, &messages)
+        .map_err(|_| "Cannot encode private diagnostic file")?;
+    file.write_all(b"\n")
+        .and_then(|_| file.sync_all())
+        .map_err(|_| "Cannot persist private diagnostic file".into())
+}
+
 async fn execute(mut command: Command, input: &[u8], timeout: Duration) -> Result<String, String> {
     command
         .stdin(Stdio::piped())
@@ -881,6 +951,10 @@ async fn execute(mut command: Command, input: &[u8], timeout: Duration) -> Resul
                 }
             }
         )?;
+        if let Some(directory) = std::env::var_os("COA_PRIVATE_DIAGNOSTICS_DIR") {
+            let _ =
+                write_private_error_items(Path::new(&directory), &String::from_utf8_lossy(&stdout));
+        }
         if !status.success() {
             let private_text = String::from_utf8_lossy(&private_stderr);
             return Err(diagnostic_error(
@@ -991,6 +1065,56 @@ mod tests {
             public_error_code("tool: Unexpected isolated tool"),
             "unexpected_tool"
         );
+    }
+
+    #[test]
+    fn isolated_error_item_is_an_execution_failure_even_with_valid_answer_and_completed_turn() {
+        let events=[json!({"type":"item.completed","item":{"type":"agent_message","text":"{\"text\":\"antwoord\"}"}}),json!({"type":"item.completed","item":{"type":"error","message":"Error sending request: PRIVATE-PROVIDER-TOKEN"}}),json!({"type":"turn.completed"})].iter().map(Value::to_string).collect::<Vec<_>>().join("\n");
+        let error = parse_isolated_events(&events).unwrap_err();
+        assert!(error.starts_with("runtime:"));
+        assert!(!error.contains("PRIVATE"));
+        let diagnostic = public_diagnostic(&diagnostic_error(
+            "isolated_event_validation",
+            &error,
+            &events,
+            Some(0),
+        ))
+        .unwrap();
+        assert_eq!(diagnostic.category, "provider_transport_failed");
+        assert_eq!(diagnostic.item_types, vec!["agent_message", "error"]);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn private_error_capture_is_explicit_bounded_and_owner_only() {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        let path = std::env::temp_dir().join(format!(
+            "coa-private-errors-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&path).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let events =
+            json!({"type":"item.completed","item":{"type":"error","message":"FAKE-PRIVATE-TOKEN"}})
+                .to_string();
+        write_private_error_items(&path, &events).unwrap();
+        let files = std::fs::read_dir(&path)
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].metadata().unwrap().mode() & 0o777, 0o600);
+        assert!(
+            std::fs::read_to_string(files[0].path())
+                .unwrap()
+                .contains("FAKE-PRIVATE-TOKEN")
+        );
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(write_private_error_items(&path, &events).is_err());
+        std::fs::remove_dir_all(path).unwrap();
     }
 
     fn stream(answer: Value, success: bool) -> String {
