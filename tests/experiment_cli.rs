@@ -105,3 +105,39 @@ fn regrading_rejects_missing_artifact_before_runtime_or_generation() {
     assert!(String::from_utf8_lossy(&result.stderr).contains("Cannot read experiment artifact"));
     assert!(!String::from_utf8_lossy(&result.stderr).contains("PRIVATE-CANARY"));
 }
+
+#[test]
+fn renders_a_local_report_without_authentication_or_model_calls() {
+    let output = std::env::temp_dir().join(format!(
+        "coa-cli-report-{}-{}.html",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let result = std::process::Command::new(env!("CARGO_BIN_EXE_meedoen-retrieval"))
+        .args([
+            "experiment",
+            "report",
+            "--input",
+            concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/fixtures/experiments/report-example.jsonl"
+            ),
+            "--output",
+        ])
+        .arg(&output)
+        .env("COA_CODEX_BIN", "/missing/PRIVATE-CANARY")
+        .output()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let html = std::fs::read_to_string(&output).unwrap();
+    assert!(html.contains("<!doctype html>"));
+    assert!(!html.contains("PRIVATE-CANARY"));
+    std::fs::remove_file(output).unwrap();
+}

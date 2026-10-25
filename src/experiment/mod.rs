@@ -139,6 +139,18 @@ pub async fn cli(args: &[String]) -> Result<(), String> {
             )
             .await
         }
+        Some("report") => {
+            let flags = parse_flags(&args[1..], &["--input", "--output"])?;
+            let input = flags.get("--input").ok_or("Missing --input")?;
+            let inputs = input
+                .split(',')
+                .map(std::path::PathBuf::from)
+                .collect::<Vec<_>>();
+            let output = std::path::Path::new(flags.get("--output").ok_or("Missing --output")?);
+            let count = report::write_report(&inputs, output)?;
+            println!("Report created for {count} executions");
+            Ok(())
+        }
         Some("run") => {
             let flags = parse_flags(
                 &args[1..],
