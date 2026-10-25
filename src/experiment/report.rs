@@ -371,7 +371,7 @@ fn render(records: &[ExperimentRecord]) -> Result<String, String> {
             body.push_str("</tbody></table></div>");
         }
     }
-    body.push_str("<p class=help>Alleen opgeslagen uitvoeringen tellen mee. Voorbeelden en vraaggroepen blijven apart; vergelijk dezelfde vragen.</p></section>");
+    body.push_str("<p class=help>Alleen opgeslagen uitvoeringen tellen mee. Voorbeelden en vraaggroepen blijven apart; vergelijk dezelfde vragen.</p><p class=help>Bewijsdekking telt complete bewijsdoelen: bij T02 kan een gevonden tijd al nuttig zijn, terwijl ontbrekende informatie over binnen werken en het adres de dekking op 0/2 houdt.</p></section>");
     render_paired(&mut body, &prepared, &datasets[1].0);
     body.push_str("<section aria-labelledby=questions-title><h2 id=questions-title>Bekijk een vraag</h2><p class=help>Volledige historie van de aangeleverde uitvoeringen, inclusief mislukte pogingen en herhalingen.</p><form id=filters aria-label=\"Filter de uitvoeringen\"><label>Aanpak<select id=arm><option value=\"\">Alle aanpakken</option>");
     for arm in Arm::ALL {
