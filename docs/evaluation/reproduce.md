@@ -28,14 +28,20 @@ Voor een nieuw zelfstandig traject kies je een eigen map. Bij hervatten gebruik 
 COA_EVAL_DIR=/tmp/coa-rag-evaluation
 mkdir -p "$COA_EVAL_DIR"
 
-cargo run --locked -- experiment run --live --cases P01,P06 --arms agentic_dense,full_context,dense_once,bm25 --output "$COA_EVAL_DIR/pilot-generation.jsonl" --ledger "$COA_EVAL_DIR/ledger.json" --max-cases 2 --max-generations 8 --max-judgements 0 --max-seconds 1200
+cargo run --locked -- experiment run --live --cases P01,P06 --arms agentic_dense,full_context --output "$COA_EVAL_DIR/smoke-generation.jsonl" --ledger "$COA_EVAL_DIR/ledger.json" --max-cases 2 --max-generations 4 --max-judgements 0 --max-seconds 600
 ```
 
-Dit selecteert twee bekende ontwikkelvragen, met maximaal acht generaties. Iedere poging reserveert vooraf een sessie. Eén gezamenlijk ledger begrenst het traject op 40 generaties, 56 beoordelingen en een venster van vier uur; mislukte pogingen tellen mee. Er loopt één sessie tegelijk, maximaal 120 seconden. Een modelsessie kan intern meerdere providerrequests bevatten. De afzonderlijke MCP-zoekcalls staan wel in de trace.
+Dit is de gedeelde smoke: twee bekende vragen met Codex en directe context, maximaal vier generaties. Iedere poging reserveert vooraf een sessie. Eén gezamenlijk ledger begrenst het traject op 40 generaties, 56 beoordelingen en een venster van vier uur; mislukte pogingen tellen mee. Er loopt één sessie tegelijk, maximaal 120 seconden. Een modelsessie kan intern meerdere providerrequests bevatten. De afzonderlijke MCP-zoekcalls staan wel in de trace.
 
 Een verlopen venster stopt het werk. Vernieuw het ledger niet om de tellers te omzeilen. Alleen een expliciet toegestane voortzetting mag het bestaande venster verlengen; de [audit en sessieplafonds blijven behouden](../../README.md#reproduceerbare-experimenten).
 
-## 3. Leg de zes vragen langs dezelfde vier aanpakken
+## 3. Rond de pilot af en vergelijk daarna zes vragen
+
+De tien overige pilotvragen worden één keer met Codex uitgevoerd. Samen met de twee smokevragen dekt dit alle twaalf bekende vragen; de oorspronkelijke contextfouten blijven bewaard.
+
+```sh
+cargo run --locked -- experiment run --live --cases P02,P03,P04,P05,P07,P08,P09,P10,P11,P12 --arms agentic_dense --output "$COA_EVAL_DIR/pilot-generation.jsonl" --ledger "$COA_EVAL_DIR/ledger.json" --max-cases 10 --max-generations 10 --max-judgements 0 --max-seconds 1800
+```
 
 Controleer de pilot en zet prompt, brondata, criteria en instellingen vast vóór de eerste uitvoering op deze zes vragen. Zij zijn nieuwe combinaties van bekende bronfeiten. Pas de generator niet op de uitkomsten aan en noem een volgende afgestemde uitvoering dan opnieuw ontwikkeling.
 
@@ -45,12 +51,16 @@ cargo run --locked -- experiment run --live --questions fixtures/experiments/hel
 
 De aanpakken zijn Codex met vervolgzoeken, alle documenten vooraf, één MiniLM-zoekactie en één BM25-zoekactie. De vaste bron- en vraaghashes, modelbestanden, programma-identiteit, werkelijke context en fouten blijven in het artifact staan. Modelaliassen en provideruitvoering beperken exacte herhaalbaarheid.
 
+Het standaardprotocol gebruikt **4 + 10 + 24 = 38 generaties**. Binnen het plafond blijven maximaal twee extra, technisch gemotiveerde pogingen over. Er zijn geen automatische retries; leg reden en gekozen uitvoering vast en bewaar de oorspronkelijke fout.
+
 ## 4. Beoordeel bestaande antwoorden zonder opnieuw te genereren
 
 Deze opdrachten maken alleen afzonderlijke beoordelingen. Zij genereren geen nieuwe antwoorden en voeren geen nieuwe zoekacties uit. De beoordelaar krijgt het volledige opgeslagen antwoord, de aangeboden context en de apart geladen criteria/referentiepassages; hij heeft geen tools.
 
 ```sh
-cargo run --locked -- experiment grade --live --input "$COA_EVAL_DIR/pilot-generation.jsonl" --output "$COA_EVAL_DIR/pilot-graded.jsonl" --ledger "$COA_EVAL_DIR/ledger.json" --max-judgements 8 --max-seconds 1200
+cargo run --locked -- experiment grade --live --input "$COA_EVAL_DIR/smoke-generation.jsonl" --output "$COA_EVAL_DIR/smoke-graded.jsonl" --ledger "$COA_EVAL_DIR/ledger.json" --max-judgements 4 --max-seconds 600
+
+cargo run --locked -- experiment grade --live --input "$COA_EVAL_DIR/pilot-generation.jsonl" --output "$COA_EVAL_DIR/pilot-graded.jsonl" --ledger "$COA_EVAL_DIR/ledger.json" --max-judgements 10 --max-seconds 1800
 
 cargo run --locked -- experiment grade --live --questions fixtures/experiments/heldout-questions.json --expectations fixtures/experiments/heldout-expectations.json --input "$COA_EVAL_DIR/heldout-generation.jsonl" --output "$COA_EVAL_DIR/heldout-graded.jsonl" --ledger "$COA_EVAL_DIR/ledger.json" --max-judgements 24 --max-seconds 3600
 ```
@@ -60,7 +70,7 @@ Ongeldige uitvoer, een time-out en een onbeslist criterium leveren geen positiev
 ## 5. Open de echte resultaten lokaal
 
 ```sh
-cargo run --locked -- experiment report --input "$COA_EVAL_DIR/pilot-graded.jsonl,$COA_EVAL_DIR/heldout-graded.jsonl" --output /tmp/coa-rag-preview/resultaten.html
+cargo run --locked -- experiment report --input "$COA_EVAL_DIR/smoke-graded.jsonl,$COA_EVAL_DIR/pilot-graded.jsonl,$COA_EVAL_DIR/heldout-graded.jsonl" --output /tmp/coa-rag-preview/resultaten.html
 ```
 
 Open `resultaten.html`. De gepaarde tabel houdt dezelfde zes vragen naast elkaar, met noemers, ontbrekende uitvoeringen en technische fouten. Eén unieke run krijgt zijn ID; bij herhalingen kiest het rapport geen automatische winnaar. Volledige historie blijft opvraagbaar. Voeg een generatiebestand en zijn beoordeelde kopie niet samen: dezelfde run-ID mag maar één keer voorkomen.
