@@ -853,6 +853,12 @@ fn render_question(body: &mut String, item: &Prepared<'_>, index: usize) {
     ] {
         write!(body, "<dt>{label}</dt><dd>{}</dd>", escape(value)).unwrap();
     }
+    write!(
+        body,
+        "<dt>Uitvoeringsrecord gemaakt (UTC)</dt><dd><time data-epoch-ms={}>{} Unix-ms</time></dd>",
+        r.manifest.created_at_unix_ms, r.manifest.created_at_unix_ms
+    )
+    .unwrap();
     write!(body,"<dt>Zoeklimieten</dt><dd>top-k {} · maximaal {} MCP-calls</dd><dt>Uitvoeringslimieten</dt><dd>maximaal {} s per modelsessie · concurrency {}</dd>",r.manifest.limits.top_k,r.manifest.limits.max_search_calls,r.manifest.limits.per_call_seconds,r.manifest.limits.concurrency).unwrap();
     for file in &r.manifest.embedding_files {
         write!(
@@ -1004,6 +1010,11 @@ fn render_assessment(body: &mut String, record: &ExperimentRecord) {
             write!(body,"<details><summary>Budgetstand bij deze beoordeling</summary><p>{} generaties / {} beoordelingen gereserveerd in deze globale registratie; geen som per vraag.</p></details>",b.get("generation_sessions_used").and_then(|v|v.as_u64()).unwrap_or(0),b.get("grading_sessions_used").and_then(|v|v.as_u64()).unwrap_or(0)).unwrap();
         }
         body.push_str("<details><summary>Versie van de beoordelaar</summary><dl class=metadata>");
+        if let Some(started) = j["started_at_unix_ms"].as_u64() {
+            write!(body,"<dt>Beoordeling gestart (UTC)</dt><dd><time data-epoch-ms={started}>{started} Unix-ms</time></dd>").unwrap();
+        } else {
+            body.push_str("<dt>Beoordeling gestart</dt><dd>Niet vastgelegd</dd>");
+        }
         for (label, key) in [
             ("Model", "model"),
             ("Codex-versie", "client_version"),

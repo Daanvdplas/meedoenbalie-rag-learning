@@ -20,6 +20,7 @@
     const form=document.querySelector('#filters');
     const rows=[...document.querySelectorAll('.question')];
     const count=document.querySelector('#filter-count');
+    document.querySelectorAll('time[data-epoch-ms]').forEach(time=>{const value=new Date(Number(time.dataset.epochMs));if(Number.isFinite(value.getTime())){time.dateTime=value.toISOString();time.textContent=value.toISOString().replace('T',' ').replace('.000Z',' UTC').replace('Z',' UTC');}});
     function filter(){
       const selected={arm:form.querySelector('#arm').value,kind:form.querySelector('#kind').value,outcome:form.querySelector('#outcome').value,split:form.querySelector('#split').value};
       let shown=0;
