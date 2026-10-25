@@ -255,6 +255,7 @@ pub fn validate_judgement(
         }
     }
     let budget = &value.budget;
+    budget.validate()?;
     if budget.schema_version != 1
         || budget.id.is_empty()
         || budget.max_generation_sessions != 40
