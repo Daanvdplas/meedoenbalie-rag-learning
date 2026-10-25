@@ -709,6 +709,11 @@ impl CodexRunner {
                 ("mcp_servers.coa.tool_timeout_sec", json!(30)),
             ]);
         }
+        if !with_mcp {
+            // The verified isolation feature emits a cosmetic development notice.
+            // Other warnings/errors still pass through the strict evaluation parser.
+            settings.push(("suppress_unstable_features_warning", json!(true)));
+        }
         for (key, value) in settings {
             let encoded = if let Some(map) = value.as_object() {
                 format!(
@@ -1246,6 +1251,46 @@ mod tests {
             args.iter()
                 .any(|a| a == "permissions.coa-rag.network.enabled=false")
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn isolated_session_suppresses_only_verified_cosmetic_startup_notice_per_invocation() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("coa-isolated-notice-{nonce}"));
+        let directory = RunDirectory(path);
+        let runner = fake_runner(&directory.0, "#!/bin/sh\nexit 1\n");
+        for (with_mcp, suppressed) in [(false, true), (true, false)] {
+            let command = runner
+                .command_in(&directory.0, &directory.0.join("schema.json"), with_mcp)
+                .unwrap();
+            let args = command
+                .as_std()
+                .get_args()
+                .map(|arg| arg.to_string_lossy().into_owned())
+                .collect::<Vec<_>>();
+            assert_eq!(
+                args.iter()
+                    .any(|arg| arg == "suppress_unstable_features_warning=true"),
+                suppressed
+            );
+            assert!(
+                args.windows(2)
+                    .any(|pair| pair == ["--enable", "skip_host_skill_discovery"])
+            );
+            assert!(
+                args.iter()
+                    .any(|arg| arg == "permissions.coa-rag.network.enabled=false")
+            );
+            assert!(
+                args.iter()
+                    .any(|arg| arg.contains("permissions.coa-rag.filesystem")
+                        && arg.contains("deny"))
+            );
+        }
     }
 
     #[cfg(unix)]
