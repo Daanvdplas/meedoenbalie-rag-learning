@@ -159,7 +159,9 @@ pub fn validate(
     let mut case_ids = BTreeSet::new();
     let mut family_splits = BTreeMap::new();
     for case in &questions.cases {
-        crate::validate_query(&case.question)?;
+        if crate::validate_query(&case.question)? != case.question {
+            return Err("Question must match its normalized model input exactly".into());
+        }
         if case.id.trim().is_empty()
             || case.family.trim().is_empty()
             || !case_ids.insert(case.id.as_str())
@@ -275,6 +277,14 @@ mod tests {
         let (mut questions, mut labels, sources) = fixtures();
         questions.cases[1].id = questions.cases[0].id.clone();
         reseal(&questions, &mut labels);
+        assert!(validate(&questions, &labels, &sources, crate::DOCUMENTS).is_err());
+    }
+
+    #[test]
+    fn questions_cannot_change_between_dataset_hash_and_normalized_model_input() {
+        let (mut questions, mut labels, sources) = fixtures();
+        questions.cases[0].question = format!(" {} ", questions.cases[0].question);
+        labels.questions_sha256 = questions_hash(&questions).unwrap();
         assert!(validate(&questions, &labels, &sources, crate::DOCUMENTS).is_err());
     }
 
