@@ -4,6 +4,7 @@ pub mod calibration;
 pub mod dataset;
 pub mod judge;
 pub mod metrics;
+pub mod report;
 pub mod runner;
 pub mod types;
 
