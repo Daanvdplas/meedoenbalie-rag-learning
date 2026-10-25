@@ -9,6 +9,40 @@ use serde_json::json;
 
 pub async fn cli(args: &[String]) -> Result<(), String> {
     match args.first().map(String::as_str) {
+        Some("extend-window") => {
+            if args
+                .iter()
+                .filter(|a| a.as_str() == "--authorize-continuation")
+                .count()
+                != 1
+            {
+                return Err(
+                    "Window continuation requires explicit product-lead authorization".into(),
+                );
+            }
+            let values: Vec<_> = args[1..]
+                .iter()
+                .filter(|a| a.as_str() != "--authorize-continuation")
+                .cloned()
+                .collect();
+            let flags = parse_flags(&values, &["--ledger", "--seconds"])?;
+            let path = std::path::Path::new(flags.get("--ledger").ok_or("Missing --ledger")?);
+            if !path.is_file() {
+                return Err("Continuation requires an existing budget ledger".into());
+            }
+            let seconds = flags
+                .get("--seconds")
+                .ok_or("Missing --seconds")?
+                .parse()
+                .map_err(|_| "Invalid --seconds")?;
+            let mut ledger = budget::Ledger::open(path)?;
+            ledger.extend_window(seconds)?;
+            println!(
+                "{}",
+                serde_json::to_string(&ledger.state).map_err(|_| "Cannot encode budget audit")?
+            );
+            Ok(())
+        }
         Some("arms") if args.len() == 1 => {
             println!("{}", json!({"schema_version":1,"arms":types::Arm::ALL}));
             Ok(())

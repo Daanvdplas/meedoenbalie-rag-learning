@@ -65,6 +65,9 @@ pub fn validate_record(record: &ExperimentRecord) -> Result<(), String> {
             return Err("Runtime diagnostic/status mismatch".into());
         }
     }
+    if let Some(budget) = &manifest.budget {
+        budget.validate()?;
+    }
     for digest in [
         &manifest.questions_sha256,
         &manifest.expectations_sha256,
@@ -677,6 +680,14 @@ mod tests {
         });
         assert!(validate_record(&item).is_ok());
         item.diagnostic.as_mut().unwrap().provider_error_code = Some("PRIVATE-TOKEN".into());
+        assert!(validate_record(&item).is_err());
+    }
+
+    #[test]
+    fn artifact_rejects_a_forged_budget_window_audit() {
+        let mut item = record();
+        item.manifest.budget=Some(serde_json::from_value(json!({"schema_version":1,"id":"fixture","started_at_unix_ms":1,"max_generation_sessions":40,"max_grading_sessions":56,"max_seconds":14400,"generation_sessions_used":1,"grading_sessions_used":0,"window_extensions":[{"previous_deadline_unix_ms":999,"new_deadline_unix_ms":28800001,"authorized_at_unix_ms":14400001,"authorization":"product_lead_explicit","reason":"voortzetting na verlopen venster, taaklead akkoord","generation_sessions_used":1,"grading_sessions_used":0}]})).unwrap());
+
         assert!(validate_record(&item).is_err());
     }
 

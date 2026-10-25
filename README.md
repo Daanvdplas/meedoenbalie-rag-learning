@@ -81,3 +81,11 @@ cargo run --locked -- experiment run --live --cases P01,P02 --arms agentic_dense
 Gebruik voor alle vervolgopdrachten hetzelfde ledger-bestand. Dit reserveert vóór iedere poging een sessie en begrenst het gezamenlijke traject op 40 generatie-sessies, 56 beoordelingssessies en vier uur, met één uitvoering tegelijk. Ook mislukte pogingen tellen mee. Iedere sessie duurt maximaal 120 seconden; Ctrl+C stopt de actieve subprocessen en schrijft de resterende gevallen als geannuleerd. Een Codex-sessie kan intern meerdere providerrequests bevatten; die zijn niet apart zichtbaar.
 
 `agentic_dense` gebruikt de bestaande echte MCP-zoekfunctie, `full_context` alle dertig bronsecties zonder tools. `dense_once` zoekt één keer met MiniLM; `bm25` zoekt één keer met BM25 (k1=1.2, b=0.75, zonder stemming). De laatste twee geven uitsluitend hun geselecteerde passages aan hetzelfde antwoordmodel. BM25-scores zijn onbegrensde lexicale scores. Zoekstappen, aangeboden secties, brondata, letterlijke citaten, beschikbare usage, limieten en hashes worden opgeslagen. Onbekende usage blijft `null`; een gelukte uitvoering is nog geen inhoudelijke kwaliteitsbeoordeling. Modelaliassen en providerroute beperken exacte reproduceerbaarheid.
+
+Een verlopen gezamenlijk tijdvenster wordt nooit automatisch vernieuwd. Alleen na expliciete toestemming van de taaklead kan een operator het bestaande ledger verlengen:
+
+```sh
+cargo run --locked -- experiment extend-window --ledger /tmp/rag-evaluation-budget.json --seconds 14400 --authorize-continuation
+```
+
+Dit werkt uitsluitend op een bestaand, verlopen en exclusief vergrendeld ledger. De oorspronkelijke start, alle verbruikte sessies en de plafonds 40/56 blijven staan. Het ledger bewaart de oude en nieuwe deadline, het tijdstip, de vaste autorisatie/reden en de toenmalige tellers. Een actief venster, ongeldige auditketen of beschadigd ledger wordt geweigerd. Gebruik daarna een bijgewerkte uitvoerbare versie; oudere versies weigeren het uitgebreide schema.
