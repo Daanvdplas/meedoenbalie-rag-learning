@@ -87,6 +87,18 @@ pub struct Ledger {
     file: File,
     pub state: LedgerState,
 }
+impl Drop for Ledger {
+    fn drop(&mut self) {
+        #[cfg(unix)]
+        {
+            use std::os::fd::AsRawFd;
+            unsafe {
+                libc::flock(self.file.as_raw_fd(), libc::LOCK_UN);
+            }
+        }
+    }
+}
+
 impl Ledger {
     pub fn open(path: &Path) -> Result<Self, String> {
         let mut options = OpenOptions::new();
@@ -162,7 +174,13 @@ impl Ledger {
     }
     pub fn remaining(&self) -> Result<std::time::Duration, String> {
         let now = now_ms()?;
-        if now < self.state.started_at_unix_ms {
+        if now < self.state.started_at_unix_ms
+            || self
+                .state
+                .window_extensions
+                .last()
+                .is_some_and(|w| now < w.authorized_at_unix_ms)
+        {
             return Err("System clock moved before experiment start".into());
         }
         let remaining = self
@@ -258,6 +276,20 @@ mod tests {
         assert_eq!(ledger.state.window_extensions.len(), 1);
         ledger.reserve_generation().unwrap();
         assert_eq!(ledger.state.generation_sessions_used, 2);
+        drop(ledger);
+        std::fs::remove_file(path).unwrap();
+    }
+    #[test]
+    fn clock_rollback_after_continuation_never_grants_more_than_four_hours() {
+        let path = std::env::temp_dir().join(format!("coa-window-clock-{}", now_ms().unwrap()));
+        let mut ledger = Ledger::open(&path).unwrap();
+        ledger.state.started_at_unix_ms = now_ms().unwrap() - 14_400_100;
+        ledger.extend_window(14400).unwrap();
+        let window = ledger.state.window_extensions.last_mut().unwrap();
+        window.authorized_at_unix_ms = now_ms().unwrap() + 1000;
+        window.new_deadline_unix_ms = window.authorized_at_unix_ms + 14_400_000;
+        assert!(ledger.state.validate().is_ok());
+        assert!(ledger.remaining().is_err());
         drop(ledger);
         std::fs::remove_file(path).unwrap();
     }
