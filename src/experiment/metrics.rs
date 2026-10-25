@@ -703,6 +703,7 @@ mod tests {
         item.arm = Arm::AgenticDense;
         item.execution_kind = ExecutionKind::Live;
         item.manifest.budget = Some(crate::experiment::budget::LedgerState {
+            window_extensions: vec![],
             schema_version: 1,
             id: "fixture-ledger".into(),
             started_at_unix_ms: 1,
