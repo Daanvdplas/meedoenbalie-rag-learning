@@ -371,7 +371,9 @@ fn render(records: &[ExperimentRecord]) -> Result<String, String> {
             body.push_str("</tbody></table></div>");
         }
     }
-    body.push_str("<p class=help>Alleen opgeslagen uitvoeringen tellen mee. Voorbeelden en vraaggroepen blijven apart; vergelijk dezelfde vragen.</p></section><section aria-labelledby=questions-title><h2 id=questions-title>Bekijk een vraag</h2><form id=filters aria-label=\"Filter de uitvoeringen\"><label>Aanpak<select id=arm><option value=\"\">Alle aanpakken</option>");
+    body.push_str("<p class=help>Alleen opgeslagen uitvoeringen tellen mee. Voorbeelden en vraaggroepen blijven apart; vergelijk dezelfde vragen.</p></section>");
+    render_paired(&mut body, &prepared, &datasets[1].0);
+    body.push_str("<section aria-labelledby=questions-title><h2 id=questions-title>Bekijk een vraag</h2><p class=help>Volledige historie van de aangeleverde uitvoeringen, inclusief mislukte pogingen en herhalingen.</p><form id=filters aria-label=\"Filter de uitvoeringen\"><label>Aanpak<select id=arm><option value=\"\">Alle aanpakken</option>");
     for arm in Arm::ALL {
         write!(
             body,
@@ -416,10 +418,163 @@ fn render(records: &[ExperimentRecord]) -> Result<String, String> {
     Ok(include_str!("../../static/evaluation-report.html").replace("<!-- REPORT -->", &body))
 }
 
+fn paired_delta(agent: &Prepared<'_>, baseline: &Prepared<'_>) -> Option<f64> {
+    let a = agent.record;
+    let b = baseline.record;
+    if a.execution_kind != ExecutionKind::Live
+        || b.execution_kind != ExecutionKind::Live
+        || a.case_id != b.case_id
+        || a.family != b.family
+        || a.manifest.questions_sha256 != b.manifest.questions_sha256
+        || a.manifest.expectations_sha256 != b.manifest.expectations_sha256
+        || a.manifest.generator_route != b.manifest.generator_route
+        || a.execution_status != ExecutionStatus::Completed
+        || b.execution_status != ExecutionStatus::Completed
+        || !agent.measured.hard_checks_passed
+        || !baseline.measured.hard_checks_passed
+        || a.manifest.model != b.manifest.model
+        || a.manifest.runtime_sha256 != b.manifest.runtime_sha256
+        || a.manifest.binary_sha256 != b.manifest.binary_sha256
+        || a.manifest.code_mode_host_sha256 != b.manifest.code_mode_host_sha256
+        || a.manifest.client_version != b.manifest.client_version
+        || a.manifest.limits.top_k != b.manifest.limits.top_k
+        || a.manifest.limits.max_search_calls != b.manifest.limits.max_search_calls
+        || a.manifest.limits.per_call_seconds != b.manifest.limits.per_call_seconds
+    {
+        return None;
+    }
+    if b.arm == Arm::DenseOnce
+        && (a.manifest.embedding_revision != b.manifest.embedding_revision
+            || serde_json::to_value(&a.manifest.embedding_files).ok()
+                != serde_json::to_value(&b.manifest.embedding_files).ok())
+    {
+        return None;
+    }
+    let value = |p: &Prepared<'_>| {
+        p.measured
+            .metrics
+            .iter()
+            .find(|m| m.id == "all_hop_fact_coverage")
+            .and_then(|m| m.value)
+    };
+    Some(value(baseline)? - value(agent)?)
+}
+
+fn render_paired(body: &mut String, prepared: &[Prepared<'_>], questions: &QuestionSet) {
+    if !prepared.iter().any(|p| p.record.split == "held_out") {
+        return;
+    }
+    body.push_str("<section aria-labelledby=paired-title><h2 id=paired-title>Dezelfde vraag, naast elkaar</h2><p class=help>Kleine verkennende set: 6 vragen × 4 aanpakken, met bekende synthetische bronnen. Hieruit volgt geen betrouwbare algemene winstclaim.</p>");
+    for kind in [ExecutionKind::Live, ExecutionKind::Fixture] {
+        let selected: Vec<_> = prepared
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| p.record.split == "held_out" && p.record.execution_kind == kind)
+            .collect();
+        if selected.is_empty() {
+            continue;
+        }
+        let occupied: BTreeSet<_> = selected
+            .iter()
+            .map(|(_, p)| (&p.record.case_id, p.record.arm.name()))
+            .collect();
+        let completed = selected
+            .iter()
+            .filter(|(_, p)| p.record.execution_status == ExecutionStatus::Completed)
+            .count();
+        write!(body,"<h3>{}</h3><p class=help>{} opgeslagen uitvoeringen · {completed} voltooid · {} niet voltooid · {} ontbrekende combinaties</p><p class=scroll-hint>Schuif de tabel opzij om alle aanpakken te vergelijken →</p><div class=table-scroll tabindex=0 role=region aria-label=\"Gepaarde vergelijking van dezelfde vragen\"><table class=paired><thead><tr><th scope=col>Dezelfde vraag</th>",if kind==ExecutionKind::Live {"Echte uitvoeringen"} else {"Voorbeelden; geen modelkwaliteitsmeting"},selected.len(),selected.len()-completed,questions.cases.len()*4-occupied.len()).unwrap();
+        for arm in Arm::ALL {
+            write!(body, "<th scope=col>{}</th>", arm_name(arm)).unwrap();
+        }
+        body.push_str("</tr></thead><tbody>");
+        let mut eligible = [0; 4];
+        for case in &questions.cases {
+            write!(body, "<tr><th scope=row>{}</th>", escape(&case.question)).unwrap();
+            let agents: Vec<_> = selected
+                .iter()
+                .filter(|(_, p)| p.record.case_id == case.id && p.record.arm == Arm::AgenticDense)
+                .collect();
+            for (arm_index, arm) in Arm::ALL.into_iter().enumerate() {
+                let rows: Vec<_> = selected
+                    .iter()
+                    .filter(|(_, p)| p.record.case_id == case.id && p.record.arm == arm)
+                    .collect();
+                body.push_str("<td>");
+                if rows.is_empty() {
+                    body.push_str("<span class=help>Geen uitvoering opgeslagen</span>");
+                }
+                for (index, p) in &rows {
+                    write!(body,"<a class=pair-link href=#question-{index} data-open=question-{index}><span class=\"badge {}\">{}</span></a>",p.outcome.key(),if p.record.execution_status==ExecutionStatus::Completed {p.outcome.label()} else {execution_name(&p.record.execution_status)}).unwrap();
+                    write!(
+                        body,
+                        "<small>{}: {}</small>",
+                        if rows.len() == 1 {
+                            "Gekozen uitvoering"
+                        } else {
+                            "Uitvoering in historie"
+                        },
+                        escape(&p.record.run_id)
+                    )
+                    .unwrap();
+                    if p.record.execution_status == ExecutionStatus::Completed {
+                        write!(
+                            body,
+                            "<strong>Bewijs: {}</strong><small>Zoekacties: {} · tijd: {}</small>",
+                            metric_value(&p.measured, "all_hop_fact_coverage"),
+                            metric_value(&p.measured, "search_calls"),
+                            metric_value(&p.measured, "elapsed_ms")
+                        )
+                        .unwrap();
+                    } else {
+                        body.push_str(
+                            "<small>Geen geslaagd antwoord; deze fout blijft meetellen.</small>",
+                        );
+                    }
+                    if arm != Arm::AgenticDense
+                        && rows.len() == 1
+                        && agents.len() == 1
+                        && let Some(delta) = paired_delta(agents[0].1, p)
+                    {
+                        eligible[arm_index] += 1;
+                        write!(
+                            body,
+                            "<small>Verschil met Codex: {}</small>",
+                            format!("{delta:+.2}").replace('.', ",")
+                        )
+                        .unwrap();
+                    }
+                }
+                if rows.len() > 1 {
+                    body.push_str("<small>Meerdere uitvoeringen; geen automatische selectie of verschilscore.</small>");
+                }
+                body.push_str("</td>");
+            }
+            body.push_str("</tr>");
+        }
+        body.push_str("</tbody></table></div><details><summary>Welke gepaarde verschillen tellen mee?</summary><p>Het verschil is de bewijsdekking van deze aanpak min die van Codex, voor dezelfde vraag. Geen gemiddelde totaalscore. Alleen unieke voltooide live uitvoeringen met geldige harde controles, een bewijsnoemer en dezelfde vastgelegde model-/programmaconfiguratie krijgen een verschil.</p><ul>");
+        for (index, arm) in Arm::ALL
+            .into_iter()
+            .enumerate()
+            .filter(|(_, a)| *a != Arm::AgenticDense)
+        {
+            write!(
+                body,
+                "<li>{}: {} van {} vragen vergelijkbaar met Codex</li>",
+                arm_name(arm),
+                eligible[index],
+                questions.cases.len()
+            )
+            .unwrap();
+        }
+        body.push_str("</ul><p>Fouten, ontbrekende uitvoeringen, herhalingen en niet-gedefinieerde maten verdwijnen niet uit het overzicht; zij krijgen geen verzonnen verschilscore.</p></details>");
+    }
+    body.push_str("</section>");
+}
+
 fn render_question(body: &mut String, item: &Prepared<'_>, index: usize) {
     let r = item.record;
     let m = &item.measured;
-    write!(body, "<details class=question name=questions data-arm={} data-kind=\"{}\" data-outcome={} data-split=\"{}\"><summary><span><span class=question-text>{}</span><span class=question-meta>{} · {} · {}{}</span></span><span class=\"badge {}\">{}</span></summary><div class=question-body>", r.arm.name(), escape(&r.kind), item.outcome.key(), escape(&r.split), escape(&r.question), arm_name(r.arm), split_name(&r.split), type_name(&r.kind), if r.execution_kind == ExecutionKind::Fixture { " · Voorbeeld" } else { " · Echt" }, item.outcome.key(), if r.execution_status != ExecutionStatus::Completed { execution_name(&r.execution_status) } else { item.outcome.label() }).unwrap();
+    write!(body, "<details id=question-{index} class=question name=questions data-arm={} data-kind=\"{}\" data-outcome={} data-split=\"{}\"><summary><span><span class=question-text>{}</span><span class=question-meta>{} · {} · {}{}</span></span><span class=\"badge {}\">{}</span></summary><div class=question-body>", r.arm.name(), escape(&r.kind), item.outcome.key(), escape(&r.split), escape(&r.question), arm_name(r.arm), split_name(&r.split), type_name(&r.kind), if r.execution_kind == ExecutionKind::Fixture { " · Voorbeeld" } else { " · Echt" }, item.outcome.key(), if r.execution_status != ExecutionStatus::Completed { execution_name(&r.execution_status) } else { item.outcome.label() }).unwrap();
     body.push_str("<div class=answer-grid><section class=answer-box><h3>Het antwoord</h3>");
     write!(
         body,
@@ -1009,5 +1164,71 @@ mod tests {
             "belongs to another write"
         );
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn paired_table_keeps_all_six_cases_and_distinguishes_missing_runs_from_zero_coverage() {
+        let mut row = examples().remove(0);
+        let (questions, labels) = catalog().unwrap().remove(1);
+        let case = &questions.cases[0];
+        row.case_id = case.id.clone();
+        row.family = case.family.clone();
+        row.split = case.split.clone();
+        row.kind = case.kind.clone();
+        row.question = case.question.clone();
+        row.manifest.questions_version = questions.dataset_version.clone();
+        row.manifest.questions_sha256 = dataset::questions_hash(&questions).unwrap();
+        row.manifest.expectations_version = labels.dataset_version.clone();
+        row.manifest.expectations_sha256 =
+            crate::manifest::hash(&serde_json::to_vec(&labels).unwrap());
+        for (call, step) in row.tool_calls.iter_mut().zip(&mut row.retrieval_steps) {
+            call.query = case.question.clone();
+            step.query = case.question.clone();
+            call.result.as_mut().unwrap()["question"] = serde_json::json!(case.question);
+        }
+        let html = render(&[row]).unwrap();
+        assert!(html.contains("Dezelfde vraag, naast elkaar"));
+        assert!(html.contains("6 vragen × 4 aanpakken"));
+        assert!(html.contains("23 ontbrekende combinaties"));
+        assert!(html.contains("0 van 4 (0,00)"));
+        assert!(html.contains("Geen uitvoering opgeslagen"));
+        for question in questions.cases {
+            assert!(html.contains(&escape(&question.question)));
+        }
+    }
+
+    #[test]
+    fn paired_difference_uses_known_fractions_and_refuses_a_different_case_or_runtime() {
+        let rows = examples();
+        let datasets = catalog().unwrap();
+        let mut a = rows[0].clone();
+        let mut b = rows[1].clone();
+        let criteria = bind(&a, &datasets).unwrap();
+        let mut am = metrics::evaluate(&a, criteria).unwrap();
+        let mut bm = metrics::evaluate(&b, criteria).unwrap();
+        // Instrument inputs only: this does not create a live result artifact.
+        a.execution_kind = ExecutionKind::Live;
+        b.execution_kind = ExecutionKind::Live;
+        am.hard_checks_passed = true;
+        bm.hard_checks_passed = true;
+        let agent = Prepared {
+            record: &a,
+            criteria,
+            measured: am,
+            outcome: Outcome::Review,
+        };
+        let baseline = |r| Prepared {
+            record: r,
+            criteria,
+            measured: bm.clone(),
+            outcome: Outcome::Review,
+        };
+        assert_eq!(paired_delta(&agent, &baseline(&b)), Some(-0.5));
+        let mut other_case = b.clone();
+        other_case.case_id = "P07".into();
+        assert_eq!(paired_delta(&agent, &baseline(&other_case)), None);
+        let mut other_runtime = b.clone();
+        other_runtime.manifest.runtime_sha256 = "9".repeat(64);
+        assert_eq!(paired_delta(&agent, &baseline(&other_runtime)), None);
     }
 }
