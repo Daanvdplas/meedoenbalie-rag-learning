@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 pub const RUBRIC_VERSION: &str = "semantic-rubric-v1";
-pub const RUBRIC: &str = "Evaluate correctness, completeness, relevance, support by the actually offered sources, and appropriate treatment of unknowns separately. Check every required fact, condition, forbidden claim and required unknown. Good means that criterion is satisfied; bad means a substantive error or omission; review_needed means the evaluator cannot decide. An answer correctly acknowledging an unknown or asking necessary clarification can be good. Do not require unsolicited facts. A literal citation can accompany a wrong conclusion: assess the meaning, not keyword overlap. Never infer present availability from historical places. Source support refers ONLY to offered_sections; authoritative_sections can establish correctness/missing facts but do not count as retrieved support. Return concise observable evidence, never private chain-of-thought. Overall is bad if any criterion is bad, otherwise review_needed if any criterion is review_needed, otherwise good. These are provisional model judgements, not human-calibrated quality passes.";
+pub const RUBRIC: &str = "Evaluate correctness, completeness, relevance, support by the actually offered sources, and appropriate treatment of unknowns separately. Check every required fact, condition, forbidden claim and required unknown. Good means that criterion is satisfied; bad means a substantive error or omission; review_needed means the evaluator cannot decide. An answer correctly acknowledging an unknown or asking necessary clarification can be good. Do not require unsolicited facts. A literal citation can accompany a wrong conclusion: assess the meaning, not keyword overlap. Never infer present availability from historical places. Source support refers ONLY to offered_sections; authoritative_sections can establish correctness/missing facts but do not count as retrieved support. For a good factual criterion provide a short literal answer fragment and source quotation; good source_support for factual claims needs a quotation from offered_sections. Omission/unknown judgements may have null fragments when no literal evidence exists. Return concise observable evidence, never private chain-of-thought. Overall is bad if any criterion is bad, otherwise review_needed if any criterion is review_needed, otherwise good. These are provisional model judgements, not human-calibrated quality passes.";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -55,7 +55,10 @@ pub struct Judgement {
     pub reference_origin: String,
     pub human_calibration: bool,
     pub provisional: bool,
+    pub started_at_unix_ms: u64,
     pub elapsed_ms: u64,
+    #[serde(default)]
+    pub diagnostic: Option<RuntimeDiagnostic>,
     pub usage: Option<TokenUsage>,
     pub budget: super::budget::LedgerState,
     pub assessment: Option<Assessment>,
@@ -153,6 +156,13 @@ pub fn validate_assessment(
         return Err("Invalid semantic criterion identity/count".into());
     }
     let authoritative = authoritative_sections(criteria)?;
+    let positive_fact = assessment.criteria.iter().any(|result| {
+        result.verdict == Verdict::Good
+            && criteria
+                .facts
+                .iter()
+                .any(|f| f.kind == "fact" && result.criterion_id == format!("fact:{}", f.id))
+    });
     for result in &assessment.criteria {
         if result.reason.trim().is_empty()
             || result.reason.len() > 600
@@ -165,6 +175,32 @@ pub fn validate_assessment(
             })
         {
             return Err("Invalid semantic answer evidence".into());
+        }
+        let fact = criteria
+            .facts
+            .iter()
+            .find(|fact| result.criterion_id == format!("fact:{}", fact.id));
+        if result.verdict == Verdict::Good
+            && fact.is_some_and(|f| f.kind == "fact")
+            && (result.answer_fragment.is_none() || result.source_evidence.is_none())
+        {
+            return Err("Positive factual criterion lacks observable evidence".into());
+        }
+        if result.criterion_id == "source_support"
+            && result.verdict == Verdict::Good
+            && (positive_fact || !answer.citations.is_empty())
+            && result.source_evidence.is_none()
+        {
+            return Err("Positive source support lacks offered evidence".into());
+        }
+        if result.criterion_id == "source_support"
+            && result.source_evidence.as_ref().is_some_and(|e| {
+                !offered.iter().any(|s| {
+                    s.source_id == e.source_id && s.id == e.section_id && s.text.contains(&e.quote)
+                })
+            })
+        {
+            return Err("Source-support evidence was never offered to the generator".into());
         }
         if let Some(evidence) = &result.source_evidence
             && (evidence.quote.trim().is_empty()
@@ -207,6 +243,30 @@ pub fn validate_judgement(
     criteria: &CaseCriteria,
 ) -> Result<(), String> {
     value.grading_limits.validate()?;
+    if value.started_at_unix_ms == 0 {
+        return Err("Grader start timestamp missing".into());
+    }
+    if let Some(diagnostic) = &value.diagnostic {
+        diagnostic.validate()?;
+        if value.execution_status == ExecutionStatus::Completed
+            || value.error.as_deref() != Some(diagnostic.category.as_str())
+        {
+            return Err("Grader diagnostic/status mismatch".into());
+        }
+    }
+    let budget = &value.budget;
+    if budget.schema_version != 1
+        || budget.id.is_empty()
+        || budget.max_generation_sessions != 40
+        || budget.max_grading_sessions != 56
+        || budget.max_seconds != 14400
+        || budget.generation_sessions_used > 40
+        || budget.grading_sessions_used > 56
+        || value.execution_status == ExecutionStatus::Completed && budget.grading_sessions_used == 0
+    {
+        return Err("Invalid grader budget provenance".into());
+    }
+
     let hex = |s: &str| s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit());
     if value.schema_version != 1
         || value.rubric_version != RUBRIC_VERSION
@@ -275,6 +335,12 @@ pub fn validate_judgement(
                     value.error.as_deref(),
                     Some(
                         "runtime_failed"
+                            | "provider_transport_failed"
+                            | "provider_rate_limited"
+                            | "provider_authentication_failed"
+                            | "provider_request_rejected"
+                            | "provider_server_failed"
+                            | "unexpected_tool"
                             | "timeout"
                             | "cancelled"
                             | "budget_exhausted"
@@ -338,7 +404,9 @@ pub async fn assess(
         reference_origin: "not_human_calibrated".into(),
         human_calibration: false,
         provisional: true,
+        started_at_unix_ms: super::budget::now_ms()?,
         elapsed_ms: 0,
+        diagnostic: None,
         usage: None,
         budget: ledger.state.clone(),
         assessment: None,
@@ -413,25 +481,16 @@ pub async fn assess(
             }
         }
         Err(error) => {
-            result.execution_status = if error.contains("timeout") {
+            let code = crate::codex::public_error_code(&error);
+            result.execution_status = if code == "timeout" {
                 ExecutionStatus::TimedOut
-            } else if error == "cancelled" {
+            } else if code == "cancelled" {
                 ExecutionStatus::Cancelled
             } else {
                 ExecutionStatus::Failed
             };
-            result.error = Some(
-                if error.contains("timeout") {
-                    "timeout"
-                } else if error == "cancelled" {
-                    "cancelled"
-                } else if error.starts_with("output:") {
-                    "invalid_output"
-                } else {
-                    "runtime_failed"
-                }
-                .into(),
-            );
+            result.error = Some(code.into());
+            result.diagnostic = crate::codex::public_diagnostic(&error);
         }
     }
     validate_judgement(&result, question, answer, offered, criteria)?;
@@ -460,6 +519,9 @@ pub async fn grade(
         return Err("Artifact exceeds explicit grading-session limit".into());
     }
     for record in &records {
+        if record.execution_kind != ExecutionKind::Live {
+            return Err("Live regrading requires actual live generation records".into());
+        }
         let case = questions
             .cases
             .iter()
@@ -575,7 +637,11 @@ mod tests {
                     criterion_id: id,
                     verdict: Verdict::Good,
                     answer_fragment: Some("dinsdag".into()),
-                    source_evidence: None,
+                    source_evidence: Some(EvidenceQuote {
+                        source_id: sections[1].source_id.clone(),
+                        section_id: sections[1].id.clone(),
+                        quote: sections[1].text.clone(),
+                    }),
                     reason: "Ondersteund door de bron.".into(),
                 })
                 .collect(),
@@ -583,6 +649,7 @@ mod tests {
         assert!(
             validate_assessment(&assessment, &candidate("dinsdag"), &sections, &criteria).is_ok()
         );
+        assert!(validate_assessment(&assessment, &candidate("dinsdag"), &[], &criteria).is_err());
         assessment.criteria[0].answer_fragment = Some("donderdag".into());
         assert!(
             validate_assessment(&assessment, &candidate("dinsdag"), &sections, &criteria).is_err()
@@ -621,7 +688,11 @@ mod tests {
                     criterion_id: id,
                     verdict: Verdict::Good,
                     answer_fragment: Some("dinsdag".into()),
-                    source_evidence: None,
+                    source_evidence: Some(EvidenceQuote {
+                        source_id: sections[1].source_id.clone(),
+                        section_id: sections[1].id.clone(),
+                        quote: sections[1].text.clone(),
+                    }),
                     reason: "Fixture check.".into(),
                 })
                 .collect(),

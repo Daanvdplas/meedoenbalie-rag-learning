@@ -254,6 +254,16 @@ pub async fn calibrate(
     reference_path: Option<&Path>,
     limits: GradingLimits,
 ) -> Result<(), String> {
+    calibrate_with_runtime(output, ledger_path, reference_path, limits, None).await
+}
+
+async fn calibrate_with_runtime(
+    output: &Path,
+    ledger_path: &Path,
+    reference_path: Option<&Path>,
+    limits: GradingLimits,
+    runtime_override: Option<crate::codex::CodexRunner>,
+) -> Result<(), String> {
     limits.validate()?;
     let (sheet, hash) = worksheet()?;
     let reference = load_reference(reference_path, &sheet, &hash)?;
@@ -267,7 +277,15 @@ pub async fn calibrate(
         offered(candidate)?;
     }
     let mut ledger = super::budget::Ledger::open(ledger_path)?;
-    let runtime = crate::codex::CodexRunner::new()?;
+    let kind = if runtime_override.is_some() {
+        ExecutionKind::Fixture
+    } else {
+        ExecutionKind::Live
+    };
+    let runtime = match runtime_override {
+        Some(runtime) => runtime,
+        None => crate::codex::CodexRunner::new()?,
+    };
     let mut options = std::fs::OpenOptions::new();
     options.create_new(true).write(true);
     #[cfg(unix)]
@@ -282,7 +300,7 @@ pub async fn calibrate(
     drop(output);
     let started = Instant::now();
     let mut cases = vec![];
-    persist(output_path, &build_report(&reference, &cases))?;
+    persist(output_path, &build_report(&reference, &cases, kind.clone()))?;
     let mut cancelled = false;
     for candidate in &sheet.cases {
         let criteria = criteria(&candidate.id, &labels)?;
@@ -309,7 +327,7 @@ pub async fn calibrate(
             },
             &limits,
             remaining,
-            ExecutionKind::Live,
+            kind.clone(),
         )
         .await?;
         if cancelled {
@@ -331,14 +349,18 @@ pub async fn calibrate(
             reference_label: label.label.clone(),
             judgement,
         });
-        persist(output_path, &build_report(&reference, &cases))?;
+        persist(output_path, &build_report(&reference, &cases, kind.clone()))?;
         println!("{} provisional calibration complete", candidate.id);
     }
-    persist(output_path, &build_report(&reference, &cases))?;
+    persist(output_path, &build_report(&reference, &cases, kind.clone()))?;
     Ok(())
 }
-fn build_report(reference: &ReferenceSet, cases: &[CalibrationCase]) -> CalibrationReport {
-    CalibrationReport{schema_version:1,execution_kind:ExecutionKind::Live,reference:reference.clone(),rubric_version:judge::RUBRIC_VERSION.into(),rubric_sha256:crate::manifest::hash(judge::RUBRIC.as_bytes()),human_calibration:reference.human_calibration,provisional:true,complete:cases.len()==8,limitations:vec!["Only eight deliberately constructed examples: four development and four frozen validation examples.".into(),"AI-reference agreement is not human reliability. Overall-answer agreement does not validate every semantic dimension.".into(),"Agreement denominator includes all selected examples, including execution failures; false-accept/reject fractions use reference-bad/reference-good respectively.".into(),"Handcrafted candidate answers are not live generator results. Each grader session is live and separately budgeted. Partial reports are not complete calibration.".into()],cases:cases.to_vec(),agreement:vec![summarize(cases,"development"),summarize(cases,"validation")]}
+fn build_report(
+    reference: &ReferenceSet,
+    cases: &[CalibrationCase],
+    kind: ExecutionKind,
+) -> CalibrationReport {
+    CalibrationReport{schema_version:1,execution_kind:kind,reference:reference.clone(),rubric_version:judge::RUBRIC_VERSION.into(),rubric_sha256:crate::manifest::hash(judge::RUBRIC.as_bytes()),human_calibration:reference.human_calibration,provisional:true,complete:cases.len()==8,limitations:vec!["Only eight deliberately constructed examples: four development and four frozen validation examples.".into(),"AI-reference agreement is not human reliability. Overall-answer agreement does not validate every semantic dimension.".into(),"Agreement denominator includes all selected examples, including execution failures; false-accept/reject fractions use reference-bad/reference-good respectively.".into(),"Handcrafted candidate answers are not live generator results. Each grader session is live and separately budgeted. Partial reports are not complete calibration.".into()],cases:cases.to_vec(),agreement:vec![summarize(cases,"development"),summarize(cases,"validation")]}
 }
 fn persist(path: &Path, report: &CalibrationReport) -> Result<(), String> {
     use std::io::Write;
@@ -364,6 +386,64 @@ fn persist(path: &Path, report: &CalibrationReport) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn actual_calibration_orchestrator_never_sends_reference_canaries_to_grader() {
+        let directory = std::env::temp_dir().join(format!(
+            "coa-calibration-boundary-{}",
+            super::super::budget::now_ms().unwrap()
+        ));
+        std::fs::create_dir(&directory).unwrap();
+        let (sheet, hash) = worksheet().unwrap();
+        let mut reference = load_reference(None, &sheet, &hash).unwrap();
+        for label in &mut reference.cases {
+            label.note = "REFERENCE-NOTES-CANARY-84f0".into();
+        }
+        let reference_path = directory.join("reference.json");
+        std::fs::write(&reference_path, serde_json::to_vec(&reference).unwrap()).unwrap();
+        let request = directory.join("stdin");
+        let events=[serde_json::json!({"type":"item.completed","item":{"type":"agent_message","text":"{\"overall\":\"good\",\"criteria\":[]}"}}),serde_json::json!({"type":"turn.completed"})].iter().map(serde_json::Value::to_string).collect::<Vec<_>>().join("\n");
+        let script = format!(
+            "#!/bin/sh\ncat >> '{}'\nprintf '\\n' >> '{}'\ncat <<'COA_EVENTS'\n{}\nCOA_EVENTS\n",
+            request.display(),
+            request.display(),
+            events
+        );
+        let runtime = crate::codex::fixture_runner(&directory.join("runtime"), &script);
+        let output = directory.join("report.json");
+        calibrate_with_runtime(
+            &output,
+            &directory.join("ledger"),
+            Some(&reference_path),
+            GradingLimits {
+                max_judgements: 8,
+                max_seconds: 30,
+                per_call_seconds: 3,
+                concurrency: 1,
+            },
+            Some(runtime),
+        )
+        .await
+        .unwrap();
+        let input = std::fs::read_to_string(request).unwrap();
+        assert!(!input.contains("REFERENCE-NOTES-CANARY-84f0"));
+        assert!(!input.contains("worksheet_sha256"));
+        assert!(!input.contains("reference_label"));
+        assert_eq!(input.matches("You are an isolated evaluator").count(), 8);
+        let report: CalibrationReport =
+            serde_json::from_slice(&std::fs::read(output).unwrap()).unwrap();
+        assert_eq!(report.execution_kind, ExecutionKind::Fixture);
+        assert!(report.complete);
+        assert_eq!(report.cases.len(), 8);
+        assert!(
+            report
+                .cases
+                .iter()
+                .all(|c| c.judgement.execution_status == ExecutionStatus::Failed
+                    && c.judgement.assessment.is_none())
+        );
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
     #[test]
     fn frozen_reference_and_all_source_mappings_are_valid() {
         let (sheet, hash) = worksheet().unwrap();
