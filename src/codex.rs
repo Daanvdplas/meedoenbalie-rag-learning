@@ -980,6 +980,13 @@ mod tests {
             safe_runtime_diagnostic("unknown PRIVATE-TOKEN diagnostic"),
             "runtime_failed"
         );
+        assert_eq!(public_error_code("runtime: Codex run timed out"), "timeout");
+        assert_eq!(
+            public_diagnostic("runtime: Codex run timed out")
+                .unwrap()
+                .stage,
+            "deadline"
+        );
         assert_eq!(
             public_error_code("tool: Unexpected isolated tool"),
             "unexpected_tool"

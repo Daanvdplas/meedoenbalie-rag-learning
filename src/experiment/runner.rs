@@ -910,13 +910,14 @@ async fn run_with_runtime(
                     }
                     Err(error) => {
                         record.answer = None;
-                        record.execution_status = if error.contains("timeout") {
-                            ExecutionStatus::TimedOut
-                        } else if error == "cancelled" {
-                            ExecutionStatus::Cancelled
-                        } else {
-                            ExecutionStatus::Failed
-                        };
+                        record.execution_status =
+                            if crate::codex::public_error_code(&error) == "timeout" {
+                                ExecutionStatus::TimedOut
+                            } else if error == "cancelled" {
+                                ExecutionStatus::Cancelled
+                            } else {
+                                ExecutionStatus::Failed
+                            };
                         record.diagnostic = crate::codex::public_diagnostic(&error);
                         record.error = Some(crate::codex::public_error_code(&error).into());
                     }
