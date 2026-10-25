@@ -89,3 +89,14 @@ cargo run --locked -- experiment extend-window --ledger /tmp/rag-evaluation-budg
 ```
 
 Dit werkt uitsluitend op een bestaand, verlopen en exclusief vergrendeld ledger. De oorspronkelijke start, alle verbruikte sessies en de plafonds 40/56 blijven staan. Het ledger bewaart de oude en nieuwe deadline, het tijdstip, de vaste autorisatie/reden en de toenmalige tellers. Een actief venster, ongeldige auditketen of beschadigd ledger wordt geweigerd. Gebruik daarna een bijgewerkte uitvoerbare versie; oudere versies weigeren het uitgebreide schema.
+
+Een opgeslagen antwoord opnieuw beoordelen maakt **geen nieuwe antwoorden of zoekacties**. Generator- en graderbudgetten zijn apart. Gebruik hetzelfde ledger-bestand als bij generatie:
+
+```sh
+cargo run --locked -- experiment grade --live --input /tmp/rag-smoke.jsonl --output /tmp/rag-smoke-graded.jsonl --ledger /tmp/rag-evaluation-budget.json --max-judgements 4 --max-seconds 600
+cargo run --locked -- experiment calibrate --live --output /tmp/rag-judge-calibration.json --ledger /tmp/rag-evaluation-budget.json --max-judgements 8 --max-seconds 1200
+```
+
+De beoordelaar krijgt de vraag, het volledige antwoord, de werkelijk aangeboden passages en de afzonderlijk geladen criteria. Deze sessie heeft geen MCP, shell, bestanden, browser of andere tools. Zij beoordeelt juistheid, volledigheid, relevantie, bronsteun en terecht onbekend blijven afzonderlijk, met korte letterlijke bewijsfragmenten. Per criterium volgt `good`, `bad` of `review_needed`; ongeldige uitvoer en time-outs geven geen inhoudelijke score. De fractie goede criteria heeft een expliciete teller/noemer en houdt twijfelgevallen apart. Harde controles blijven bindend.
+
+`calibrate` beoordeelt acht vooraf gemaakte kandidaatantwoorden: vier voor ontwikkeling en vier voor controle. Het vergelijkt de uitkomst pas daarna lokaal met de afzonderlijk beoordeelde AI-referentie. Referentielabels en notities worden niet naar de beoordelaar gestuurd. Het rapport bewaart herkomst, rubric/runtime/promptversies, afwijkende goedkeuringen, afwijkende afkeuringen, twijfelgevallen en noemers. Na ieder antwoord wordt een controlepunt opgeslagen. Dit is een kleine voorlopige vergelijking met AI, **geen menselijke ijking en geen definitieve inhoudelijke kwaliteitspas**. De menselijke velden blijven leeg; een later afzonderlijk referentieartifact kan via `--reference` worden geselecteerd.

@@ -79,3 +79,29 @@ fn live_run_checks_selection_before_runtime_or_creating_artifacts() {
     assert!(String::from_utf8_lossy(&result.stderr).contains("Unknown experiment case"));
     assert!(!String::from_utf8_lossy(&result.stderr).contains("PRIVATE-CANARY"));
 }
+
+#[test]
+fn regrading_rejects_missing_artifact_before_runtime_or_generation() {
+    let result = std::process::Command::new(env!("CARGO_BIN_EXE_meedoen-retrieval"))
+        .args([
+            "experiment",
+            "grade",
+            "--live",
+            "--input",
+            "/missing/PRIVATE-CANARY.jsonl",
+            "--output",
+            "/missing/out.jsonl",
+            "--ledger",
+            "/missing/budget.json",
+            "--max-judgements",
+            "4",
+            "--max-seconds",
+            "600",
+        ])
+        .env("COA_CODEX_BIN", "/missing/PRIVATE-CANARY")
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("Cannot read experiment artifact"));
+    assert!(!String::from_utf8_lossy(&result.stderr).contains("PRIVATE-CANARY"));
+}

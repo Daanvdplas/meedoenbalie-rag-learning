@@ -253,11 +253,102 @@ pub fn validate_record(record: &ExperimentRecord) -> Result<(), String> {
             }
         }
     }
-    // Strictly typed grading/metric validation is added with their respective modules.
-    if record.metrics.is_some() || record.judgement.is_some() {
-        return Err("Unsupported assessment payload version".into());
+    if let Some(value) = &record.judgement {
+        let judgement: super::judge::Judgement = serde_json::from_value(value.clone())
+            .map_err(|_| "Invalid semantic judgement schema")?;
+        let generation_budget = record
+            .manifest
+            .budget
+            .as_ref()
+            .ok_or("Graded record lacks generation budget")?;
+        if judgement.execution_kind != record.execution_kind
+            || judgement.budget.id != generation_budget.id
+            || judgement.budget.started_at_unix_ms != generation_budget.started_at_unix_ms
+            || judgement.budget.generation_sessions_used
+                < generation_budget.generation_sessions_used
+            || judgement.budget.grading_sessions_used < generation_budget.grading_sessions_used
+        {
+            return Err("Grader execution origin/budget does not match generation".into());
+        }
+        let expected = pinned_criteria(record)?;
+        if serde_json::to_value(&judgement.rubric_criteria).unwrap()
+            != serde_json::to_value(&expected).unwrap()
+        {
+            return Err("Grader rubric criteria differ from pinned expectations".into());
+        }
+        if judgement.rubric_criteria.case_id != record.case_id {
+            return Err("Grader criteria case mismatch".into());
+        }
+        let answer = record
+            .answer
+            .as_ref()
+            .ok_or("Graded record has no answer")?;
+        super::judge::validate_judgement(
+            &judgement,
+            &record.question,
+            answer,
+            &record.offered_sections,
+            &judgement.rubric_criteria,
+        )?;
+        if record.manifest.rubric_sha256 != judgement.rubric_sha256
+            || record.manifest.rubric_version != judgement.rubric_version
+            || record.manifest.grader_route != judgement.route
+        {
+            return Err("Grader manifest mismatch".into());
+        }
+    }
+    if let Some(value) = &record.metrics {
+        let report: super::metrics::MetricsReport =
+            serde_json::from_value(value.clone()).map_err(|_| "Invalid metric schema")?;
+        super::metrics::validate_report(&report)?;
+        let criteria = pinned_criteria(record)?;
+        let mut base = record.clone();
+        base.metrics = None;
+        base.judgement = None;
+        let expected = super::metrics::evaluate(&base, &criteria)?;
+        if serde_json::to_value(expected).unwrap() != *value {
+            return Err("Stored metrics differ from recomputed measurements".into());
+        }
     }
     Ok(())
+}
+
+/// Resolve only an exact, pinned bundled question/expectation pair; never trust self-supplied grader criteria.
+pub fn pinned_criteria(record: &ExperimentRecord) -> Result<super::dataset::CaseCriteria, String> {
+    let pilot = super::dataset::validate_bundled()?;
+    let heldout = super::dataset::parse(
+        include_str!("../../fixtures/experiments/heldout-questions.json"),
+        include_str!("../../fixtures/experiments/heldout-expectations.json"),
+    )?;
+    for (questions, labels) in [pilot, heldout] {
+        if super::dataset::questions_hash(&questions)? != record.manifest.questions_sha256
+            || crate::manifest::hash(
+                &serde_json::to_vec(&labels).map_err(|_| "Cannot hash criteria")?,
+            ) != record.manifest.expectations_sha256
+        {
+            continue;
+        }
+        let case = questions
+            .cases
+            .iter()
+            .find(|c| c.id == record.case_id)
+            .ok_or("Missing pinned case")?;
+        if case.question != record.question
+            || case.family != record.family
+            || case.split != record.split
+            || case.kind != record.kind
+            || questions.dataset_version != record.manifest.questions_version
+            || labels.dataset_version != record.manifest.expectations_version
+        {
+            return Err("Record differs from pinned question identity".into());
+        }
+        return labels
+            .cases
+            .into_iter()
+            .find(|c| c.case_id == record.case_id)
+            .ok_or("Missing pinned case criteria".into());
+    }
+    Err("Unknown question/expectation fingerprint pair".into())
 }
 
 #[derive(serde::Deserialize)]
@@ -687,6 +778,69 @@ mod tests {
     fn artifact_rejects_a_forged_budget_window_audit() {
         let mut item = record();
         item.manifest.budget=Some(serde_json::from_value(json!({"schema_version":1,"id":"fixture","started_at_unix_ms":1,"max_generation_sessions":40,"max_grading_sessions":56,"max_seconds":14400,"generation_sessions_used":1,"grading_sessions_used":0,"window_extensions":[{"previous_deadline_unix_ms":999,"new_deadline_unix_ms":28800001,"authorized_at_unix_ms":14400001,"authorization":"product_lead_explicit","reason":"voortzetting na verlopen venster, taaklead akkoord","generation_sessions_used":1,"grading_sessions_used":0}]})).unwrap());
+        assert!(validate_record(&item).is_err());
+    }
+
+    #[test]
+    fn graded_artifact_binds_origin_budget_and_criteria_to_pinned_expectations() {
+        let (questions, labels) = super::super::dataset::validate_bundled().unwrap();
+        let case = &questions.cases[0];
+        let criteria = &labels.cases[0];
+        let mut item = record();
+        item.case_id = case.id.clone();
+        item.family = case.family.clone();
+        item.split = case.split.clone();
+        item.kind = case.kind.clone();
+        item.question = case.question.clone();
+        item.offered_sections = crate::source::parse_sources(crate::DOCUMENTS)
+            .unwrap()
+            .into_iter()
+            .flat_map(|s| s.sections)
+            .collect();
+        item.manifest.questions_version = questions.dataset_version.clone();
+        item.manifest.questions_sha256 = super::super::dataset::questions_hash(&questions).unwrap();
+        item.manifest.expectations_version = labels.dataset_version.clone();
+        item.manifest.expectations_sha256 =
+            crate::manifest::hash(&serde_json::to_vec(&labels).unwrap());
+        let mut budget = json!({"schema_version":1,"id":"fixture-ledger","started_at_unix_ms":1,"max_generation_sessions":40,"max_grading_sessions":56,"max_seconds":14400,"generation_sessions_used":1,"grading_sessions_used":0});
+        item.manifest.budget = Some(serde_json::from_value(budget.clone()).unwrap());
+        budget["grading_sessions_used"] = json!(1);
+        let ids = super::super::judge::criterion_ids(criteria);
+        let rubric = crate::manifest::hash(super::super::judge::RUBRIC.as_bytes());
+        let prompt = super::super::judge::prompt(
+            &item.question,
+            item.answer.as_ref().unwrap(),
+            &item.offered_sections,
+            criteria,
+        )
+        .unwrap();
+        item.manifest.rubric_version = super::super::judge::RUBRIC_VERSION.into();
+        item.manifest.rubric_sha256 = rubric.clone();
+        item.manifest.grader_route =
+            "OpenAI via locally authenticated Codex CLI; isolated no-tool evaluator".into();
+        let assessment = json!({"overall":"review_needed","criteria":ids.iter().map(|id|json!({"criterion_id":id,"verdict":"review_needed","answer_fragment":null,"source_evidence":null,"reason":"Fixture awaiting review."})).collect::<Vec<_>>()});
+        let judgement = json!({"schema_version":1,"rubric_criteria":criteria,"grading_limits":{"max_judgements":1,"max_seconds":120,"per_call_seconds":120,"concurrency":1},"execution_status":"completed","execution_kind":"fixture","rubric_version":super::super::judge::RUBRIC_VERSION,"rubric_sha256":rubric,"prompt_sha256":crate::manifest::hash(prompt.as_bytes()),"model":"fixture","client_version":"fixture","runtime_sha256":"1".repeat(64),"code_mode_host_sha256":"2".repeat(64),"route":item.manifest.grader_route,"reference_origin":"not_human_calibrated","human_calibration":false,"provisional":true,"started_at_unix_ms":1,"elapsed_ms":1,"usage":null,"budget":budget,"assessment":assessment,"semantic_fraction":null,"semantic_numerator":0,"semantic_denominator":0,"review_needed_criteria":ids.len(),"error":null});
+        item.judgement = Some(judgement.clone());
+        assert!(validate_record(&item).is_ok());
+        item.judgement.as_mut().unwrap()["execution_kind"] = json!("live");
+        assert!(validate_record(&item).is_err());
+        item.judgement = Some(judgement.clone());
+        item.judgement.as_mut().unwrap()["budget"]["id"] = json!("different-ledger");
+        assert!(validate_record(&item).is_err());
+        item.judgement = Some(judgement.clone());
+        let mut changed = criteria.clone();
+        changed.conditions.push("A forged criterion".into());
+        let changed_prompt = super::super::judge::prompt(
+            &item.question,
+            item.answer.as_ref().unwrap(),
+            &item.offered_sections,
+            &changed,
+        )
+        .unwrap();
+        item.judgement.as_mut().unwrap()["rubric_criteria"] =
+            serde_json::to_value(changed).unwrap();
+        item.judgement.as_mut().unwrap()["prompt_sha256"] =
+            json!(crate::manifest::hash(changed_prompt.as_bytes()));
 
         assert!(validate_record(&item).is_err());
     }
@@ -760,6 +914,12 @@ async fn run_with_runtime(
                 .ok_or("Unknown experiment case".into())
         })
         .collect::<Result<Vec<_>, String>>()?;
+    if cases
+        .iter()
+        .any(|case| crate::validate_query(&case.question).is_ok_and(|q| q != case.question))
+    {
+        return Err("Experiment questions must be normalized before execution".into());
+    }
     let mut ledger = super::budget::Ledger::open(&options.ledger)?;
     let is_fixture = runtime_override.is_some();
     let runtime = match runtime_override {
@@ -811,7 +971,8 @@ async fn run_with_runtime(
             let case_started = Instant::now();
             let mut record=ExperimentRecord {
             schema_version:1,run_id:format!("{experiment_id}-{}-{}",case.id,arm.name()),case_id:case.id.clone(),family:case.family.clone(),split:case.split.clone(),kind:case.kind.clone(),arm:*arm,execution_kind:if is_fixture {ExecutionKind::Fixture} else {ExecutionKind::Live},execution_status:ExecutionStatus::Skipped,question:case.question.clone(),
-            manifest:Manifest {schema_version:1,experiment_id:experiment_id.clone(),created_at_unix_ms:super::budget::now_ms()?,questions_version:questions.dataset_version.clone(),questions_sha256:super::dataset::questions_hash(&questions)?,expectations_version:labels.dataset_version.clone(),expectations_sha256:crate::manifest::hash(&serde_json::to_vec(&labels).map_err(|_|"Cannot hash criteria")?),corpus_sha256:questions.corpus_sha256.clone(),sources:sources.iter().zip(crate::DOCUMENTS).map(|(s,raw)|SourceIdentity{id:s.id.clone(),title:s.title.clone(),date:s.date.clone(),sha256:crate::manifest::hash(raw.as_bytes())}).collect(),as_of:crate::AS_OF.into(),generation_prompt_version:if *arm==Arm::AgenticDense {text("prompt_version")} else {super::arms::CONTEXT_PROMPT_VERSION.into()},generation_prompt_sha256:String::new(),rubric_version:"semantic-rubric-v1-unvalidated".into(),rubric_sha256:crate::manifest::hash(b"semantic-rubric-v1-unvalidated"),model:text("model"),client_version:text("client_version"),binary_sha256:fingerprint("mcp"),runtime_sha256:fingerprint("codex"),code_mode_host_sha256:fingerprint("code_mode_host"),generator_route:"OpenAI via locally authenticated Codex CLI".into(),grader_route:"not graded".into(),embedding_model:crate::MODEL.into(),embedding_files:embedding_files.clone(),embedding_revision:revision.clone(),reproducibility_limitations:vec!["Model alias/provider routing may change; binary and input hashes do not guarantee bitwise model reproduction.".into(),"Session budgets count Codex sessions, not hidden provider requests.".into(),"Elapsed time covers per-case preparation, retrieval and generation; dense index setup is shared and excluded, while agent MCP cold startup occurs inside each session.".into(),"Semantic grading is provisional; no human calibration.".into()],limits:options.limits.clone(),budget:Some(ledger.state.clone())},answer:None,tool_calls:vec![],retrieval_steps:vec![],trace_complete:false,offered_sections:vec![],elapsed_ms:0,usage:None,error:Some("not_run".into()),diagnostic:None,metrics:None,judgement:None,
+            manifest:Manifest {schema_version:1,experiment_id:experiment_id.clone(),created_at_unix_ms:super::budget::now_ms()?,questions_version:questions.dataset_version.clone(),questions_sha256:super::dataset::questions_hash(&questions)?,expectations_version:labels.dataset_version.clone(),expectations_sha256:crate::manifest::hash(&serde_json::to_vec(&labels).map_err(|_|"Cannot hash criteria")?),corpus_sha256:questions.corpus_sha256.clone(),sources:sources.iter().zip(crate::DOCUMENTS).map(|(s,raw)|SourceIdentity{id:s.id.clone(),title:s.title.clone(),date:s.date.clone(),sha256:crate::manifest::hash(raw.as_bytes())}).collect(),as_of:crate::AS_OF.into(),generation_prompt_version:if *arm==Arm::AgenticDense {text("prompt_version")} else {super::arms::CONTEXT_PROMPT_VERSION.into()},generation_prompt_sha256:String::new(),rubric_version:super::judge::RUBRIC_VERSION.into(),rubric_sha256:crate::manifest::hash(super::judge::RUBRIC.as_bytes()),model:text("model"),client_version:text("client_version"),binary_sha256:fingerprint("mcp"),runtime_sha256:fingerprint("codex"),code_mode_host_sha256:fingerprint("code_mode_host"),generator_route:"OpenAI via locally authenticated Codex CLI".into(),grader_route:"not graded".into(),embedding_model:crate::MODEL.into(),embedding_files:embedding_files.clone(),embedding_revision:revision.clone(),reproducibility_limitations:vec!["Model alias/provider routing may change; binary and input hashes do not guarantee bitwise model reproduction.".into(),"Session budgets count Codex sessions, not hidden provider requests.".into(),"Elapsed time covers per-case preparation, retrieval and generation; dense index setup is shared and excluded, while agent MCP cold startup occurs inside each session.".into(),"Semantic grading is provisional; no human calibration.".into()],limits:options.limits.clone(),budget:Some(ledger.state.clone())},answer:None,tool_calls:vec![],retrieval_steps:vec![],trace_complete:false,offered_sections:vec![],elapsed_ms:0,usage:None,error:Some("not_run".into()),diagnostic:None,metrics:None,judgement:None,
+
         };
             if *arm != Arm::AgenticDense {
                 let hits = match arm {
@@ -889,6 +1050,12 @@ async fn run_with_runtime(
                     });
                 let Some(timeout) = after_reservation.filter(|t| !t.is_zero()) else {
                     record.error = Some("budget_exhausted".into());
+                    if let Ok(criteria) = pinned_criteria(&record) {
+                        record.metrics = Some(
+                            serde_json::to_value(super::metrics::evaluate(&record, &criteria)?)
+                                .map_err(|_| "Cannot encode measured metrics")?,
+                        );
+                    }
                     write_record(&mut output, &record)?;
                     continue;
                 };
@@ -933,6 +1100,12 @@ async fn run_with_runtime(
                         record.error = Some(crate::codex::public_error_code(&error).into());
                     }
                 }
+            }
+            if let Ok(criteria) = pinned_criteria(&record) {
+                record.metrics = Some(
+                    serde_json::to_value(super::metrics::evaluate(&record, &criteria)?)
+                        .map_err(|_| "Cannot encode measured metrics")?,
+                );
             }
             write_record(&mut output, &record)?;
             println!("{} {} {:?}", case.id, arm.name(), record.execution_status);

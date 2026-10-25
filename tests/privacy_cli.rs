@@ -10,14 +10,19 @@ impl Drop for Runtime {
     }
 }
 fn runtime(version: &str) -> Runtime {
-    let directory = Runtime(std::env::temp_dir().join(format!(
-        "coa-FAKE-PRIVATE-HOME-{}",
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    )));
-    std::fs::create_dir(&directory.0).unwrap();
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let directory = loop {
+        let candidate = std::env::temp_dir().join(format!(
+            "coa-FAKE-PRIVATE-HOME-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        ));
+        match std::fs::create_dir(&candidate) {
+            Ok(()) => break Runtime(candidate),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => panic!("Cannot create isolated fixture directory: {error}"),
+        }
+    };
     let result = json!({"sources":[{"id":"ACT-TUIN-001","date":"2026-10-20"}],"as_of":"2026-10-20","manifest":{"source_sha256":"fake-source-hash"},"hits":[{"section":{"source_id":"ACT-TUIN-001","source_date":"2026-10-20","id":"S2","text":"Iedere dinsdag van 10.00 tot 12.00 uur."}}]});
     let answer = json!({"text":"Dinsdag 10–12.","citations":[{"source_id":"ACT-TUIN-001","source_date":"2026-10-20","section_id":"S2","quote":"Iedere dinsdag van 10.00 tot 12.00 uur."}],"unknowns":[]});
     let events = [
