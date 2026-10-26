@@ -1,0 +1,13 @@
+{
+  "git_commit": "d9a9233c39eb40122e3d48ead0554a84fd289f51",
+  "binary_sha256": "cd4f0fac071875249b914185a8f850aa2da90baf603e37dbb1516fc8ab8f50bc",
+  "binary_name": "meedoen-retrieval-d9a9233",
+  "case": "P01",
+  "arm": "full_context",
+  "max_generation_sessions": 1,
+  "max_grading_sessions": 0,
+  "max_seconds": 150,
+  "parent_smoke_sha256": "87e9cc4bf8c50155271f92945626c72eecd3d97eb2b6094b5d80d67bbd6093ef",
+  "purpose": "One explicitly authorized diagnostic attempt; original failed rows remain unchanged",
+  "human_calibration": false
+}

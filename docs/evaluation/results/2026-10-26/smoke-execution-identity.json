@@ -1,0 +1,19 @@
+{
+  "git_commit": "69ee86c5cde5a11a160b5b1ef0c439933e518775",
+  "binary_sha256": "855fbb3b60bc136b4c0c94d2b3137c7356672a78b89b5ab445ccf13a1531b24f",
+  "binary_name": "meedoen-retrieval-69ee86c",
+  "smoke_cases": [
+    "P01",
+    "P06"
+  ],
+  "smoke_arms": [
+    "agentic_dense",
+    "full_context"
+  ],
+  "generation_session_limit": 4,
+  "grading_session_limit": 0,
+  "invocation_seconds": 600,
+  "global_generation_sessions": 40,
+  "global_grading_sessions": 56,
+  "human_calibration": false
+}

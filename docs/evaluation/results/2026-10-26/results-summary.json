@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "provisional": true,
+  "human_calibration": false,
+  "generation_sessions": 40,
+  "grading_sessions": 45,
+  "generation_statuses": {
+    "completed": 36,
+    "failed": 3,
+    "timed_out": 1
+  },
+  "all_attempted_grader_statuses_including_reference_and_diagnostic": {
+    "failed": 3,
+    "completed": 38,
+    "timed_out": 4
+  },
+  "primary_records": 38,
+  "primary_generation_statuses": {
+    "completed": 35,
+    "failed": 2,
+    "timed_out": 1
+  },
+  "primary_judgement_statuses": {
+    "completed": 29,
+    "not_run_no_answer": 3,
+    "failed": 2,
+    "timed_out": 4
+  },
+  "heldout_by_arm": {
+    "agentic_dense": {
+      "cases": 6,
+      "generation_statuses": {
+        "completed": 6
+      },
+      "judgement_statuses": {
+        "completed": 4,
+        "failed": 1,
+        "timed_out": 1
+      },
+      "provisional_model_overall": {
+        "good": 4,
+        "unavailable": 2
+      }
+    },
+    "full_context": {
+      "cases": 6,
+      "generation_statuses": {
+        "completed": 6
+      },
+      "judgement_statuses": {
+        "completed": 5,
+        "timed_out": 1
+      },
+      "provisional_model_overall": {
+        "bad": 1,
+        "good": 4,
+        "unavailable": 1
+      }
+    },
+    "dense_once": {
+      "cases": 6,
+      "generation_statuses": {
+        "completed": 6
+      },
+      "judgement_statuses": {
+        "completed": 5,
+        "timed_out": 1
+      },
+      "provisional_model_overall": {
+        "bad": 3,
+        "unavailable": 1,
+        "good": 2
+      }
+    },
+    "bm25": {
+      "cases": 6,
+      "generation_statuses": {
+        "completed": 6
+      },
+      "judgement_statuses": {
+        "completed": 5,
+        "timed_out": 1
+      },
+      "provisional_model_overall": {
+        "bad": 2,
+        "good": 3,
+        "unavailable": 1
+      }
+    }
+  },
+  "ai_reference_agreement": [
+    {
+      "subset": "development",
+      "cases": 4,
+      "completed": 4,
+      "exact_agreements": 4,
+      "agreement_fraction": 1.0,
+      "reference_good": 2,
+      "reference_bad": 2,
+      "false_accepts": 0,
+      "false_accept_fraction": 0.0,
+      "false_rejects": 0,
+      "false_reject_fraction": 0.0,
+      "grader_abstentions": 0,
+      "reference_abstentions": 0,
+      "execution_failures": 0
+    },
+    {
+      "subset": "validation",
+      "cases": 4,
+      "completed": 4,
+      "exact_agreements": 4,
+      "agreement_fraction": 1.0,
+      "reference_good": 3,
+      "reference_bad": 1,
+      "false_accepts": 0,
+      "false_accept_fraction": 0.0,
+      "false_rejects": 0,
+      "false_reject_fraction": 0.0,
+      "grader_abstentions": 0,
+      "reference_abstentions": 0,
+      "execution_failures": 0
+    }
+  ],
+  "no_overall_winner_or_general_reliability_claim": true
+}

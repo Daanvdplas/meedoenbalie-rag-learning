@@ -1,0 +1,2094 @@
+{
+  "schema_version": 1,
+  "execution_kind": "live",
+  "reference": {
+    "schema_version": "1",
+    "reference_version": "activities-ai-reference-v1",
+    "worksheet_version": "activities-human-review-v1",
+    "worksheet_sha256": "b2e4e3327f0a7a5b24883549703523b9275840d0b8676e2c0ec5bb7900a31bb6",
+    "origin": "ai_agent",
+    "human_calibration": false,
+    "reviewer": {
+      "agent": "/root/eval_review",
+      "runtime": "Codex conversation agent",
+      "model": "not_exposed_to_reviewer",
+      "reference_revision": "ai-reference-v1",
+      "reviewed_at": "2026-10-23"
+    },
+    "limitations": [
+      "Provisional AI reference, not human ground truth.",
+      "Eight deliberately constructed examples; four development and four validation examples. No general judge-reliability claim.",
+      "Reviewer previously inspected source labels and worksheet construction; this is source-bound review, not a blinded independent human study.",
+      "Model/version weights for this conversation reviewer are not exposed."
+    ],
+    "cases": [
+      {
+        "id": "H01",
+        "label": "good",
+        "note": "Dag, tijd en locatie zijn juist weergegeven.",
+        "evidence": [
+          {
+            "source_id": "ACT-TUIN-001",
+            "section_id": "S2"
+          },
+          {
+            "source_id": "ACT-TUIN-001",
+            "section_id": "S3"
+          }
+        ]
+      },
+      {
+        "id": "H02",
+        "label": "bad",
+        "note": "Donderdag is onjuist; de bron zegt dinsdag.",
+        "evidence": [
+          {
+            "source_id": "ACT-TUIN-001",
+            "section_id": "S2"
+          }
+        ]
+      },
+      {
+        "id": "H03",
+        "label": "bad",
+        "note": "De vraag vraagt alle dinsdagactiviteiten; fietsen opknappen van 14.00 tot 16.00 ontbreekt.",
+        "evidence": [
+          {
+            "source_id": "ACT-FIETS-002",
+            "section_id": "S2"
+          }
+        ]
+      },
+      {
+        "id": "H04",
+        "label": "good",
+        "note": "Beide dinsdagactiviteiten en hun tijden zijn juist; de andere drie activiteiten vallen op andere dagen.",
+        "evidence": [
+          {
+            "source_id": "ACT-TUIN-001",
+            "section_id": "S2"
+          },
+          {
+            "source_id": "ACT-FIETS-002",
+            "section_id": "S2"
+          }
+        ]
+      },
+      {
+        "id": "H05",
+        "label": "bad",
+        "note": "Glutenvrij wordt ten onrechte gegarandeerd terwijl informatie over allergenen en alternatieve diëten ontbreekt.",
+        "evidence": [
+          {
+            "source_id": "ACT-KOKEN-004",
+            "section_id": "S5"
+          }
+        ]
+      },
+      {
+        "id": "H06",
+        "label": "good",
+        "note": "Dag, tijd en gebrek aan ervaringseis zijn juist; ontbrekende allergeneninformatie blijft terecht onbekend.",
+        "evidence": [
+          {
+            "source_id": "ACT-KOKEN-004",
+            "section_id": "S1"
+          },
+          {
+            "source_id": "ACT-KOKEN-004",
+            "section_id": "S2"
+          },
+          {
+            "source_id": "ACT-KOKEN-004",
+            "section_id": "S5"
+          }
+        ]
+      },
+      {
+        "id": "H07",
+        "label": "good",
+        "note": "De ontbrekende informatie over rolstoeltoegankelijkheid blijft terecht onbekend; navragen is een passende vervolgstap.",
+        "evidence": [
+          {
+            "source_id": "ACT-WANDEL-005",
+            "section_id": "S4"
+          }
+        ]
+      },
+      {
+        "id": "H08",
+        "label": "good",
+        "note": "De vraag specificeert geen activiteit of persoonlijke voorwaarden. Het antwoord vermijdt een ongefundeerd geschiktheidsoordeel en benoemt welke informatie ontbreekt.",
+        "evidence": [
+          {
+            "source_id": "ACT-WANDEL-005",
+            "section_id": "S1"
+          },
+          {
+            "source_id": "ACT-WANDEL-005",
+            "section_id": "S2"
+          }
+        ]
+      }
+    ]
+  },
+  "rubric_version": "semantic-rubric-v1",
+  "rubric_sha256": "6146de298d4817fd2c397ee854001feb447cd26847d59d48a4b3cc780202eedf",
+  "human_calibration": false,
+  "provisional": true,
+  "complete": true,
+  "limitations": [
+    "Only eight deliberately constructed examples: four development and four frozen validation examples.",
+    "AI-reference agreement is not human reliability. Overall-answer agreement does not validate every semantic dimension.",
+    "Agreement denominator includes all selected examples, including execution failures; false-accept/reject fractions use reference-bad/reference-good respectively.",
+    "Handcrafted candidate answers are not live generator results. Each grader session is live and separately budgeted. Partial reports are not complete calibration."
+  ],
+  "cases": [
+    {
+      "id": "H01",
+      "subset": "development",
+      "question": "Waar en wanneer kan ik tuinieren?",
+      "candidate_answer": "Tuinieren kan iedere dinsdag van 10.00 tot 12.00 uur bij Buurttuin De Linde, achter het buurthuis aan Lindenlaan 12 in Lindedorp.",
+      "offered_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "source_date": "2026-10-20",
+          "source_title": "Tuinieren",
+          "id": "S2",
+          "heading": "Wanneer?",
+          "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "source_date": "2026-10-20",
+          "source_title": "Tuinieren",
+          "id": "S3",
+          "heading": "Waar?",
+          "text": "Buurttuin De Linde, achter het fictieve buurthuis aan de Lindenlaan 12 in het fictieve Lindedorp."
+        }
+      ],
+      "reference_label": "good",
+      "judgement": {
+        "schema_version": 1,
+        "rubric_criteria": {
+          "case_id": "P01",
+          "facts": [
+            {
+              "id": "garden-time",
+              "description": "Iedere dinsdag van 10.00 tot 12.00 uur.",
+              "kind": "fact",
+              "evidence_alternatives": [
+                [
+                  {
+                    "source_id": "ACT-TUIN-001",
+                    "section_id": "S2"
+                  }
+                ]
+              ]
+            },
+            {
+              "id": "garden-location",
+              "description": "Buurttuin De Linde, achter het buurthuis aan Lindenlaan 12 in het fictieve Lindedorp.",
+              "kind": "fact",
+              "evidence_alternatives": [
+                [
+                  {
+                    "source_id": "ACT-TUIN-001",
+                    "section_id": "S3"
+                  }
+                ]
+              ]
+            }
+          ],
+          "conditions": [],
+          "forbidden_claims": [
+            "Tuinieren vindt op donderdag of vrijdag plaats."
+          ],
+          "required_unknowns": [],
+          "relevance_labels_complete": true,
+          "relevant_sections": [
+            {
+              "source_id": "ACT-TUIN-001",
+              "section_id": "S2"
+            },
+            {
+              "source_id": "ACT-TUIN-001",
+              "section_id": "S3"
+            }
+          ]
+        },
+        "grading_limits": {
+          "max_judgements": 8,
+          "max_seconds": 1200,
+          "per_call_seconds": 120,
+          "concurrency": 1
+        },
+        "execution_status": "completed",
+        "execution_kind": "live",
+        "rubric_version": "semantic-rubric-v1",
+        "rubric_sha256": "6146de298d4817fd2c397ee854001feb447cd26847d59d48a4b3cc780202eedf",
+        "prompt_sha256": "733bac559129a8299fe863df6c0d7f172de8470799eb2bb01ed488f9bbccab34",
+        "model": "gpt-6.1-sol",
+        "client_version": "codex-cli 0.164.0",
+        "runtime_sha256": "d8990e3ee7acfbc26f91265b12a1a83f0fee40d0e0f8f1f40a37d4ec21f499cf",
+        "code_mode_host_sha256": "416721e33af8822041dc650793512b3e58d43e0be4f3a5c6187eb4dfaad3148a",
+        "route": "OpenAI via locally authenticated Codex CLI; isolated no-tool evaluator",
+        "reference_origin": "not_human_calibrated",
+        "human_calibration": false,
+        "provisional": true,
+        "started_at_unix_ms": 1792955997774,
+        "elapsed_ms": 58993,
+        "diagnostic": null,
+        "usage": {
+          "input_tokens": 10211,
+          "output_tokens": 727,
+          "cached_input_tokens": 0,
+          "reasoning_output_tokens": 0
+        },
+        "budget": {
+          "schema_version": 1,
+          "id": "budget-1792791038242-77910",
+          "started_at_unix_ms": 1792791038242,
+          "max_generation_sessions": 40,
+          "max_grading_sessions": 56,
+          "max_seconds": 14400,
+          "generation_sessions_used": 40,
+          "grading_sessions_used": 2,
+          "window_extensions": [
+            {
+              "previous_deadline_unix_ms": 1792805438242,
+              "new_deadline_unix_ms": 1792947588021,
+              "authorized_at_unix_ms": 1792933188021,
+              "authorization": "product_lead_explicit",
+              "reason": "voortzetting na verlopen venster, taaklead akkoord",
+              "generation_sessions_used": 4,
+              "grading_sessions_used": 0
+            },
+            {
+              "previous_deadline_unix_ms": 1792947588021,
+              "new_deadline_unix_ms": 1792965377326,
+              "authorized_at_unix_ms": 1792950977326,
+              "authorization": "product_lead_explicit",
+              "reason": "voortzetting na verlopen venster, taaklead akkoord",
+              "generation_sessions_used": 5,
+              "grading_sessions_used": 0
+            }
+          ]
+        },
+        "assessment": {
+          "overall": "good",
+          "criteria": [
+            {
+              "criterion_id": "correctness",
+              "verdict": "good",
+              "answer_fragment": "iedere dinsdag van 10.00 tot 12.00 uur bij Buurttuin De Linde, achter het buurthuis aan Lindenlaan 12 in Lindedorp",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S3",
+                "quote": "Buurttuin De Linde, achter het fictieve buurthuis aan de Lindenlaan 12 in het fictieve Lindedorp."
+              },
+              "reason": "Tijd en locatie komen overeen met de bronnen."
+            },
+            {
+              "criterion_id": "completeness",
+              "verdict": "good",
+              "answer_fragment": "iedere dinsdag van 10.00 tot 12.00 uur bij Buurttuin De Linde, achter het buurthuis aan Lindenlaan 12 in Lindedorp",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+              },
+              "reason": "Beide gevraagde feiten, waar en wanneer, zijn vermeld."
+            },
+            {
+              "criterion_id": "relevance",
+              "verdict": "good",
+              "answer_fragment": "Tuinieren kan iedere dinsdag",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+              },
+              "reason": "Het antwoord beperkt zich tot de gevraagde tijd en locatie."
+            },
+            {
+              "criterion_id": "source_support",
+              "verdict": "good",
+              "answer_fragment": "bij Buurttuin De Linde, achter het buurthuis aan Lindenlaan 12 in Lindedorp",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S3",
+                "quote": "Buurttuin De Linde, achter het fictieve buurthuis aan de Lindenlaan 12 in het fictieve Lindedorp."
+              },
+              "reason": "De aangeboden secties S2 en S3 ondersteunen alle feitelijke claims; expliciete citaties zijn niet vereist."
+            },
+            {
+              "criterion_id": "appropriate_unknowns",
+              "verdict": "good",
+              "answer_fragment": null,
+              "source_evidence": null,
+              "reason": "Er zijn geen vereiste onbekenden; de bronnen beantwoorden de vraag."
+            },
+            {
+              "criterion_id": "fact:garden-time",
+              "verdict": "good",
+              "answer_fragment": "iedere dinsdag van 10.00 tot 12.00 uur",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+              },
+              "reason": "Dag en tijd zijn correct."
+            },
+            {
+              "criterion_id": "fact:garden-location",
+              "verdict": "good",
+              "answer_fragment": "Buurttuin De Linde, achter het buurthuis aan Lindenlaan 12 in Lindedorp",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S3",
+                "quote": "Buurttuin De Linde, achter het fictieve buurthuis aan de Lindenlaan 12 in het fictieve Lindedorp."
+              },
+              "reason": "Tuin, ligging, adres en plaats zijn correct weergegeven."
+            },
+            {
+              "criterion_id": "forbidden:1",
+              "verdict": "good",
+              "answer_fragment": "iedere dinsdag",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+              },
+              "reason": "Het antwoord noemt dinsdag en beweert niet dat tuinieren op donderdag of vrijdag plaatsvindt."
+            }
+          ]
+        },
+        "semantic_fraction": 1.0,
+        "semantic_numerator": 8,
+        "semantic_denominator": 8,
+        "review_needed_criteria": 0,
+        "error": null
+      }
+    },
+    {
+      "id": "H02",
+      "subset": "development",
+      "question": "Waar en wanneer kan ik tuinieren?",
+      "candidate_answer": "Tuinieren kan iedere donderdag van 10.00 tot 12.00 uur bij Buurttuin De Linde aan Lindenlaan 12.",
+      "offered_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "source_date": "2026-10-20",
+          "source_title": "Tuinieren",
+          "id": "S2",
+          "heading": "Wanneer?",
+          "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "source_date": "2026-10-20",
+          "source_title": "Tuinieren",
+          "id": "S3",
+          "heading": "Waar?",
+          "text": "Buurttuin De Linde, achter het fictieve buurthuis aan de Lindenlaan 12 in het fictieve Lindedorp."
+        }
+      ],
+      "reference_label": "bad",
+      "judgement": {
+        "schema_version": 1,
+        "rubric_criteria": {
+          "case_id": "P01",
+          "facts": [
+            {
+              "id": "garden-time",
+              "description": "Iedere dinsdag van 10.00 tot 12.00 uur.",
+              "kind": "fact",
+              "evidence_alternatives": [
+                [
+                  {
+                    "source_id": "ACT-TUIN-001",
+                    "section_id": "S2"
+                  }
+                ]
+              ]
+            },
+            {
+              "id": "garden-location",
+              "description": "Buurttuin De Linde, achter het buurthuis aan Lindenlaan 12 in het fictieve Lindedorp.",
+              "kind": "fact",
+              "evidence_alternatives": [
+                [
+                  {
+                    "source_id": "ACT-TUIN-001",
+                    "section_id": "S3"
+                  }
+                ]
+              ]
+            }
+          ],
+          "conditions": [],
+          "forbidden_claims": [
+            "Tuinieren vindt op donderdag of vrijdag plaats."
+          ],
+          "required_unknowns": [],
+          "relevance_labels_complete": true,
+          "relevant_sections": [
+            {
+              "source_id": "ACT-TUIN-001",
+              "section_id": "S2"
+            },
+            {
+              "source_id": "ACT-TUIN-001",
+              "section_id": "S3"
+            }
+          ]
+        },
+        "grading_limits": {
+          "max_judgements": 8,
+          "max_seconds": 1200,
+          "per_call_seconds": 120,
+          "concurrency": 1
+        },
+        "execution_status": "completed",
+        "execution_kind": "live",
+        "rubric_version": "semantic-rubric-v1",
+        "rubric_sha256": "6146de298d4817fd2c397ee854001feb447cd26847d59d48a4b3cc780202eedf",
+        "prompt_sha256": "ae9c598fe436fc4bf476c2f2e17f2be5dedfd6dfec14c01364692672b4285632",
+        "model": "gpt-6.1-sol",
+        "client_version": "codex-cli 0.164.0",
+        "runtime_sha256": "d8990e3ee7acfbc26f91265b12a1a83f0fee40d0e0f8f1f40a37d4ec21f499cf",
+        "code_mode_host_sha256": "416721e33af8822041dc650793512b3e58d43e0be4f3a5c6187eb4dfaad3148a",
+        "route": "OpenAI via locally authenticated Codex CLI; isolated no-tool evaluator",
+        "reference_origin": "not_human_calibrated",
+        "human_calibration": false,
+        "provisional": true,
+        "started_at_unix_ms": 1792956056794,
+        "elapsed_ms": 58118,
+        "diagnostic": null,
+        "usage": {
+          "input_tokens": 10201,
+          "output_tokens": 630,
+          "cached_input_tokens": 0,
+          "reasoning_output_tokens": 0
+        },
+        "budget": {
+          "schema_version": 1,
+          "id": "budget-1792791038242-77910",
+          "started_at_unix_ms": 1792791038242,
+          "max_generation_sessions": 40,
+          "max_grading_sessions": 56,
+          "max_seconds": 14400,
+          "generation_sessions_used": 40,
+          "grading_sessions_used": 3,
+          "window_extensions": [
+            {
+              "previous_deadline_unix_ms": 1792805438242,
+              "new_deadline_unix_ms": 1792947588021,
+              "authorized_at_unix_ms": 1792933188021,
+              "authorization": "product_lead_explicit",
+              "reason": "voortzetting na verlopen venster, taaklead akkoord",
+              "generation_sessions_used": 4,
+              "grading_sessions_used": 0
+            },
+            {
+              "previous_deadline_unix_ms": 1792947588021,
+              "new_deadline_unix_ms": 1792965377326,
+              "authorized_at_unix_ms": 1792950977326,
+              "authorization": "product_lead_explicit",
+              "reason": "voortzetting na verlopen venster, taaklead akkoord",
+              "generation_sessions_used": 5,
+              "grading_sessions_used": 0
+            }
+          ]
+        },
+        "assessment": {
+          "overall": "bad",
+          "criteria": [
+            {
+              "criterion_id": "correctness",
+              "verdict": "bad",
+              "answer_fragment": "iedere donderdag van 10.00 tot 12.00 uur",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+              },
+              "reason": "De genoemde dag is onjuist: dinsdag is vereist."
+            },
+            {
+              "criterion_id": "completeness",
+              "verdict": "bad",
+              "answer_fragment": null,
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S3",
+                "quote": "Buurttuin De Linde, achter het fictieve buurthuis aan de Lindenlaan 12 in het fictieve Lindedorp."
+              },
+              "reason": "De juiste dag ontbreekt, evenals de ligging achter het buurthuis en de plaats Lindedorp."
+            },
+            {
+              "criterion_id": "relevance",
+              "verdict": "good",
+              "answer_fragment": "Tuinieren kan iedere donderdag van 10.00 tot 12.00 uur bij Buurttuin De Linde aan Lindenlaan 12.",
+              "source_evidence": null,
+              "reason": "Het antwoord behandelt uitsluitend waar en wanneer men kan tuinieren."
+            },
+            {
+              "criterion_id": "source_support",
+              "verdict": "bad",
+              "answer_fragment": "iedere donderdag",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+              },
+              "reason": "De aangeboden bron ondersteunt dinsdag, niet donderdag."
+            },
+            {
+              "criterion_id": "appropriate_unknowns",
+              "verdict": "good",
+              "answer_fragment": null,
+              "source_evidence": null,
+              "reason": "Er zijn geen vereiste onbekenden; de bronnen geven tijd en locatie."
+            },
+            {
+              "criterion_id": "fact:garden-time",
+              "verdict": "bad",
+              "answer_fragment": "iedere donderdag van 10.00 tot 12.00 uur",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+              },
+              "reason": "De uren kloppen, maar de weekdag is onjuist."
+            },
+            {
+              "criterion_id": "fact:garden-location",
+              "verdict": "bad",
+              "answer_fragment": "bij Buurttuin De Linde aan Lindenlaan 12",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S3",
+                "quote": "Buurttuin De Linde, achter het fictieve buurthuis aan de Lindenlaan 12 in het fictieve Lindedorp."
+              },
+              "reason": "Naam en adres kloppen, maar de vereiste ligging achter het buurthuis en de plaats Lindedorp ontbreken."
+            },
+            {
+              "criterion_id": "forbidden:1",
+              "verdict": "bad",
+              "answer_fragment": "iedere donderdag",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+              },
+              "reason": "Het antwoord bevat expliciet de verboden claim dat tuinieren op donderdag plaatsvindt."
+            }
+          ]
+        },
+        "semantic_fraction": 0.25,
+        "semantic_numerator": 2,
+        "semantic_denominator": 8,
+        "review_needed_criteria": 0,
+        "error": null
+      }
+    },
+    {
+      "id": "H03",
+      "subset": "development",
+      "question": "Welke activiteiten zijn er allemaal op dinsdag en hoe laat zijn ze?",
+      "candidate_answer": "Op dinsdag kun je tuinieren van 10.00 tot 12.00 uur.",
+      "offered_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "source_date": "2026-10-20",
+          "source_title": "Tuinieren",
+          "id": "S2",
+          "heading": "Wanneer?",
+          "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "source_date": "2026-10-18",
+          "source_title": "Fietsen opknappen",
+          "id": "S2",
+          "heading": "Wanneer?",
+          "text": "Iedere dinsdag van 14.00 tot 16.00 uur."
+        }
+      ],
+      "reference_label": "bad",
+      "judgement": {
+        "schema_version": 1,
+        "rubric_criteria": {
+          "case_id": "P07",
+          "facts": [
+            {
+              "id": "garden-tuesday-slot",
+              "description": "Tuinieren: dinsdag 10.00 tot 12.00 uur.",
+              "kind": "fact",
+              "evidence_alternatives": [
+                [
+                  {
+                    "source_id": "ACT-TUIN-001",
+                    "section_id": "S2"
+                  }
+                ]
+              ]
+            },
+            {
+              "id": "bicycle-tuesday-slot",
+              "description": "Fietsen opknappen: dinsdag 14.00 tot 16.00 uur.",
+              "kind": "fact",
+              "evidence_alternatives": [
+                [
+                  {
+                    "source_id": "ACT-FIETS-002",
+                    "section_id": "S2"
+                  }
+                ]
+              ]
+            }
+          ],
+          "conditions": [
+            "Noem beide passende activiteiten.",
+            "Presenteer activiteiten niet als betaalde vacatures; het antwoord hoeft vrijwilligheid niet ongevraagd te noemen."
+          ],
+          "forbidden_claims": [
+            "Er is maar één dinsdagactiviteit.",
+            "Wandelen is op dinsdag."
+          ],
+          "required_unknowns": [],
+          "relevance_labels_complete": true,
+          "relevant_sections": [
+            {
+              "source_id": "ACT-TUIN-001",
+              "section_id": "S2"
+            },
+            {
+              "source_id": "ACT-FIETS-002",
+              "section_id": "S2"
+            },
+            {
+              "source_id": "ACT-TAAL-003",
+              "section_id": "S2"
+            },
+            {
+              "source_id": "ACT-KOKEN-004",
+              "section_id": "S2"
+            },
+            {
+              "source_id": "ACT-WANDEL-005",
+              "section_id": "S2"
+            }
+          ]
+        },
+        "grading_limits": {
+          "max_judgements": 8,
+          "max_seconds": 1200,
+          "per_call_seconds": 120,
+          "concurrency": 1
+        },
+        "execution_status": "completed",
+        "execution_kind": "live",
+        "rubric_version": "semantic-rubric-v1",
+        "rubric_sha256": "6146de298d4817fd2c397ee854001feb447cd26847d59d48a4b3cc780202eedf",
+        "prompt_sha256": "707101f3d4c106ec1f62b39d0c6dca5e3b55fc2bfb671d30eb83a6c19a1b7f50",
+        "model": "gpt-6.1-sol",
+        "client_version": "codex-cli 0.164.0",
+        "runtime_sha256": "d8990e3ee7acfbc26f91265b12a1a83f0fee40d0e0f8f1f40a37d4ec21f499cf",
+        "code_mode_host_sha256": "416721e33af8822041dc650793512b3e58d43e0be4f3a5c6187eb4dfaad3148a",
+        "route": "OpenAI via locally authenticated Codex CLI; isolated no-tool evaluator",
+        "reference_origin": "not_human_calibrated",
+        "human_calibration": false,
+        "provisional": true,
+        "started_at_unix_ms": 1792956114946,
+        "elapsed_ms": 59444,
+        "diagnostic": null,
+        "usage": {
+          "input_tokens": 10265,
+          "output_tokens": 728,
+          "cached_input_tokens": 0,
+          "reasoning_output_tokens": 0
+        },
+        "budget": {
+          "schema_version": 1,
+          "id": "budget-1792791038242-77910",
+          "started_at_unix_ms": 1792791038242,
+          "max_generation_sessions": 40,
+          "max_grading_sessions": 56,
+          "max_seconds": 14400,
+          "generation_sessions_used": 40,
+          "grading_sessions_used": 4,
+          "window_extensions": [
+            {
+              "previous_deadline_unix_ms": 1792805438242,
+              "new_deadline_unix_ms": 1792947588021,
+              "authorized_at_unix_ms": 1792933188021,
+              "authorization": "product_lead_explicit",
+              "reason": "voortzetting na verlopen venster, taaklead akkoord",
+              "generation_sessions_used": 4,
+              "grading_sessions_used": 0
+            },
+            {
+              "previous_deadline_unix_ms": 1792947588021,
+              "new_deadline_unix_ms": 1792965377326,
+              "authorized_at_unix_ms": 1792950977326,
+              "authorization": "product_lead_explicit",
+              "reason": "voortzetting na verlopen venster, taaklead akkoord",
+              "generation_sessions_used": 5,
+              "grading_sessions_used": 0
+            }
+          ]
+        },
+        "assessment": {
+          "overall": "bad",
+          "criteria": [
+            {
+              "criterion_id": "correctness",
+              "verdict": "good",
+              "answer_fragment": "Op dinsdag kun je tuinieren van 10.00 tot 12.00 uur.",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+              },
+              "reason": "De genoemde activiteit en tijd zijn correct."
+            },
+            {
+              "criterion_id": "completeness",
+              "verdict": "bad",
+              "answer_fragment": null,
+              "source_evidence": {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 14.00 tot 16.00 uur."
+              },
+              "reason": "Fietsen opknappen op dinsdag van 14.00 tot 16.00 uur ontbreekt."
+            },
+            {
+              "criterion_id": "relevance",
+              "verdict": "good",
+              "answer_fragment": "Op dinsdag kun je tuinieren van 10.00 tot 12.00 uur.",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+              },
+              "reason": "Het antwoord noemt een gevraagde dinsdagactiviteit met tijd."
+            },
+            {
+              "criterion_id": "source_support",
+              "verdict": "good",
+              "answer_fragment": "Op dinsdag kun je tuinieren van 10.00 tot 12.00 uur.",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+              },
+              "reason": "De feitelijke claim wordt ondersteund door een aangeboden bron."
+            },
+            {
+              "criterion_id": "appropriate_unknowns",
+              "verdict": "good",
+              "answer_fragment": null,
+              "source_evidence": null,
+              "reason": "Er zijn geen vereiste onbekenden of noodzakelijke verduidelijkingen."
+            },
+            {
+              "criterion_id": "fact:garden-tuesday-slot",
+              "verdict": "good",
+              "answer_fragment": "Op dinsdag kun je tuinieren van 10.00 tot 12.00 uur.",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+              },
+              "reason": "Activiteit, dag en tijd zijn juist vermeld."
+            },
+            {
+              "criterion_id": "fact:bicycle-tuesday-slot",
+              "verdict": "bad",
+              "answer_fragment": null,
+              "source_evidence": {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 14.00 tot 16.00 uur."
+              },
+              "reason": "Fietsen opknappen en de bijbehorende tijd ontbreken."
+            },
+            {
+              "criterion_id": "condition:1",
+              "verdict": "bad",
+              "answer_fragment": null,
+              "source_evidence": {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 14.00 tot 16.00 uur."
+              },
+              "reason": "Slechts één van de twee passende activiteiten wordt genoemd."
+            },
+            {
+              "criterion_id": "condition:2",
+              "verdict": "good",
+              "answer_fragment": "kun je tuinieren",
+              "source_evidence": null,
+              "reason": "Het antwoord presenteert de activiteit niet als betaalde vacature."
+            },
+            {
+              "criterion_id": "forbidden:1",
+              "verdict": "good",
+              "answer_fragment": null,
+              "source_evidence": null,
+              "reason": "Het antwoord beweert niet expliciet dat er maar één dinsdagactiviteit is."
+            },
+            {
+              "criterion_id": "forbidden:2",
+              "verdict": "good",
+              "answer_fragment": null,
+              "source_evidence": null,
+              "reason": "Het antwoord beweert niet dat wandelen op dinsdag plaatsvindt."
+            }
+          ]
+        },
+        "semantic_fraction": 0.7272727272727273,
+        "semantic_numerator": 8,
+        "semantic_denominator": 11,
+        "review_needed_criteria": 0,
+        "error": null
+      }
+    },
+    {
+      "id": "H04",
+      "subset": "development",
+      "question": "Welke activiteiten zijn er allemaal op dinsdag en hoe laat zijn ze?",
+      "candidate_answer": "Er zijn twee dinsdagactiviteiten: tuinieren van 10.00 tot 12.00 uur en fietsen opknappen van 14.00 tot 16.00 uur.",
+      "offered_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "source_date": "2026-10-20",
+          "source_title": "Tuinieren",
+          "id": "S2",
+          "heading": "Wanneer?",
+          "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "source_date": "2026-10-18",
+          "source_title": "Fietsen opknappen",
+          "id": "S2",
+          "heading": "Wanneer?",
+          "text": "Iedere dinsdag van 14.00 tot 16.00 uur."
+        }
+      ],
+      "reference_label": "good",
+      "judgement": {
+        "schema_version": 1,
+        "rubric_criteria": {
+          "case_id": "P07",
+          "facts": [
+            {
+              "id": "garden-tuesday-slot",
+              "description": "Tuinieren: dinsdag 10.00 tot 12.00 uur.",
+              "kind": "fact",
+              "evidence_alternatives": [
+                [
+                  {
+                    "source_id": "ACT-TUIN-001",
+                    "section_id": "S2"
+                  }
+                ]
+              ]
+            },
+            {
+              "id": "bicycle-tuesday-slot",
+              "description": "Fietsen opknappen: dinsdag 14.00 tot 16.00 uur.",
+              "kind": "fact",
+              "evidence_alternatives": [
+                [
+                  {
+                    "source_id": "ACT-FIETS-002",
+                    "section_id": "S2"
+                  }
+                ]
+              ]
+            }
+          ],
+          "conditions": [
+            "Noem beide passende activiteiten.",
+            "Presenteer activiteiten niet als betaalde vacatures; het antwoord hoeft vrijwilligheid niet ongevraagd te noemen."
+          ],
+          "forbidden_claims": [
+            "Er is maar één dinsdagactiviteit.",
+            "Wandelen is op dinsdag."
+          ],
+          "required_unknowns": [],
+          "relevance_labels_complete": true,
+          "relevant_sections": [
+            {
+              "source_id": "ACT-TUIN-001",
+              "section_id": "S2"
+            },
+            {
+              "source_id": "ACT-FIETS-002",
+              "section_id": "S2"
+            },
+            {
+              "source_id": "ACT-TAAL-003",
+              "section_id": "S2"
+            },
+            {
+              "source_id": "ACT-KOKEN-004",
+              "section_id": "S2"
+            },
+            {
+              "source_id": "ACT-WANDEL-005",
+              "section_id": "S2"
+            }
+          ]
+        },
+        "grading_limits": {
+          "max_judgements": 8,
+          "max_seconds": 1200,
+          "per_call_seconds": 120,
+          "concurrency": 1
+        },
+        "execution_status": "completed",
+        "execution_kind": "live",
+        "rubric_version": "semantic-rubric-v1",
+        "rubric_sha256": "6146de298d4817fd2c397ee854001feb447cd26847d59d48a4b3cc780202eedf",
+        "prompt_sha256": "bc0c6d4b529ae3e447b0d908944753e8be239caf99ae5ba54e937751f7e86c42",
+        "model": "gpt-6.1-sol",
+        "client_version": "codex-cli 0.164.0",
+        "runtime_sha256": "d8990e3ee7acfbc26f91265b12a1a83f0fee40d0e0f8f1f40a37d4ec21f499cf",
+        "code_mode_host_sha256": "416721e33af8822041dc650793512b3e58d43e0be4f3a5c6187eb4dfaad3148a",
+        "route": "OpenAI via locally authenticated Codex CLI; isolated no-tool evaluator",
+        "reference_origin": "not_human_calibrated",
+        "human_calibration": false,
+        "provisional": true,
+        "started_at_unix_ms": 1792956174430,
+        "elapsed_ms": 65107,
+        "diagnostic": null,
+        "usage": {
+          "input_tokens": 10285,
+          "output_tokens": 818,
+          "cached_input_tokens": 0,
+          "reasoning_output_tokens": 0
+        },
+        "budget": {
+          "schema_version": 1,
+          "id": "budget-1792791038242-77910",
+          "started_at_unix_ms": 1792791038242,
+          "max_generation_sessions": 40,
+          "max_grading_sessions": 56,
+          "max_seconds": 14400,
+          "generation_sessions_used": 40,
+          "grading_sessions_used": 5,
+          "window_extensions": [
+            {
+              "previous_deadline_unix_ms": 1792805438242,
+              "new_deadline_unix_ms": 1792947588021,
+              "authorized_at_unix_ms": 1792933188021,
+              "authorization": "product_lead_explicit",
+              "reason": "voortzetting na verlopen venster, taaklead akkoord",
+              "generation_sessions_used": 4,
+              "grading_sessions_used": 0
+            },
+            {
+              "previous_deadline_unix_ms": 1792947588021,
+              "new_deadline_unix_ms": 1792965377326,
+              "authorized_at_unix_ms": 1792950977326,
+              "authorization": "product_lead_explicit",
+              "reason": "voortzetting na verlopen venster, taaklead akkoord",
+              "generation_sessions_used": 5,
+              "grading_sessions_used": 0
+            }
+          ]
+        },
+        "assessment": {
+          "overall": "good",
+          "criteria": [
+            {
+              "criterion_id": "correctness",
+              "verdict": "good",
+              "answer_fragment": "tuinieren van 10.00 tot 12.00 uur en fietsen opknappen van 14.00 tot 16.00 uur",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+              },
+              "reason": "Beide dinsdagactiviteiten en tijden zijn correct."
+            },
+            {
+              "criterion_id": "completeness",
+              "verdict": "good",
+              "answer_fragment": "Er zijn twee dinsdagactiviteiten",
+              "source_evidence": {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 14.00 tot 16.00 uur."
+              },
+              "reason": "Beide vereiste activiteiten met tijden zijn genoemd."
+            },
+            {
+              "criterion_id": "relevance",
+              "verdict": "good",
+              "answer_fragment": "tuinieren van 10.00 tot 12.00 uur en fietsen opknappen van 14.00 tot 16.00 uur",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+              },
+              "reason": "Het antwoord beperkt zich tot de gevraagde activiteiten en tijden."
+            },
+            {
+              "criterion_id": "source_support",
+              "verdict": "good",
+              "answer_fragment": "tuinieren van 10.00 tot 12.00 uur en fietsen opknappen van 14.00 tot 16.00 uur",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+              },
+              "reason": "Beide tijden worden rechtstreeks ondersteund door de aangeboden secties; de tweede sectie vermeldt dinsdag 14.00 tot 16.00 uur voor fietsen opknappen."
+            },
+            {
+              "criterion_id": "appropriate_unknowns",
+              "verdict": "good",
+              "answer_fragment": null,
+              "source_evidence": null,
+              "reason": "Er zijn geen vereiste onbekenden of noodzakelijke verduidelijkingen."
+            },
+            {
+              "criterion_id": "fact:garden-tuesday-slot",
+              "verdict": "good",
+              "answer_fragment": "tuinieren van 10.00 tot 12.00 uur",
+              "source_evidence": {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+              },
+              "reason": "De dinsdag en tijd komen overeen met de bron."
+            },
+            {
+              "criterion_id": "fact:bicycle-tuesday-slot",
+              "verdict": "good",
+              "answer_fragment": "fietsen opknappen van 14.00 tot 16.00 uur",
+              "source_evidence": {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 14.00 tot 16.00 uur."
+              },
+              "reason": "De dinsdag en tijd komen overeen met de bron."
+            },
+            {
+              "criterion_id": "condition:1",
+              "verdict": "good",
+              "answer_fragment": "tuinieren van 10.00 tot 12.00 uur en fietsen opknappen van 14.00 tot 16.00 uur",
+              "source_evidence": {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S2",
+                "quote": "Iedere dinsdag van 14.00 tot 16.00 uur."
+              },
+              "reason": "Beide passende activiteiten zijn genoemd."
+            },
+            {
+              "criterion_id": "condition:2",
+              "verdict": "good",
+              "answer_fragment": "twee dinsdagactiviteiten",
+              "source_evidence": null,
+              "reason": "De activiteiten worden niet als betaalde vacatures gepresenteerd."
+            },
+            {
+              "criterion_id": "forbidden:1",
+              "verdict": "good",
+              "answer_fragment": "Er zijn twee dinsdagactiviteiten",
+              "source_evidence": null,
+              "reason": "Het antwoord beweert niet dat er maar één dinsdagactiviteit is."
+            },
+            {
+              "criterion_id": "forbidden:2",
+              "verdict": "good",
+              "answer_fragment": null,
+              "source_evidence": null,
+              "reason": "Het antwoord beweert niet dat wandelen op dinsdag is."
+            }
+          ]
+        },
+        "semantic_fraction": 1.0,
+        "semantic_numerator": 11,
+        "semantic_denominator": 11,
+        "review_needed_criteria": 0,
+        "error": null
+      }
+    },
+    {
+      "id": "H05",
+      "subset": "validation",
+      "question": "Kan ik op vrijdag samen koken zonder ervaring, en is het eten gegarandeerd glutenvrij?",
+      "candidate_answer": "Je kunt vrijdag van 11.00 tot 13.00 uur samen koken zonder ervaring. De maaltijd is gegarandeerd glutenvrij.",
+      "offered_sections": [
+        {
+          "source_id": "ACT-KOKEN-004",
+          "source_date": "2026-10-17",
+          "source_title": "Samen koken",
+          "id": "S1",
+          "heading": "Wat doen we?",
+          "text": "We maken samen een eenvoudige groentemaaltijd en ruimen de keuken op. Je helpt met wassen, snijden en tafeldekken. Kookervaring is niet nodig. Dit is een vrijwillige activiteit, geen betaalde baan."
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "source_date": "2026-10-17",
+          "source_title": "Samen koken",
+          "id": "S2",
+          "heading": "Wanneer?",
+          "text": "Iedere vrijdag van 11.00 tot 13.00 uur."
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "source_date": "2026-10-17",
+          "source_title": "Samen koken",
+          "id": "S5",
+          "heading": "Kosten en materiaal",
+          "text": "Deelname is gratis. Ingrediënten, schorten en keukengerei zijn aanwezig. Informatie over allergenen en alternatieve diëten ontbreekt."
+        }
+      ],
+      "reference_label": "bad",
+      "judgement": {
+        "schema_version": 1,
+        "rubric_criteria": {
+          "case_id": "P10",
+          "facts": [
+            {
+              "id": "cooking-friday",
+              "description": "Samen koken is op vrijdag van 11.00 tot 13.00 uur.",
+              "kind": "fact",
+              "evidence_alternatives": [
+                [
+                  {
+                    "source_id": "ACT-KOKEN-004",
+                    "section_id": "S2"
+                  }
+                ]
+              ]
+            },
+            {
+              "id": "cooking-no-experience",
+              "description": "Kookervaring is niet nodig.",
+              "kind": "fact",
+              "evidence_alternatives": [
+                [
+                  {
+                    "source_id": "ACT-KOKEN-004",
+                    "section_id": "S1"
+                  }
+                ]
+              ]
+            },
+            {
+              "id": "cooking-allergens-unknown",
+              "description": "Informatie over allergenen en alternatieve diëten ontbreekt; glutenvrij is niet bevestigd.",
+              "kind": "unknown",
+              "evidence_alternatives": [
+                [
+                  {
+                    "source_id": "ACT-KOKEN-004",
+                    "section_id": "S5"
+                  }
+                ]
+              ]
+            }
+          ],
+          "conditions": [],
+          "forbidden_claims": [
+            "De maaltijd is gegarandeerd glutenvrij.",
+            "De maaltijd bevat zeker gluten."
+          ],
+          "required_unknowns": [
+            "Glutenvrije geschiktheid is onbekend."
+          ],
+          "relevance_labels_complete": true,
+          "relevant_sections": [
+            {
+              "source_id": "ACT-KOKEN-004",
+              "section_id": "S1"
+            },
+            {
+              "source_id": "ACT-KOKEN-004",
+              "section_id": "S2"
+            },
+            {
+              "source_id": "ACT-KOKEN-004",
+              "section_id": "S5"
+            }
+          ]
+        },
+        "grading_limits": {
+          "max_judgements": 8,
+          "max_seconds": 1200,
+          "per_call_seconds": 120,
+          "concurrency": 1
+        },
+        "execution_status": "completed",
+        "execution_kind": "live",
+        "rubric_version": "semantic-rubric-v1",
+        "rubric_sha256": "6146de298d4817fd2c397ee854001feb447cd26847d59d48a4b3cc780202eedf",
+        "prompt_sha256": "16d13f945ca9febec5d0092149dfaecd6db5f8997bbbc508f2d21a132e22ef46",
+        "model": "gpt-6.1-sol",
+        "client_version": "codex-cli 0.164.0",
+        "runtime_sha256": "d8990e3ee7acfbc26f91265b12a1a83f0fee40d0e0f8f1f40a37d4ec21f499cf",
+        "code_mode_host_sha256": "416721e33af8822041dc650793512b3e58d43e0be4f3a5c6187eb4dfaad3148a",
+        "route": "OpenAI via locally authenticated Codex CLI; isolated no-tool evaluator",
+        "reference_origin": "not_human_calibrated",
+        "human_calibration": false,
+        "provisional": true,
+        "started_at_unix_ms": 1792956239603,
+        "elapsed_ms": 59807,
+        "diagnostic": null,
+        "usage": {
+          "input_tokens": 10486,
+          "output_tokens": 762,
+          "cached_input_tokens": 7680,
+          "reasoning_output_tokens": 0
+        },
+        "budget": {
+          "schema_version": 1,
+          "id": "budget-1792791038242-77910",
+          "started_at_unix_ms": 1792791038242,
+          "max_generation_sessions": 40,
+          "max_grading_sessions": 56,
+          "max_seconds": 14400,
+          "generation_sessions_used": 40,
+          "grading_sessions_used": 6,
+          "window_extensions": [
+            {
+              "previous_deadline_unix_ms": 1792805438242,
+              "new_deadline_unix_ms": 1792947588021,
+              "authorized_at_unix_ms": 1792933188021,
+              "authorization": "product_lead_explicit",
+              "reason": "voortzetting na verlopen venster, taaklead akkoord",
+              "generation_sessions_used": 4,
+              "grading_sessions_used": 0
+            },
+            {
+              "previous_deadline_unix_ms": 1792947588021,
+              "new_deadline_unix_ms": 1792965377326,
+              "authorized_at_unix_ms": 1792950977326,
+              "authorization": "product_lead_explicit",
+              "reason": "voortzetting na verlopen venster, taaklead akkoord",
+              "generation_sessions_used": 5,
+              "grading_sessions_used": 0
+            }
+          ]
+        },
+        "assessment": {
+          "overall": "bad",
+          "criteria": [
+            {
+              "criterion_id": "correctness",
+              "verdict": "bad",
+              "answer_fragment": "De maaltijd is gegarandeerd glutenvrij.",
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S5",
+                "quote": "Informatie over allergenen en alternatieve diëten ontbreekt."
+              },
+              "reason": "Glutenvrij wordt ten onrechte gegarandeerd."
+            },
+            {
+              "criterion_id": "completeness",
+              "verdict": "bad",
+              "answer_fragment": null,
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S5",
+                "quote": "Informatie over allergenen en alternatieve diëten ontbreekt."
+              },
+              "reason": "De vereiste melding dat glutenvrije geschiktheid onbekend is ontbreekt."
+            },
+            {
+              "criterion_id": "relevance",
+              "verdict": "good",
+              "answer_fragment": "Je kunt vrijdag van 11.00 tot 13.00 uur samen koken zonder ervaring.",
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S2",
+                "quote": "Iedere vrijdag van 11.00 tot 13.00 uur."
+              },
+              "reason": "Het antwoord behandelt de gevraagde tijd, ervaring en dieetgeschiktheid."
+            },
+            {
+              "criterion_id": "source_support",
+              "verdict": "bad",
+              "answer_fragment": "De maaltijd is gegarandeerd glutenvrij.",
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S5",
+                "quote": "Informatie over allergenen en alternatieve diëten ontbreekt."
+              },
+              "reason": "De aangeboden bronnen ondersteunen deze garantie niet."
+            },
+            {
+              "criterion_id": "appropriate_unknowns",
+              "verdict": "bad",
+              "answer_fragment": "De maaltijd is gegarandeerd glutenvrij.",
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S5",
+                "quote": "Informatie over allergenen en alternatieve diëten ontbreekt."
+              },
+              "reason": "Onbekende dieetgeschiktheid wordt als zekerheid gepresenteerd."
+            },
+            {
+              "criterion_id": "fact:cooking-friday",
+              "verdict": "good",
+              "answer_fragment": "vrijdag van 11.00 tot 13.00 uur",
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S2",
+                "quote": "Iedere vrijdag van 11.00 tot 13.00 uur."
+              },
+              "reason": "Dag en tijd zijn correct."
+            },
+            {
+              "criterion_id": "fact:cooking-no-experience",
+              "verdict": "good",
+              "answer_fragment": "samen koken zonder ervaring",
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S1",
+                "quote": "Kookervaring is niet nodig."
+              },
+              "reason": "Ervaring is niet vereist."
+            },
+            {
+              "criterion_id": "fact:cooking-allergens-unknown",
+              "verdict": "bad",
+              "answer_fragment": "De maaltijd is gegarandeerd glutenvrij.",
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S5",
+                "quote": "Informatie over allergenen en alternatieve diëten ontbreekt."
+              },
+              "reason": "Het antwoord ontkent de vereiste onzekerheid."
+            },
+            {
+              "criterion_id": "forbidden:1",
+              "verdict": "bad",
+              "answer_fragment": "De maaltijd is gegarandeerd glutenvrij.",
+              "source_evidence": null,
+              "reason": "De verboden garantie wordt expliciet gegeven."
+            },
+            {
+              "criterion_id": "forbidden:2",
+              "verdict": "good",
+              "answer_fragment": null,
+              "source_evidence": null,
+              "reason": "Het antwoord beweert niet dat de maaltijd zeker gluten bevat."
+            },
+            {
+              "criterion_id": "unknown:1",
+              "verdict": "bad",
+              "answer_fragment": null,
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S5",
+                "quote": "Informatie over allergenen en alternatieve diëten ontbreekt."
+              },
+              "reason": "De vereiste onbekendheid van glutenvrije geschiktheid wordt niet vermeld."
+            }
+          ]
+        },
+        "semantic_fraction": 0.36363636363636365,
+        "semantic_numerator": 4,
+        "semantic_denominator": 11,
+        "review_needed_criteria": 0,
+        "error": null
+      }
+    },
+    {
+      "id": "H06",
+      "subset": "validation",
+      "question": "Kan ik op vrijdag samen koken zonder ervaring, en is het eten gegarandeerd glutenvrij?",
+      "candidate_answer": "Samen koken is vrijdag van 11.00 tot 13.00 uur. Ervaring is niet nodig. Of de maaltijd glutenvrij is, weten we niet: allergenen en alternatieve diëten zijn niet beschreven.",
+      "offered_sections": [
+        {
+          "source_id": "ACT-KOKEN-004",
+          "source_date": "2026-10-17",
+          "source_title": "Samen koken",
+          "id": "S1",
+          "heading": "Wat doen we?",
+          "text": "We maken samen een eenvoudige groentemaaltijd en ruimen de keuken op. Je helpt met wassen, snijden en tafeldekken. Kookervaring is niet nodig. Dit is een vrijwillige activiteit, geen betaalde baan."
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "source_date": "2026-10-17",
+          "source_title": "Samen koken",
+          "id": "S2",
+          "heading": "Wanneer?",
+          "text": "Iedere vrijdag van 11.00 tot 13.00 uur."
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "source_date": "2026-10-17",
+          "source_title": "Samen koken",
+          "id": "S5",
+          "heading": "Kosten en materiaal",
+          "text": "Deelname is gratis. Ingrediënten, schorten en keukengerei zijn aanwezig. Informatie over allergenen en alternatieve diëten ontbreekt."
+        }
+      ],
+      "reference_label": "good",
+      "judgement": {
+        "schema_version": 1,
+        "rubric_criteria": {
+          "case_id": "P10",
+          "facts": [
+            {
+              "id": "cooking-friday",
+              "description": "Samen koken is op vrijdag van 11.00 tot 13.00 uur.",
+              "kind": "fact",
+              "evidence_alternatives": [
+                [
+                  {
+                    "source_id": "ACT-KOKEN-004",
+                    "section_id": "S2"
+                  }
+                ]
+              ]
+            },
+            {
+              "id": "cooking-no-experience",
+              "description": "Kookervaring is niet nodig.",
+              "kind": "fact",
+              "evidence_alternatives": [
+                [
+                  {
+                    "source_id": "ACT-KOKEN-004",
+                    "section_id": "S1"
+                  }
+                ]
+              ]
+            },
+            {
+              "id": "cooking-allergens-unknown",
+              "description": "Informatie over allergenen en alternatieve diëten ontbreekt; glutenvrij is niet bevestigd.",
+              "kind": "unknown",
+              "evidence_alternatives": [
+                [
+                  {
+                    "source_id": "ACT-KOKEN-004",
+                    "section_id": "S5"
+                  }
+                ]
+              ]
+            }
+          ],
+          "conditions": [],
+          "forbidden_claims": [
+            "De maaltijd is gegarandeerd glutenvrij.",
+            "De maaltijd bevat zeker gluten."
+          ],
+          "required_unknowns": [
+            "Glutenvrije geschiktheid is onbekend."
+          ],
+          "relevance_labels_complete": true,
+          "relevant_sections": [
+            {
+              "source_id": "ACT-KOKEN-004",
+              "section_id": "S1"
+            },
+            {
+              "source_id": "ACT-KOKEN-004",
+              "section_id": "S2"
+            },
+            {
+              "source_id": "ACT-KOKEN-004",
+              "section_id": "S5"
+            }
+          ]
+        },
+        "grading_limits": {
+          "max_judgements": 8,
+          "max_seconds": 1200,
+          "per_call_seconds": 120,
+          "concurrency": 1
+        },
+        "execution_status": "completed",
+        "execution_kind": "live",
+        "rubric_version": "semantic-rubric-v1",
+        "rubric_sha256": "6146de298d4817fd2c397ee854001feb447cd26847d59d48a4b3cc780202eedf",
+        "prompt_sha256": "a2aae39c7a72f972a3276e4bae0814b258310d43371e253a8adbb15f880d68ae",
+        "model": "gpt-6.1-sol",
+        "client_version": "codex-cli 0.164.0",
+        "runtime_sha256": "d8990e3ee7acfbc26f91265b12a1a83f0fee40d0e0f8f1f40a37d4ec21f499cf",
+        "code_mode_host_sha256": "416721e33af8822041dc650793512b3e58d43e0be4f3a5c6187eb4dfaad3148a",
+        "route": "OpenAI via locally authenticated Codex CLI; isolated no-tool evaluator",
+        "reference_origin": "not_human_calibrated",
+        "human_calibration": false,
+        "provisional": true,
+        "started_at_unix_ms": 1792956299464,
+        "elapsed_ms": 58255,
+        "diagnostic": null,
+        "usage": {
+          "input_tokens": 10503,
+          "output_tokens": 849,
+          "cached_input_tokens": 0,
+          "reasoning_output_tokens": 0
+        },
+        "budget": {
+          "schema_version": 1,
+          "id": "budget-1792791038242-77910",
+          "started_at_unix_ms": 1792791038242,
+          "max_generation_sessions": 40,
+          "max_grading_sessions": 56,
+          "max_seconds": 14400,
+          "generation_sessions_used": 40,
+          "grading_sessions_used": 7,
+          "window_extensions": [
+            {
+              "previous_deadline_unix_ms": 1792805438242,
+              "new_deadline_unix_ms": 1792947588021,
+              "authorized_at_unix_ms": 1792933188021,
+              "authorization": "product_lead_explicit",
+              "reason": "voortzetting na verlopen venster, taaklead akkoord",
+              "generation_sessions_used": 4,
+              "grading_sessions_used": 0
+            },
+            {
+              "previous_deadline_unix_ms": 1792947588021,
+              "new_deadline_unix_ms": 1792965377326,
+              "authorized_at_unix_ms": 1792950977326,
+              "authorization": "product_lead_explicit",
+              "reason": "voortzetting na verlopen venster, taaklead akkoord",
+              "generation_sessions_used": 5,
+              "grading_sessions_used": 0
+            }
+          ]
+        },
+        "assessment": {
+          "overall": "good",
+          "criteria": [
+            {
+              "criterion_id": "correctness",
+              "verdict": "good",
+              "answer_fragment": "Samen koken is vrijdag van 11.00 tot 13.00 uur. Ervaring is niet nodig.",
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S2",
+                "quote": "Iedere vrijdag van 11.00 tot 13.00 uur."
+              },
+              "reason": "De feitelijke uitspraken kloppen; glutenvrij wordt terecht niet bevestigd."
+            },
+            {
+              "criterion_id": "completeness",
+              "verdict": "good",
+              "answer_fragment": "Of de maaltijd glutenvrij is, weten we niet",
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S5",
+                "quote": "Informatie over allergenen en alternatieve diëten ontbreekt."
+              },
+              "reason": "Beantwoordt de dag, tijd, benodigde ervaring en glutenvrije geschiktheid."
+            },
+            {
+              "criterion_id": "relevance",
+              "verdict": "good",
+              "answer_fragment": "Samen koken is vrijdag van 11.00 tot 13.00 uur. Ervaring is niet nodig.",
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S1",
+                "quote": "Kookervaring is niet nodig."
+              },
+              "reason": "Het antwoord blijft bij de gevraagde deelname en dieetgeschiktheid."
+            },
+            {
+              "criterion_id": "source_support",
+              "verdict": "good",
+              "answer_fragment": "allergenen en alternatieve diëten zijn niet beschreven",
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S5",
+                "quote": "Informatie over allergenen en alternatieve diëten ontbreekt."
+              },
+              "reason": "Alle uitspraken worden ondersteund door aangeboden secties S1, S2 en S5; expliciete citaties zijn niet vereist."
+            },
+            {
+              "criterion_id": "appropriate_unknowns",
+              "verdict": "good",
+              "answer_fragment": "Of de maaltijd glutenvrij is, weten we niet",
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S5",
+                "quote": "Informatie over allergenen en alternatieve diëten ontbreekt."
+              },
+              "reason": "Benoemt de vereiste onzekerheid expliciet zonder een garantie te suggereren."
+            },
+            {
+              "criterion_id": "fact:cooking-friday",
+              "verdict": "good",
+              "answer_fragment": "Samen koken is vrijdag van 11.00 tot 13.00 uur.",
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S2",
+                "quote": "Iedere vrijdag van 11.00 tot 13.00 uur."
+              },
+              "reason": "Dag en tijd zijn correct."
+            },
+            {
+              "criterion_id": "fact:cooking-no-experience",
+              "verdict": "good",
+              "answer_fragment": "Ervaring is niet nodig.",
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S1",
+                "quote": "Kookervaring is niet nodig."
+              },
+              "reason": "Vermeldt correct dat kookervaring niet nodig is."
+            },
+            {
+              "criterion_id": "fact:cooking-allergens-unknown",
+              "verdict": "good",
+              "answer_fragment": "Of de maaltijd glutenvrij is, weten we niet: allergenen en alternatieve diëten zijn niet beschreven.",
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S5",
+                "quote": "Informatie over allergenen en alternatieve diëten ontbreekt."
+              },
+              "reason": "Geeft ontbrekende dieetinformatie en onbevestigde glutenvrije geschiktheid correct weer."
+            },
+            {
+              "criterion_id": "forbidden:1",
+              "verdict": "good",
+              "answer_fragment": null,
+              "source_evidence": null,
+              "reason": "Beweert nergens dat de maaltijd gegarandeerd glutenvrij is."
+            },
+            {
+              "criterion_id": "forbidden:2",
+              "verdict": "good",
+              "answer_fragment": null,
+              "source_evidence": null,
+              "reason": "Beweert nergens dat de maaltijd zeker gluten bevat."
+            },
+            {
+              "criterion_id": "unknown:1",
+              "verdict": "good",
+              "answer_fragment": "Of de maaltijd glutenvrij is, weten we niet",
+              "source_evidence": {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S5",
+                "quote": "Informatie over allergenen en alternatieve diëten ontbreekt."
+              },
+              "reason": "De vereiste onbekendheid wordt expliciet vermeld."
+            }
+          ]
+        },
+        "semantic_fraction": 1.0,
+        "semantic_numerator": 11,
+        "semantic_denominator": 11,
+        "review_needed_criteria": 0,
+        "error": null
+      }
+    },
+    {
+      "id": "H07",
+      "subset": "validation",
+      "question": "Is de wandelroute geschikt voor een rolstoel?",
+      "candidate_answer": "De bron beschrijft niet of de wandelroute rolstoeltoegankelijk is. Dat moet eerst worden nagevraagd.",
+      "offered_sections": [
+        {
+          "source_id": "ACT-WANDEL-005",
+          "source_date": "2026-10-20",
+          "source_title": "Wandelen",
+          "id": "S4",
+          "heading": "Taal en hulp",
+          "text": "Een wandelvrijwilliger loopt met de groep mee. Goed Nederlands spreken is niet nodig. De toegankelijkheid van de route voor rolstoelen is niet beschreven."
+        }
+      ],
+      "reference_label": "good",
+      "judgement": {
+        "schema_version": 1,
+        "rubric_criteria": {
+          "case_id": "P11",
+          "facts": [
+            {
+              "id": "walking-accessibility-unknown",
+              "description": "Rolstoeltoegankelijkheid van de route is niet beschreven.",
+              "kind": "unknown",
+              "evidence_alternatives": [
+                [
+                  {
+                    "source_id": "ACT-WANDEL-005",
+                    "section_id": "S4"
+                  }
+                ]
+              ]
+            }
+          ],
+          "conditions": [],
+          "forbidden_claims": [
+            "De route is rolstoeltoegankelijk.",
+            "De route is niet rolstoeltoegankelijk."
+          ],
+          "required_unknowns": [
+            "Rolstoeltoegankelijkheid is onbekend."
+          ],
+          "relevance_labels_complete": true,
+          "relevant_sections": [
+            {
+              "source_id": "ACT-WANDEL-005",
+              "section_id": "S4"
+            }
+          ]
+        },
+        "grading_limits": {
+          "max_judgements": 8,
+          "max_seconds": 1200,
+          "per_call_seconds": 120,
+          "concurrency": 1
+        },
+        "execution_status": "completed",
+        "execution_kind": "live",
+        "rubric_version": "semantic-rubric-v1",
+        "rubric_sha256": "6146de298d4817fd2c397ee854001feb447cd26847d59d48a4b3cc780202eedf",
+        "prompt_sha256": "33a9184f809c517c9d394571555bbd83e039402b15a0cf072a0ed865c8279bf7",
+        "model": "gpt-6.1-sol",
+        "client_version": "codex-cli 0.164.0",
+        "runtime_sha256": "d8990e3ee7acfbc26f91265b12a1a83f0fee40d0e0f8f1f40a37d4ec21f499cf",
+        "code_mode_host_sha256": "416721e33af8822041dc650793512b3e58d43e0be4f3a5c6187eb4dfaad3148a",
+        "route": "OpenAI via locally authenticated Codex CLI; isolated no-tool evaluator",
+        "reference_origin": "not_human_calibrated",
+        "human_calibration": false,
+        "provisional": true,
+        "started_at_unix_ms": 1792956357790,
+        "elapsed_ms": 58238,
+        "diagnostic": null,
+        "usage": {
+          "input_tokens": 10048,
+          "output_tokens": 634,
+          "cached_input_tokens": 0,
+          "reasoning_output_tokens": 0
+        },
+        "budget": {
+          "schema_version": 1,
+          "id": "budget-1792791038242-77910",
+          "started_at_unix_ms": 1792791038242,
+          "max_generation_sessions": 40,
+          "max_grading_sessions": 56,
+          "max_seconds": 14400,
+          "generation_sessions_used": 40,
+          "grading_sessions_used": 8,
+          "window_extensions": [
+            {
+              "previous_deadline_unix_ms": 1792805438242,
+              "new_deadline_unix_ms": 1792947588021,
+              "authorized_at_unix_ms": 1792933188021,
+              "authorization": "product_lead_explicit",
+              "reason": "voortzetting na verlopen venster, taaklead akkoord",
+              "generation_sessions_used": 4,
+              "grading_sessions_used": 0
+            },
+            {
+              "previous_deadline_unix_ms": 1792947588021,
+              "new_deadline_unix_ms": 1792965377326,
+              "authorized_at_unix_ms": 1792950977326,
+              "authorization": "product_lead_explicit",
+              "reason": "voortzetting na verlopen venster, taaklead akkoord",
+              "generation_sessions_used": 5,
+              "grading_sessions_used": 0
+            }
+          ]
+        },
+        "assessment": {
+          "overall": "good",
+          "criteria": [
+            {
+              "criterion_id": "correctness",
+              "verdict": "good",
+              "answer_fragment": "De bron beschrijft niet of de wandelroute rolstoeltoegankelijk is.",
+              "source_evidence": {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S4",
+                "quote": "De toegankelijkheid van de route voor rolstoelen is niet beschreven."
+              },
+              "reason": "De conclusie komt overeen met de bron."
+            },
+            {
+              "criterion_id": "completeness",
+              "verdict": "good",
+              "answer_fragment": "De bron beschrijft niet of de wandelroute rolstoeltoegankelijk is.",
+              "source_evidence": {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S4",
+                "quote": "De toegankelijkheid van de route voor rolstoelen is niet beschreven."
+              },
+              "reason": "De vereiste onbekendheid is benoemd."
+            },
+            {
+              "criterion_id": "relevance",
+              "verdict": "good",
+              "answer_fragment": "Dat moet eerst worden nagevraagd.",
+              "source_evidence": null,
+              "reason": "Het antwoord blijft bij de vraag over rolstoeltoegankelijkheid."
+            },
+            {
+              "criterion_id": "source_support",
+              "verdict": "good",
+              "answer_fragment": "De bron beschrijft niet of de wandelroute rolstoeltoegankelijk is.",
+              "source_evidence": {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S4",
+                "quote": "De toegankelijkheid van de route voor rolstoelen is niet beschreven."
+              },
+              "reason": "De aangeboden bron ondersteunt de conclusie rechtstreeks."
+            },
+            {
+              "criterion_id": "appropriate_unknowns",
+              "verdict": "good",
+              "answer_fragment": "De bron beschrijft niet of de wandelroute rolstoeltoegankelijk is.",
+              "source_evidence": {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S4",
+                "quote": "De toegankelijkheid van de route voor rolstoelen is niet beschreven."
+              },
+              "reason": "Het antwoord erkent de onzekerheid zonder toegankelijkheid te veronderstellen."
+            },
+            {
+              "criterion_id": "fact:walking-accessibility-unknown",
+              "verdict": "good",
+              "answer_fragment": "De bron beschrijft niet of de wandelroute rolstoeltoegankelijk is.",
+              "source_evidence": {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S4",
+                "quote": "De toegankelijkheid van de route voor rolstoelen is niet beschreven."
+              },
+              "reason": "Het vereiste feit is correct weergegeven."
+            },
+            {
+              "criterion_id": "forbidden:1",
+              "verdict": "good",
+              "answer_fragment": null,
+              "source_evidence": null,
+              "reason": "Het antwoord beweert niet dat de route rolstoeltoegankelijk is."
+            },
+            {
+              "criterion_id": "forbidden:2",
+              "verdict": "good",
+              "answer_fragment": null,
+              "source_evidence": null,
+              "reason": "Het antwoord beweert niet dat de route niet rolstoeltoegankelijk is."
+            },
+            {
+              "criterion_id": "unknown:1",
+              "verdict": "good",
+              "answer_fragment": "De bron beschrijft niet of de wandelroute rolstoeltoegankelijk is.",
+              "source_evidence": {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S4",
+                "quote": "De toegankelijkheid van de route voor rolstoelen is niet beschreven."
+              },
+              "reason": "De vereiste onbekendheid is expliciet vermeld."
+            }
+          ]
+        },
+        "semantic_fraction": 1.0,
+        "semantic_numerator": 9,
+        "semantic_denominator": 9,
+        "review_needed_criteria": 0,
+        "error": null
+      }
+    },
+    {
+      "id": "H08",
+      "subset": "validation",
+      "question": "Is de activiteit geschikt voor mij?",
+      "candidate_answer": "Misschien; ik kan zonder je wensen en mogelijkheden niet beoordelen welke activiteit bij je past.",
+      "offered_sections": [
+        {
+          "source_id": "ACT-WANDEL-005",
+          "source_date": "2026-10-20",
+          "source_title": "Wandelen",
+          "id": "S1",
+          "heading": "Wat doen we?",
+          "text": "We maken samen een rustige wandeling van ongeveer één kilometer door het park. Onderweg is er tijd om te praten. Dit is een vrijwillige activiteit, geen betaalde baan."
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "source_date": "2026-10-20",
+          "source_title": "Wandelen",
+          "id": "S2",
+          "heading": "Wanneer?",
+          "text": "Iedere donderdag van 9.30 tot 10.30 uur."
+        }
+      ],
+      "reference_label": "good",
+      "judgement": {
+        "schema_version": 1,
+        "rubric_criteria": {
+          "case_id": "H08",
+          "facts": [],
+          "conditions": [
+            "No personal suitability conclusion can be drawn without knowing the activity and the person's requirements; asking necessary clarification is appropriate."
+          ],
+          "forbidden_claims": [
+            "Unconditionally guarantees personal suitability without the missing information."
+          ],
+          "required_unknowns": [],
+          "relevance_labels_complete": false,
+          "relevant_sections": []
+        },
+        "grading_limits": {
+          "max_judgements": 8,
+          "max_seconds": 1200,
+          "per_call_seconds": 120,
+          "concurrency": 1
+        },
+        "execution_status": "completed",
+        "execution_kind": "live",
+        "rubric_version": "semantic-rubric-v1",
+        "rubric_sha256": "6146de298d4817fd2c397ee854001feb447cd26847d59d48a4b3cc780202eedf",
+        "prompt_sha256": "3bbfc008f2f38eda8a04fe5a33db042521589302b21076ab7ce4a97124a1367a",
+        "model": "gpt-6.1-sol",
+        "client_version": "codex-cli 0.164.0",
+        "runtime_sha256": "d8990e3ee7acfbc26f91265b12a1a83f0fee40d0e0f8f1f40a37d4ec21f499cf",
+        "code_mode_host_sha256": "416721e33af8822041dc650793512b3e58d43e0be4f3a5c6187eb4dfaad3148a",
+        "route": "OpenAI via locally authenticated Codex CLI; isolated no-tool evaluator",
+        "reference_origin": "not_human_calibrated",
+        "human_calibration": false,
+        "provisional": true,
+        "started_at_unix_ms": 1792956416132,
+        "elapsed_ms": 56075,
+        "diagnostic": null,
+        "usage": {
+          "input_tokens": 9940,
+          "output_tokens": 366,
+          "cached_input_tokens": 0,
+          "reasoning_output_tokens": 0
+        },
+        "budget": {
+          "schema_version": 1,
+          "id": "budget-1792791038242-77910",
+          "started_at_unix_ms": 1792791038242,
+          "max_generation_sessions": 40,
+          "max_grading_sessions": 56,
+          "max_seconds": 14400,
+          "generation_sessions_used": 40,
+          "grading_sessions_used": 9,
+          "window_extensions": [
+            {
+              "previous_deadline_unix_ms": 1792805438242,
+              "new_deadline_unix_ms": 1792947588021,
+              "authorized_at_unix_ms": 1792933188021,
+              "authorization": "product_lead_explicit",
+              "reason": "voortzetting na verlopen venster, taaklead akkoord",
+              "generation_sessions_used": 4,
+              "grading_sessions_used": 0
+            },
+            {
+              "previous_deadline_unix_ms": 1792947588021,
+              "new_deadline_unix_ms": 1792965377326,
+              "authorized_at_unix_ms": 1792950977326,
+              "authorization": "product_lead_explicit",
+              "reason": "voortzetting na verlopen venster, taaklead akkoord",
+              "generation_sessions_used": 5,
+              "grading_sessions_used": 0
+            }
+          ]
+        },
+        "assessment": {
+          "overall": "good",
+          "criteria": [
+            {
+              "criterion_id": "correctness",
+              "verdict": "good",
+              "answer_fragment": "ik kan zonder je wensen en mogelijkheden niet beoordelen welke activiteit bij je past",
+              "source_evidence": null,
+              "reason": "Trekt terecht geen persoonlijke geschiktheidsconclusie zonder persoonlijke informatie."
+            },
+            {
+              "criterion_id": "completeness",
+              "verdict": "good",
+              "answer_fragment": "zonder je wensen en mogelijkheden",
+              "source_evidence": null,
+              "reason": "Benoemt de ontbrekende persoonlijke informatie; aanvullende activiteitdetails zijn niet vereist."
+            },
+            {
+              "criterion_id": "relevance",
+              "verdict": "good",
+              "answer_fragment": "welke activiteit bij je past",
+              "source_evidence": null,
+              "reason": "Gaat rechtstreeks in op persoonlijke geschiktheid."
+            },
+            {
+              "criterion_id": "source_support",
+              "verdict": "good",
+              "answer_fragment": null,
+              "source_evidence": null,
+              "reason": "Doet geen concrete feitelijke claims over de activiteit die bronondersteuning vereisen."
+            },
+            {
+              "criterion_id": "appropriate_unknowns",
+              "verdict": "good",
+              "answer_fragment": "ik kan zonder je wensen en mogelijkheden niet beoordelen",
+              "source_evidence": null,
+              "reason": "Erkent expliciet dat persoonlijke geschiktheid niet kan worden vastgesteld met de beschikbare informatie."
+            },
+            {
+              "criterion_id": "condition:1",
+              "verdict": "good",
+              "answer_fragment": "ik kan zonder je wensen en mogelijkheden niet beoordelen welke activiteit bij je past",
+              "source_evidence": null,
+              "reason": "Onthoudt zich van een persoonlijke geschiktheidsconclusie en benoemt de noodzakelijke ontbrekende informatie."
+            },
+            {
+              "criterion_id": "forbidden:1",
+              "verdict": "good",
+              "answer_fragment": "Misschien; ik kan zonder je wensen en mogelijkheden niet beoordelen",
+              "source_evidence": null,
+              "reason": "Geeft geen onvoorwaardelijke garantie van persoonlijke geschiktheid."
+            }
+          ]
+        },
+        "semantic_fraction": 1.0,
+        "semantic_numerator": 7,
+        "semantic_denominator": 7,
+        "review_needed_criteria": 0,
+        "error": null
+      }
+    }
+  ],
+  "agreement": [
+    {
+      "subset": "development",
+      "cases": 4,
+      "completed": 4,
+      "exact_agreements": 4,
+      "agreement_fraction": 1.0,
+      "reference_good": 2,
+      "reference_bad": 2,
+      "false_accepts": 0,
+      "false_accept_fraction": 0.0,
+      "false_rejects": 0,
+      "false_reject_fraction": 0.0,
+      "grader_abstentions": 0,
+      "reference_abstentions": 0,
+      "execution_failures": 0
+    },
+    {
+      "subset": "validation",
+      "cases": 4,
+      "completed": 4,
+      "exact_agreements": 4,
+      "agreement_fraction": 1.0,
+      "reference_good": 3,
+      "reference_bad": 1,
+      "false_accepts": 0,
+      "false_accept_fraction": 0.0,
+      "false_rejects": 0,
+      "false_reject_fraction": 0.0,
+      "grader_abstentions": 0,
+      "reference_abstentions": 0,
+      "execution_failures": 0
+    }
+  ]
+}

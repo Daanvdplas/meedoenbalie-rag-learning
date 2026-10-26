@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "origin": "ai_review",
+  "human_review": false,
+  "case_id": "T01",
+  "arm": "full_context",
+  "judgement_unchanged": true,
+  "offered_complete_evidence_goals": {
+    "numerator": 4,
+    "denominator": 4
+  },
+  "model_criteria_good": {
+    "numerator": 9,
+    "denominator": 11
+  },
+  "disputed_criteria": [
+    "completeness",
+    "fact:bicycle-provided"
+  ],
+  "answer_fragment": "Je hoeft geen eigen tuingereedschap, fietsgereedschap of kookingrediënten mee te nemen: die zijn aanwezig.",
+  "citation": {
+    "source_id": "ACT-FIETS-002",
+    "section_id": "S5",
+    "source_date": "2026-10-18",
+    "quote": "Gereedschap en reparatiemateriaal zijn aanwezig."
+  },
+  "observation": "The judge required repair materials in the answer sentence even though the provided citation already states them. This is one disputed omission reflected in two criteria, not two independent errors. It is not conclusive evidence that full context generated a factually incorrect answer. Source, rubric, labels and recorded scores are unchanged."
+}
