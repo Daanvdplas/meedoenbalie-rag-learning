@@ -22,7 +22,20 @@ De twee oorspronkelijke directe-contextpogingen mislukten (één runtimefout en 
 
 De acht vooraf gemaakte kandidaatantwoorden zijn alle acht afzonderlijk beoordeeld: overeenkomst **4/4 ontwikkelvoorbeelden** en **4/4 controlevoorbeelden** met de AI-referentie. Geen van deze acht gaf een onbeslist totaaloordeel of uitvoeringsfout. De kandidaten zijn geen extra gegenereerde RAG-antwoorden uit de veertig pogingen. Referentielabels en notities werden pas achteraf lokaal vergeleken en gingen niet naar de beoordelaar. Deze kleine overeenkomst is geen menselijke ijking of algemene betrouwbaarheidsscore.
 
-<!-- Definitieve beoordelingsaantallen, bestanden en uitkomsten volgen na de begrensde uitvoering. -->
+Er zijn **45 beoordelingssessies** gebruikt: 36 bestaande gegenereerde antwoorden, acht vaste AI-kandidaten en één mislukte technische graderdiagnose. Van deze 45 zijn 38 beoordelingsartifacts geldig, drie afgewezen en vier door de tijdslimiet beëindigd. Geen van de afgewezen of vertraagde pogingen is opnieuw geprobeerd.
+
+Het hoofdrapport bevat **38 unieke generaties**: 35 technisch voltooid en drie oorspronkelijke generatiefouten. Voor de 35 beschikbare antwoorden zijn 29 geldige modeloordelen, twee afgewezen beoordelingsresultaten en vier time-outs vastgelegd. Drie rijen hebben geen beoordeling omdat er geen geldig antwoord was. De twee extra contextproeven en de eerste mislukte graderdiagnose staan afzonderlijk als technische geschiedenis.
+
+Alle 24 vergelijkingsantwoorden zijn daadwerkelijk beoordeeld; er staan geen nooit-beoordeelde rijen meer in de eindselectie. **19** leverden een geldig oordeel op, **één** werd afgewezen en **vier** kregen een time-out. Hieronder staan uitsluitend voorlopige modeloordelen op de zes vergelijkingsvragen per aanpak:
+
+| Aanpak | Vragen | Goed | Fout | Onbeslist | Geen geldig oordeel |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Codex met vervolgzoeken | 6 | 4 | 0 | 0 | 2 |
+| Alle bronnen vooraf | 6 | 4 | 1 | 0 | 1 |
+| Eén MiniLM-selectie | 6 | 2 | 3 | 0 | 1 |
+| Eén BM25-selectie | 6 | 3 | 2 | 0 | 1 |
+
+Deze tabel bewijst geen winnaar. Missende geldige oordelen blijven in de noemer zichtbaar; de set is klein, iedere aanpak is één keer uitgevoerd en één negatief oordeel is hieronder expliciet betwist. Zie [results-summary.json](results-summary.json) voor de afzonderlijke uitvoerings- en beoordelingsstatussen.
 
 De definitieve CI-controle telt **125 geslaagde technische tests en twee expliciet overgeslagen tests**, met groene formatterings- en clippychecks. Deze tests controleren het meetinstrument, de grenzen en de berekeningen; ze zijn geen 125 bewijzen van inhoudelijk goede modelantwoorden. Iedere implementatie-PR is onafhankelijk gereviewd; [verification.json](verification.json) verwijst naar de exacte reviews en de echte artifactcontroles.
 
@@ -44,7 +57,7 @@ De beoordelaar vond dat *reparatiemateriaal* expliciet in de antwoordzin moest s
 
 [protocol.json](protocol.json) legt de vastgezette programmaversie, invoerhashes, modelroute, sessieplafonds en beperkingen vast. De oorspronkelijke smoke gebruikte een eerdere, geregistreerde programmaversie. De oorspronkelijke afspraak om het hele traject binnen één vieruursvenster te doen is **niet gehaald**. Grote onderbrekingsgaten tussen OS-timestamps zijn zichtbaar; de oorzaak is onbekend. De runner weigerde nieuwe sessies buiten het venster. Eerst bleven veertien, daarna tien antwoorden onbeoordeeld. Afzonderlijk toegestane voortzettingen houden alle tellers, fouten en oudere vensters bij.
 
-Voor uitsluitend de laatste tien nog nooit beoordeelde antwoorden is de operationele tijdafspraak verruimd naar maximaal 24 uur, maximaal tien nieuwe beoordelingssessies en hoogstens vijf verdere vieruursverlengingen via de bestaande CLI. Concurrency, sessietime-out, generatieplafond en overige implementatielimieten zijn ongewijzigd. Invalids en time-outs worden niet herhaald. De ruimere tijdafspraak staat apart in [continuation-24h-authorization.json](continuation-24h-authorization.json). Iedere poging houdt zijn eigen manifest en identiteit. Tijdens de vergelijking zijn brondata, vragen, criteria, generatorprompt en rubric ongewijzigd gebleven.
+Voor uitsluitend de laatste tien nog nooit beoordeelde antwoorden is de operationele tijdafspraak verruimd naar maximaal 24 uur, maximaal tien nieuwe beoordelingssessies en hoogstens vijf verdere vieruursverlengingen via de bestaande CLI. Concurrency, sessietime-out, generatieplafond en overige implementatielimieten zijn ongewijzigd. Invalids en time-outs zijn niet herhaald. De ruimere tijdafspraak staat apart in [continuation-24h-authorization.json](continuation-24h-authorization.json). Iedere poging houdt zijn eigen manifest en identiteit. Tijdens de vergelijking zijn brondata, vragen, criteria, generatorprompt en rubric ongewijzigd gebleven.
 
 Een aangetoonde technische fout is apart onderzocht: een cosmetische waarschuwing over een experimentele isolatieoptie werd door de strikte parser afgewezen. De gereviewde correctie onderdrukt alleen die bekende melding per geïsoleerde opdracht. Andere foutmeldingen en verboden tools blijven afgewezen. De oorspronkelijke mislukte pogingen blijven bewaard; de private melding is verwijderd en staat nergens in deze map.
 
@@ -69,4 +82,4 @@ mkdir -p /tmp/coa-rag-results
 cargo run --locked -- experiment report --input "$COA_EVIDENCE/smoke-graded.jsonl,$COA_EVIDENCE/pilot-graded.jsonl,$COA_EVIDENCE/heldout-final-graded.jsonl" --output /tmp/coa-rag-results/resultaten.html
 ```
 
-Open `/tmp/coa-rag-results/resultaten.html` in je browser. [answer-hashes.json](answer-hashes.json) bewaart hashes van antwoord, aangeboden context en zoektrace voor ieder van de veertig pogingen. [verification.json](verification.json) legt vast of de afzonderlijke beoordeling die generatiegegevens ongewijzigd heeft behouden. Voeg een generatiebestand en zijn beoordeelde kopie niet samen: dezelfde run-ID mag slechts één keer in een rapport staan. Diagnoses en extra validatiepogingen blijven daarom afzonderlijk zichtbaar.
+Open `/tmp/coa-rag-results/resultaten.html` in je browser. [answer-hashes.json](answer-hashes.json) bewaart hashes van antwoord, aangeboden context en zoektrace voor ieder van de veertig pogingen. [verification.json](verification.json) controleert dat antwoorden, zoekvragen, bronpassages, geselecteerde IDs en volgorde gelijk blijven. Enkele numerieke cosinusscores veranderen bij JSON-heropslag één floatstap (ULP); daarom zijn volledige tracehashes niet noodzakelijk identiek. Die verschillen en hashes worden apart vastgelegd. De oorspronkelijke generatiebestanden blijven onaangepast. Voeg een generatiebestand en zijn beoordeelde kopie niet samen: dezelfde run-ID mag slechts één keer in een rapport staan. Diagnoses en extra validatiepogingen blijven daarom afzonderlijk zichtbaar. [grading-selection.json](grading-selection.json) bewaart per vergelijkingsrun de volledige selectiegeschiedenis: uitsluitend een eerder overgeslagen oordeel is vervangen, nooit een daadwerkelijk uitgevoerd oordeel.

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "running",
+  "status": "completed_with_recorded_failures_and_scheduling_exception",
   "source_reference_date": "2026-10-20",
   "data": "Five fictional activity documents, 30 sections; no internal resident data",
   "fixed_generation_code_commit": "a4f506c278cc7b6a9a85834da4d16b9103daef73",
@@ -72,5 +72,10 @@
     "maximum_final_continuation_seconds": 86400,
     "maximum_additional_four_hour_extensions": 5,
     "implementation_limits_unchanged": true
-  }
+  },
+  "actual_sessions": {
+    "generation": 40,
+    "grading": 45
+  },
+  "human_calibration": false
 }

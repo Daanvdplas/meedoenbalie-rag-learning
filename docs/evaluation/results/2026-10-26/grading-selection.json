@@ -1,0 +1,439 @@
+{
+  "schema_version": 1,
+  "rule": "Keep every original history file; replace only a prior skipped/budget_exhausted judgement that had no session. Never replace an executed failure/timeout/valid judgement. One generation ID per primary row.",
+  "primary_heldout_file": "heldout-final-graded.jsonl",
+  "records": [
+    {
+      "run_id": "experiment-1792954558566-32255-T01-agentic_dense",
+      "case_id": "T01",
+      "arm": "agentic_dense",
+      "selected_file": "heldout-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T01-full_context",
+      "case_id": "T01",
+      "arm": "full_context",
+      "selected_file": "heldout-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T01-dense_once",
+      "case_id": "T01",
+      "arm": "dense_once",
+      "selected_file": "heldout-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T01-bm25",
+      "case_id": "T01",
+      "arm": "bm25",
+      "selected_file": "heldout-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T02-agentic_dense",
+      "case_id": "T02",
+      "arm": "agentic_dense",
+      "selected_file": "heldout-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T02-full_context",
+      "case_id": "T02",
+      "arm": "full_context",
+      "selected_file": "heldout-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T02-dense_once",
+      "case_id": "T02",
+      "arm": "dense_once",
+      "selected_file": "heldout-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T02-bm25",
+      "case_id": "T02",
+      "arm": "bm25",
+      "selected_file": "heldout-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T03-agentic_dense",
+      "case_id": "T03",
+      "arm": "agentic_dense",
+      "selected_file": "heldout-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "failed",
+          "error": "invalid_output"
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T03-full_context",
+      "case_id": "T03",
+      "arm": "full_context",
+      "selected_file": "heldout-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T03-dense_once",
+      "case_id": "T03",
+      "arm": "dense_once",
+      "selected_file": "heldout-resumed-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resumed-graded.jsonl",
+          "status": "timed_out",
+          "error": "timeout"
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T03-bm25",
+      "case_id": "T03",
+      "arm": "bm25",
+      "selected_file": "heldout-resumed-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resumed-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T04-agentic_dense",
+      "case_id": "T04",
+      "arm": "agentic_dense",
+      "selected_file": "heldout-resumed-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resumed-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T04-full_context",
+      "case_id": "T04",
+      "arm": "full_context",
+      "selected_file": "heldout-resumed-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resumed-graded.jsonl",
+          "status": "timed_out",
+          "error": "timeout"
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T04-dense_once",
+      "case_id": "T04",
+      "arm": "dense_once",
+      "selected_file": "heldout-resume-02-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resumed-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resume-02-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T04-bm25",
+      "case_id": "T04",
+      "arm": "bm25",
+      "selected_file": "heldout-resume-02-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resumed-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resume-02-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T05-agentic_dense",
+      "case_id": "T05",
+      "arm": "agentic_dense",
+      "selected_file": "heldout-resume-02-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resumed-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resume-02-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T05-full_context",
+      "case_id": "T05",
+      "arm": "full_context",
+      "selected_file": "heldout-resume-02-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resumed-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resume-02-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T05-dense_once",
+      "case_id": "T05",
+      "arm": "dense_once",
+      "selected_file": "heldout-resume-02-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resumed-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resume-02-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T05-bm25",
+      "case_id": "T05",
+      "arm": "bm25",
+      "selected_file": "heldout-resume-02-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resumed-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resume-02-graded.jsonl",
+          "status": "timed_out",
+          "error": "timeout"
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T06-agentic_dense",
+      "case_id": "T06",
+      "arm": "agentic_dense",
+      "selected_file": "heldout-resume-02-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resumed-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resume-02-graded.jsonl",
+          "status": "timed_out",
+          "error": "timeout"
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T06-full_context",
+      "case_id": "T06",
+      "arm": "full_context",
+      "selected_file": "heldout-resume-02-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resumed-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resume-02-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T06-dense_once",
+      "case_id": "T06",
+      "arm": "dense_once",
+      "selected_file": "heldout-resume-02-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resumed-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resume-02-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "experiment-1792954558566-32255-T06-bm25",
+      "case_id": "T06",
+      "arm": "bm25",
+      "selected_file": "heldout-resume-02-graded.jsonl",
+      "history": [
+        {
+          "file": "heldout-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resumed-graded.jsonl",
+          "status": "skipped",
+          "error": "budget_exhausted"
+        },
+        {
+          "file": "heldout-resume-02-graded.jsonl",
+          "status": "completed",
+          "error": null
+        }
+      ]
+    }
+  ]
+}
