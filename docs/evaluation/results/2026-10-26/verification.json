@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "implementation_reviews": [
+    {
+      "pr": 45,
+      "reviewed_head": "0f2149476bf510f49591b583756e69644cfc6410",
+      "independent_reviewer": "eval_review",
+      "review_url": "https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/45#issuecomment-6367183814"
+    },
+    {
+      "pr": 47,
+      "reviewed_head": "4a7ae0ad900aac55ab7190bda00b53b82b0d0e70",
+      "independent_reviewer": "eval_review",
+      "review_url": "https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/47#issuecomment-6367417656"
+    },
+    {
+      "pr": 48,
+      "reviewed_head": "8c6bf0b6f5aec01bed768dc5d8840c52477a478e",
+      "independent_reviewer": "eval_review",
+      "review_url": "https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/48#issuecomment-6367870073"
+    },
+    {
+      "pr": 49,
+      "reviewed_head": "05bafa0639b874470ba8972ee50727a3a8a6c317",
+      "independent_reviewer": "eval_review",
+      "review_url": "https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/49#issuecomment-6382804181"
+    },
+    {
+      "pr": 50,
+      "reviewed_head": "f6168127b87afdf4867e3b06a2566f781d19b1ed",
+      "independent_reviewer": "eval_review",
+      "review_url": "https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/50#issuecomment-6367798048"
+    },
+    {
+      "pr": 51,
+      "reviewed_head": "84ad5ae6cd0fc8d697589780d6b5d3bf4843a273",
+      "independent_reviewer": "eval_review",
+      "review_url": "https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/51#issuecomment-6400802025"
+    },
+    {
+      "pr": 52,
+      "reviewed_head": "b6a00c7b5608ca3f907cb355ec8d7e4d63eba112",
+      "independent_reviewer": "eval_review",
+      "review_url": "https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/52#issuecomment-6397845026"
+    },
+    {
+      "pr": 53,
+      "reviewed_head": "d34934fd469e81097c1c01734141d1481480292a",
+      "independent_reviewer": "eval_review",
+      "review_url": "https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/53#issuecomment-6397922887"
+    },
+    {
+      "pr": 54,
+      "reviewed_head": "dd8e01b643fd915f80c8c76282dfe7df3cdeda5b",
+      "independent_reviewer": "eval_review",
+      "review_url": "https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/54#issuecomment-6400971510"
+    },
+    {
+      "pr": 55,
+      "reviewed_head": "17066554eb5f5fdb8113c557ac133242c1db5acc",
+      "independent_reviewer": "eval_data_metrics",
+      "review_url": "https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/55#issuecomment-6401012869"
+    },
+    {
+      "pr": 56,
+      "reviewed_head": "73b691dca38d3d7cc15dcda69681d9249f9c8645",
+      "independent_reviewer": "eval_review",
+      "review_url": "https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/56#issuecomment-6401048615"
+    },
+    {
+      "pr": 57,
+      "reviewed_head": "b13a5620c9a0e19ba55fcc5c0dd4dc2abdb4317b",
+      "independent_reviewer": "eval_review",
+      "review_url": "https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/57#issuecomment-6401086592"
+    },
+    {
+      "pr": 58,
+      "reviewed_head": "039be4e20022afa19219f4e6956aced22abc00a6",
+      "independent_reviewer": "eval_data_metrics",
+      "review_url": "https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/58#issuecomment-6401253751"
+    },
+    {
+      "pr": 59,
+      "reviewed_head": "68792402dde5bd06bb9bf407b3eda1c58f87ce9b",
+      "independent_reviewer": "eval_review",
+      "review_url": "https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/59#issuecomment-6402159139"
+    }
+  ],
+  "instrument_boundaries": [
+    "Actual fixture subprocess stdin canaries prove generator/retriever requests exclude expected-label canaries.",
+    "Actual calibration-to-grader fixture subprocess canaries exclude reference verdicts, notes and reviewer metadata.",
+    "Strict canonical source/tool/manifest ingestion rejects tampered nested payloads and forged context.",
+    "Private diagnostic capture was opt-in, temp-only and removed; only recognized safe category/config keys are exported."
+  ],
+  "scope": "Instrument canaries use explicit fixture origin; actual quality evidence uses live records only. These checks are not a general security certification.",
+  "generation_preservation_normalization": "Compare complete generation payloads excluding only separate-grader fields; missing old diagnostic=null and budget.window_extensions=[] normalized to schema defaults.",
+  "technical_checks": {
+    "ci_run_url": "https://github.com/Daanvdplas/meedoenbalie-rag-learning/actions/runs/40226213250",
+    "reviewed_head": "68792402dde5bd06bb9bf407b3eda1c58f87ce9b",
+    "merged_renderer_commit": "23a6bc2",
+    "tests_passed": 125,
+    "tests_failed": 0,
+    "tests_ignored": 2,
+    "notes": "Ignored live/embedding checks are not counted as passes. New live evidence is recorded separately. CI also runs formatting and clippy. Eight report tests independently rerun on the exact reviewed head."
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "git_commit": "a4f506c278cc7b6a9a85834da4d16b9103daef73",
+  "binary_name": "meedoen-retrieval-a4f506c",
+  "binary_sha256": "e4c8111e1ad5227f7cca8980a35db98bd0979ab00511e92cc458c94a7237fc28",
+  "correction": "Suppress only verified cosmetic unstable-feature notice in isolated invocations",
+  "model": "gpt-6.1-sol",
+  "per_call_seconds": 120,
+  "concurrency": 1,
+  "top_k": 3,
+  "max_agent_searches": 4,
+  "human_calibration": false,
+  "automatic_retries": false,
+  "generation_plan_remaining": 35,
+  "input_sha256": {
+    "expectations.json": "78a9515a7989b517cd7d925d08655e3a1de0f18bea24394f1e7821ea83d21aeb",
+    "heldout-expectations.json": "3d2c845ff39291916b0029981a39b31ae222c30f0d2562daf175ed4a23b80f5a",
+    "heldout-questions.json": "80128a23ace818d18ca2a4551d0d0d86919685819e7bd020d19a6834ef75b83d",
+    "questions.json": "7f224d87277b618de9df60111cfa0a3ed6ec51cb102d8abcf0312618ed6bbf5a",
+    "heldout-freeze.json": "36b5a789023571efb80ae6ec1976eb688255e06d978588907ec4b7ff12b48321"
+  }
+}

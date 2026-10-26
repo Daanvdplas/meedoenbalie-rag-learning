@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "status": "running",
+  "source_reference_date": "2026-10-20",
+  "data": "Five fictional activity documents, 30 sections; no internal resident data",
+  "fixed_generation_code_commit": "a4f506c278cc7b6a9a85834da4d16b9103daef73",
+  "fixed_generation_binary_sha256": "e4c8111e1ad5227f7cca8980a35db98bd0979ab00511e92cc458c94a7237fc28",
+  "input_file_sha256": {
+    "expectations.json": "78a9515a7989b517cd7d925d08655e3a1de0f18bea24394f1e7821ea83d21aeb",
+    "heldout-expectations.json": "3d2c845ff39291916b0029981a39b31ae222c30f0d2562daf175ed4a23b80f5a",
+    "heldout-questions.json": "80128a23ace818d18ca2a4551d0d0d86919685819e7bd020d19a6834ef75b83d",
+    "questions.json": "7f224d87277b618de9df60111cfa0a3ed6ec51cb102d8abcf0312618ed6bbf5a",
+    "heldout-freeze.json": "36b5a789023571efb80ae6ec1976eb688255e06d978588907ec4b7ff12b48321"
+  },
+  "model": "gpt-6.1-sol",
+  "model_route": "OpenAI via locally authenticated Codex CLI",
+  "concurrency": 1,
+  "per_session_timeout_seconds": 120,
+  "caps": {
+    "generation_attempts": 40,
+    "grading_attempts": 56,
+    "time_windows_seconds": 14400,
+    "continuation": "Explicit product-lead approval, appended audit; counters never reset"
+  },
+  "cases": {
+    "instrument_pilot": 12,
+    "known_development_cases": 6,
+    "compositional_heldout": 6,
+    "heldout_selection": "Purposive new combinations of known synthetic source facts; not an independent-domain or population benchmark"
+  },
+  "arms": {
+    "agentic_dense": "Actual MCP retrieval; initial top_k=3, tool accepts 1..6, at most 4 searches",
+    "dense_once": "One local MiniLM selection, top_k=3",
+    "bm25": "One local BM25 selection, top_k=3; k1=1.2, b=0.75",
+    "full_context": "All 30 sections provided; no retrieval or tools, retrieval metrics N/A"
+  },
+  "measurement": "Fact evidence OR-of-AND groups; document+section dedup; incomplete relevance labels disable precision/recall; separate source/citation/execution prerequisites and provisional semantic criteria",
+  "semantic_reference": {
+    "origin": "ai_agent",
+    "human_calibration": false,
+    "examples": 8,
+    "development": 4,
+    "validation": 4,
+    "reference_labels_sent_to_grader": false
+  },
+  "failure_policy": "Preserve all attempts; no content retries or prompt/gold tuning for higher scores; explicit infrastructure correction is versioned",
+  "technical_correction": "Confirmed cosmetic unstable-feature notice was rejected as an unresolved error. Suppress only that notice in isolated commands; all other errors/tools still fail. Raw private notice deleted and not exported.",
+  "reproducibility_limits": [
+    "Provider model alias/weights and internal HTTP request counts are not fully observable.",
+    "Different context/search budgets are part of the arm methods; extra agent context is not evidence of a better embedding model.",
+    "Shared dense-index setup is excluded from per-case time; agent MCP startup is included.",
+    "A literal valid citation does not prove semantic support.",
+    "Small synthetic exploratory set and AI reference do not establish general reliability or human calibration.",
+    "Generator and grader use the same model route/family and may share errors; separate sessions do not establish independent semantic judgement. No additional model variant was introduced."
+  ],
+  "recorded_on": "2026-10-26",
+  "execution_period": "2026-10-23 through 2026-10-26",
+  "resume_policy": "The14 heldout rows skipped without a reservation at the expired window are resumed only after explicit product-lead authorization. The initial partial file is retained. Earlier failed judgements are never replaced.",
+  "primary_inputs": [
+    "smoke-graded.jsonl",
+    "pilot-graded.jsonl",
+    "heldout-final-graded.jsonl"
+  ],
+  "timing_limitations": "Timeouts are configured at120seconds per model session. Gaps between recorded OS timestamps were observed; their cause is not established. The runner refused new reservations after its recorded deadline.",
+  "scheduling_exception": {
+    "original_single_four_hour_protocol_achieved": false,
+    "observed_interruption_cause": "unknown",
+    "all_prior_windows_and_attempts_retained": true,
+    "final_authorization": "continuation-24h-authorization.json",
+    "last_never_graded_cases": 10,
+    "max_additional_grading_sessions": 10,
+    "maximum_final_continuation_seconds": 86400,
+    "maximum_additional_four_hour_extensions": 5,
+    "implementation_limits_unchanged": true
+  }
+}

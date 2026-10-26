@@ -1,0 +1,11 @@
+{
+  "git_commit": "c8fe8918978581cb0be6279bcb8a7114457ec2e5",
+  "binary_sha256": "98b20a6cc57122015fc74202488dd4f626f68aab032522e01c1bfee8be56961d",
+  "input_sha256": "fbd181a35d695bcf9c8044534ef31f44db0adbe7a6fafa7c20d1022ce59d8ab9",
+  "generation_run_id": "experiment-1792796285873-77910-P01-agentic_dense",
+  "max_grading_sessions": 1,
+  "max_generation_sessions": 0,
+  "purpose": "One already-planned assessment plus private runtime diagnosis; no generation replay",
+  "continuation_authorization_reason": "ontwikkeling/reviews afgerond, afgesproken pilot en vergelijking voortzetten",
+  "human_calibration": false
+}

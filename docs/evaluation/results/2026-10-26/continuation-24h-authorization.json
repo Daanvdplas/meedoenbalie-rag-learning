@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "authorized_by": "product_lead_explicit",
+  "authorized_start_unix_ms": 1793011159036,
+  "authorized_until_unix_ms": 1793097559036,
+  "initial_generation_sessions_used": 40,
+  "initial_grading_sessions_used": 35,
+  "max_additional_grading_sessions": 10,
+  "max_additional_four_hour_extensions": 5,
+  "fixed_never_graded_run_ids": [
+    "experiment-1792954558566-32255-T04-bm25",
+    "experiment-1792954558566-32255-T04-dense_once",
+    "experiment-1792954558566-32255-T05-agentic_dense",
+    "experiment-1792954558566-32255-T05-bm25",
+    "experiment-1792954558566-32255-T05-dense_once",
+    "experiment-1792954558566-32255-T05-full_context",
+    "experiment-1792954558566-32255-T06-agentic_dense",
+    "experiment-1792954558566-32255-T06-bm25",
+    "experiment-1792954558566-32255-T06-dense_once",
+    "experiment-1792954558566-32255-T06-full_context"
+  ],
+  "reason": "Complete only ten never-assessed saved answers after unexplained execution gaps. Preserve every prior failure/timeout; no generation or retry of an executed judgement. Original four-hour protocol not achieved."
+}

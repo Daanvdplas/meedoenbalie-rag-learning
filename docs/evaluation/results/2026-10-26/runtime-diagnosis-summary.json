@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "diagnosis_source": "first-grade-diagnostic-01.jsonl",
+  "source_sha256": "b2a7d3394d018416829ef14a11d24e4ff9047138a6bbda1f509ca3a5e25f6034",
+  "classification": "known_unstable_feature_notice",
+  "private_message_count": 1,
+  "known_config_keys": [
+    "skip_host_skill_discovery",
+    "suppress_unstable_features_warning"
+  ],
+  "other_messages_observed": 0,
+  "model_rerouting_reported": false,
+  "raw_capture_retained": false,
+  "raw_payload_exported": false,
+  "assessment_remains_failed": true,
+  "fix_requirement": "Suppress only the known cosmetic notice in the spawned evaluation command; preserve model, permission and tool checks."
+}
