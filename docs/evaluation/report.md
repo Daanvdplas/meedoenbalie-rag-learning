@@ -1,7 +1,5 @@
 # Het lokale evaluatierapport
 
-Begin met de [eenvoudige uitleg van het testframework](framework.html): één vraag, vooraf vastgelegd bewijs en wat de score wel en niet betekent.
-
 Het rapport is voor de maker en mensen die zonder technische logs willen begrijpen wat retrieval wel en niet vindt. De vorm volgt de activiteiten-demo: rustig Nederlands, compacte vergelijking, kleuren voor antwoord en bronbewijs, technische details pas na uitklappen.
 
 `experiment report --input resultaten.jsonl --output rapport.html` maakt één zelfstandig HTML-bestand. Meerdere JSONL-bestanden kunnen als kommagescheiden lijst mee. Deze opdracht gebruikt geen model of netwerk. Open het HTML-bestand daarna rechtstreeks in je browser. Voor een preview kun je alleen de map met HTML serveren; budgetregistraties en logs horen buiten die map.
