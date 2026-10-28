@@ -2,8 +2,6 @@
 
 Een kleine Rust-leerproef met vijf verzonnen activiteiten, echte lokale embeddings en Codex. Je stelt een vraag en kunt de gebruikte bronpassages controleren. Dit is een eigen prototype, geen intern COA-plan.
 
-Bekijk de [interactieve codegids](docs/code-tour.html) voor het systeemoverzicht, de route van één vraag en verwijzingen naar de echte functies. De HTML werkt ook lokaal zonder CDN.
-
 Wil je de RAG zelf evalueren? Volg de [korte reproduceerhandleiding](docs/evaluation/reproduce.md): technische tests en een voorbeeldrapport zonder modelcalls, daarna optioneel begrensde generaties, afzonderlijke beoordelingen en een lokaal HTML-rapport. Bewijsdekking, voorlopige AI-oordelen en efficiëntie blijven apart; menselijke ijking is nog niet uitgevoerd.
 
 De [vastgelegde echte evaluatie van 23–26 oktober 2026](docs/evaluation/results/2026-10-26/README.md) bevat de bewaarde pogingen, voorlopige uitkomsten, fouten en reproduceercommando’s. Die kleine synthetische vergelijking is geen menselijke kwaliteitsvalidatie.
