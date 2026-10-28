@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Codebase map · Quick reference</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Quick reference · Source snapshot ce721ad</p>
+  <h1>Who does what?</h1>
+  <p class="intro">Browser → Rust app → Codex ↔ Rust search. Codex writes the answer; Rust checks the citations and returns it to the browser.</p>
+  <dl class="reference-list">
+    <dt>Browser<br><code>static/index.html</code></dt><dd>Sends a question, polls its run, displays the answer and actual retrieved passages.</dd>
+    <dt>Rust coordinator<br><code>src/web.rs</code><br><code>src/runs.rs</code></dt><dd>Tracks a bounded in-memory run history and starts the answer process. No database; history disappears on restart.</dd>
+    <dt>Answer writer<br><code>src/codex.rs</code></dt><dd>Uses the local Codex runtime to reach an external model. The only allowed tool is read-only search. Checks the output shape, citation identities, dates, and literal quotes; does not prove every prose claim.</dd>
+    <dt>Local retrieval<br><code>src/lib.rs</code><br><code>src/mcp.rs</code></dt><dd>Turns text into local MiniLM embeddings and ranks sections by similarity. Five fictional documents have thirty sections. Similarity is not answer confidence. The MCP search process loads its own in-memory index.</dd>
+    <dt>CLI and experiments<br><code>src/main.rs</code><br><code>src/experiment/</code></dt><dd>CLI search shares the Rust retrieval implementation. Experiments compare approaches and grade saved answers separately; live model runs require explicit opt-in.</dd>
+  </dl>
+  <section class="section prose">
+    <h2>Three questions to keep asking</h2>
+    <p>What enters and leaves this part? Why did we choose it? What does its test establish, and what remains uncertain?</p>
+    <p>A document dated 20 October can contain availability last observed on 1 September. An exact citation preserves that observation; it cannot make the observation current.</p>
+    <p>Primary source: <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/README.md">project README</a>, snapshot checked 28 October 2026.</p>
+  </section>
+  <footer class="quiet"><a href="../lessons/0001-one-question.html">Return to the interactive lesson</a><span>Fictional data · no messages, dossier writes, or registrations.</span></footer>
+</main>
+</body>
+</html>

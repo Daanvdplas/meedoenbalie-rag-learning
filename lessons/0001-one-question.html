@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>One question through this codebase · Lesson 01</title>
+  <meta name="description" content="An interactive first look at the Meedoenbalie codebase: browser, Rust, Codex, local search, and the limits of test evidence.">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../assets/lesson.css">
+  <script src="../assets/lesson.js" defer></script>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Lesson 01 · About 3 minutes</p>
+    <h1>One question through this codebase.</h1>
+    <p class="intro">A small Rust app searches five fictional activity documents. Codex uses the passages it finds to write an answer with sources.</p>
+    <p class="quiet">Your goal: explain who finds the information, who writes the answer, and where certainty ends.</p>
+  </header>
+
+  <section class="section" aria-labelledby="map-title">
+    <h2 id="map-title">Four moving parts</h2>
+    <p class="quiet">Click a box, or follow the steps below. Arrows show communication.</p>
+    <div class="system-map" aria-label="The browser talks to Rust. Rust starts Codex. Codex can call the local Rust search tool and receive passages back.">
+      <button class="node" data-map-step="0" aria-pressed="true"><strong>Your browser</strong><span>Ask · read sources</span></button>
+      <span class="arrow" aria-hidden="true">⇄</span>
+      <button class="node" data-map-step="3" aria-pressed="false"><strong>Rust app</strong><span>Coordinate · check · return</span></button>
+      <span class="arrow" aria-hidden="true">⇄</span>
+      <button class="node model" data-map-step="1" aria-pressed="false"><strong>Codex</strong><span>Choose searches · write answer</span></button>
+      <div class="tool-loop">
+        <p class="loop-label">Codex ↓ search request &nbsp; ↑ source passages</p>
+        <button class="node" data-map-step="2" aria-pressed="false"><strong>Rust search tool</strong><span>Local embeddings · read-only · in memory</span></button>
+      </div>
+    </div>
+    <p class="quiet map-note">Browser, app, and search run on your laptop. The local Codex runtime calls an external model service; the question and retrieved text go with it. There is no database or activity registration.</p>
+
+    <div class="walkthrough" data-walkthrough>
+      <nav class="step-nav" aria-label="Question journey">
+        <button data-step="0" aria-pressed="true">1. Ask</button>
+        <button data-step="1" aria-pressed="false">2. Request evidence</button>
+        <button data-step="2" aria-pressed="false">3. Find passages</button>
+        <button data-step="3" aria-pressed="false">4. Check and show</button>
+      </nav>
+
+      <article class="step-body" data-panel="0" aria-labelledby="step-1">
+        <div class="step-copy">
+          <h3 id="step-1">Your question starts a run.</h3>
+          <p>The browser sends the question to Rust. Rust records a pending run and starts Codex in the background. The browser polls for the result.</p>
+          <p class="source">Follow: <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/static/index.html#L350">static/index.html:350</a> → <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/src/web.rs#L76">src/web.rs:76</a>.</p>
+        </div>
+        <div class="example">
+          <p class="eyebrow">Our example question</p>
+          <blockquote lang="nl">Zijn er nog plekken vrij?</blockquote>
+          <p>“Are there still places available?” We will inspect the gardening source as one example. This walkthrough does not run the model.</p>
+        </div>
+      </article>
+
+      <article class="step-body" data-panel="1" aria-labelledby="step-2" hidden>
+        <div class="step-copy">
+          <h3 id="step-2">Codex asks for evidence.</h3>
+          <p>Codex is instructed to search the user's question first. It can make up to four searches to fill gaps. Its only permitted tool here is the read-only search tool.</p>
+          <p class="source">Follow: <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/src/codex.rs#L804">src/codex.rs:804</a> (instructions), <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/src/codex.rs#L686">:686</a> (tool settings).</p>
+        </div>
+        <div class="example">
+          <p class="eyebrow">The connection</p>
+          <p>The search tool is exposed through <strong>MCP</strong>: the connection Codex uses to call Rust search and get results back.</p>
+          <p>Codex chooses the search text. Rust performs the search.</p>
+        </div>
+      </article>
+
+      <article class="step-body" data-panel="2" aria-labelledby="step-3" hidden>
+        <div class="step-copy">
+          <h3 id="step-3">Rust finds passages with related meaning.</h3>
+          <p>A local model turns the search text into numbers, called an <strong>embedding</strong>. Rust compares it with the document sections and returns the highest-ranked passages, with source IDs and dates.</p>
+          <p class="source">Follow: <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/src/mcp.rs#L55">src/mcp.rs:55</a> → <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/src/lib.rs#L161">src/lib.rs:161</a>.</p>
+        </div>
+        <div class="example">
+          <p class="eyebrow">A source worth inspecting</p>
+          <blockquote lang="nl">Op 2026-09-01 waren er twee vrije plekken.</blockquote>
+          <p>The next sentence says availability has not been checked again. This is an actual source excerpt, not a claim that this passage will always be retrieved.</p>
+          <p class="source"><a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/fixtures/document.md#L28">ACT-TUIN-001 · S6</a> · source date 20 October 2026.</p>
+        </div>
+      </article>
+
+      <article class="step-body" data-panel="3" aria-labelledby="step-4" hidden>
+        <div class="step-copy">
+          <h3 id="step-4">Codex writes. Rust checks the citations.</h3>
+          <p>Codex returns an answer, citations, and unknowns. Rust checks that each citation belongs to a returned section with the right source date and an exact quote. The browser then shows the answer and actual searches.</p>
+          <p class="source">Follow: <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/src/codex.rs#L429">src/codex.rs:429</a> → <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/static/index.html#L217">static/index.html:217</a>.</p>
+        </div>
+        <div class="example">
+          <p class="eyebrow">Where certainty ends</p>
+          <p>Two places on 1 September does not establish availability today. The intended answer keeps current places unknown.</p>
+          <p><strong>A valid quote does not prove that every sentence in the answer is true.</strong> These checks cannot establish that the model interpreted the source correctly.</p>
+        </div>
+      </article>
+
+      <div class="controls">
+        <p class="quiet" data-status role="status" aria-live="polite">Step 1 of 4</p>
+        <div class="control-buttons"><button data-previous disabled>Previous</button><button class="primary" data-next>Next</button></div>
+      </div>
+      <noscript><p>For the interactive steps, enable JavaScript. The <a href="../reference/codebase-map.html">short reference</a> works without it.</p></noscript>
+    </div>
+  </section>
+
+  <section class="section" aria-label="Choose a deeper explanation">
+    <details>
+      <summary>How do the documents become searchable?</summary>
+      <div class="prep" aria-label="Five documents become thirty sections, then local MiniLM embeddings, then an in-memory index"><strong>5 fictional documents</strong><span aria-hidden="true">→</span><strong>30 sections</strong><span aria-hidden="true">→</span><strong>Local MiniLM embeddings</strong><span aria-hidden="true">→</span><strong>Index in memory</strong></div>
+      <p class="prose">The title, section heading, and exact text become each section's embedding input. The web app and the search subprocess load separate indexes. They use the same Rust retrieval implementation.</p>
+      <p class="source"><a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/src/lib.rs#L100">src/lib.rs:100</a> · <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/src/main.rs#L21">src/main.rs:21</a>. A high similarity score means related text; it is not a confidence score for the answer.</p>
+    </details>
+    <details>
+      <summary>Why separate search from answer writing?</summary>
+      <div class="prose">
+        <p><strong>Search returns evidence. Codex turns that evidence into language.</strong> This separation lets you inspect the actual passages and evaluate retrieval separately from the answer.</p>
+        <p>The trade-off: the writer can miss a needed passage or misinterpret one. More searches can help, but the four-search limit does not guarantee a complete answer.</p>
+        <p>Other code lives beside this path: the CLI calls the same search, and <code>experiment</code> compares retrieval approaches and separately grades saved answers. That evaluation workflow is outside the demo screen.</p>
+        <p class="source">Recorded choices: <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/decisions.md#L5">decisions.md:5</a>. Experiment scope: <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/README.md">README</a>.</p>
+      </div>
+    </details>
+    <details>
+      <summary>What do the tests actually prove?</summary>
+      <table class="evidence">
+        <thead><tr><th scope="col">Example check</th><th scope="col">What it establishes</th><th scope="col">What remains uncertain</th></tr></thead>
+        <tbody>
+          <tr><td><a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/src/codex.rs#L1582">Invented quote rejected</a></td><td>Prepared event streams with invented citations or quotes are rejected.</td><td>Whether a live model's prose follows logically from a valid quote.</td></tr>
+          <tr><td><a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/tests/mcp_cli.rs#L8">Actual MCP binary</a></td><td>The binary advertises the search tool and rejects invalid input without loading the embedding model.</td><td>Which passages real embeddings rank first.</td></tr>
+          <tr><td><a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/.github/workflows/checks.yml#L24">CI test workflow</a></td><td>Configured to run formatting, linting, deterministic tests, and build.</td><td>Live model quality and human confidence in answers.</td></tr>
+        </tbody>
+      </table>
+      <p class="quiet">This lesson describes the existing tests; it does not claim a fresh Rust test run. Live embedding checks are opt-in. The saved semantic evaluations are provisional and have no human calibration.</p>
+    </details>
+  </section>
+
+  <section class="section" aria-labelledby="prediction-title">
+    <p class="eyebrow">Optional · Try a prediction</p>
+    <h2 id="prediction-title">A real source. An uncertain fact.</h2>
+    <p class="prose">The gardening document is dated <strong>20 October 2026</strong>. Its availability was last checked on <strong>1 September 2026</strong>, when two places were free.</p>
+    <form data-quiz>
+      <fieldset>
+        <legend>What can the app safely say about places today?</legend>
+        <label class="choice"><input type="radio" name="availability" value="two" data-feedback="That treats an old observation as current. Two places were free on 1 September; the source says no one has checked again. Current availability remains unknown.">Two places are available today.</label>
+        <label class="choice"><input type="radio" name="availability" value="unknown" data-feedback="Yes. The document date does not refresh the older availability observation. Current places remain unknown, even if the quote and its citation are valid.">Today's availability is still unknown.</label>
+        <label class="choice"><input type="radio" name="availability" value="estimate" data-feedback="The model has no current availability evidence here. It is instructed to use retrieved passages and leave missing facts unknown, rather than estimate them.">The model can estimate availability.</label>
+      </fieldset>
+      <div class="quiz-actions"><button class="primary" type="submit">Check my reasoning</button></div>
+      <p class="feedback" data-feedback-output role="status" aria-live="polite" hidden></p>
+    </form>
+    <p class="quiet">Practice only. Answers stay in this page and are not saved.</p>
+  </section>
+
+  <section class="section prose" aria-labelledby="takeaway-title">
+    <h2 id="takeaway-title">Keep this picture</h2>
+    <p><strong>Rust finds source passages. Codex writes from them. Rust checks the citations. You can inspect the evidence.</strong></p>
+    <p>Ask the agent about any part that is unclear. You can say “show me what moves between these boxes,” “explain that decision,” or “show me the test and its limit.”</p>
+    <p>Recommended primary source: the project's <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/ce721adf6cf15d80ca258d364101eefa288b2a05/README.md">README at this source snapshot</a>. For a compact reminder, use the <a href="../reference/codebase-map.html">codebase reference</a>.</p>
+  </section>
+
+  <footer class="quiet"><span>Source snapshot <code>ce721ad</code> · checked 28 October 2026.</span><span>Own prototype · fictional data · voluntary participation.</span></footer>
+</main>
+</body>
+</html>
