@@ -7,8 +7,17 @@ permissions:
   contents: read
 jobs:
   checks:
+    name: Rust checks (${{ matrix.storage }})
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - storage: documents
+            flags: --no-default-features
+          - storage: sqlite
+            flags: --no-default-features --features sqlite
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -20,8 +29,8 @@ jobs:
       - name: Formatting
         run: cargo +1.94.1 fmt --all --check
       - name: Lints
-        run: cargo +1.94.1 clippy --locked --all-targets -- -D warnings
+        run: cargo +1.94.1 clippy --locked --all-targets ${{ matrix.flags }} -- -D warnings
       - name: Deterministic tests (no embedding model download)
-        run: cargo +1.94.1 test --locked
+        run: cargo +1.94.1 test --locked ${{ matrix.flags }}
       - name: Build
-        run: cargo +1.94.1 build --locked
+        run: cargo +1.94.1 build --locked ${{ matrix.flags }}
