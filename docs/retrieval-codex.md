@@ -31,6 +31,9 @@ Ctrl+C stopt de eigen subprocessen en bewaart de gereserveerde poging als geannu
 Ook runtime-startup valt binnen deze grens: de `--version`-probe wordt asynchroon
 uitgevoerd en bij timeout/annulering met zijn eigen subprocessgroep gestopt.
 Het controleren van grote uitvoerbare bestanden onderbreekt de deadline niet.
+Debug-builds optimaliseren alleen de bestaande SHA-256-implementatie, zodat deze
+integriteitscontrole de startup niet onnodig vertraagt. De hashwaarden en het
+releaseprofiel blijven hetzelfde.
 Deze aantallen zijn sessies, geen bekende aantallen provider-HTTP-requests.
 
 `--methods` accepteert precies één van `dense`, `bm25`, `hybrid_rrf` en

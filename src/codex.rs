@@ -1226,6 +1226,14 @@ mod tests {
         ));
         let directory = RunDirectory(path);
         let runner = fake_runner(&directory.0, "#!/bin/sh\nexit 0\n");
+        let reference = directory.0.join("sha256-reference");
+        std::fs::write(&reference, b"abc").unwrap();
+        let expected = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+        assert_eq!(file_fingerprint(&reference).unwrap(), expected);
+        assert_eq!(
+            file_fingerprint_cooperative(&reference).await.unwrap(),
+            expected
+        );
         assert_eq!(
             runtime_fingerprints_cooperative(&runner.executable, &runner.mcp_executable)
                 .await
