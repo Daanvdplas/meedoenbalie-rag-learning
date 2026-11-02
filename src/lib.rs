@@ -6,6 +6,7 @@ pub mod ranking;
 pub mod retrieval;
 pub mod runs;
 pub mod source;
+pub mod storage;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
