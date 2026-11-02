@@ -8,7 +8,7 @@ use crate::{
     retrieval::{QueryFilters, RetrievalConfig, SearchMethod},
     storage::StorageProfile,
 };
-use std::{collections::BTreeMap, path::Path};
+use std::{collections::BTreeMap, io::Write, path::Path};
 
 const COMMON: &[&str] = &[
     "--methods",
@@ -127,6 +127,36 @@ pub fn read_inputs(input: &str) -> Result<Vec<super::types::StoredRecord>, Strin
     Ok(all)
 }
 
+fn report_assessments(
+    records: &[super::types::StoredRecord],
+    input: Option<&String>,
+) -> Result<Vec<assessment::AssessmentRecord>, String> {
+    let mut result = match input {
+        Some(path) => assessment::read_assessments(Path::new(path), records)?,
+        None => Vec::new(),
+    };
+    for kind in [
+        AssessmentKind::Deterministic,
+        AssessmentKind::Manual,
+        AssessmentKind::Ai,
+    ] {
+        let missing: Vec<_> = records
+            .iter()
+            .filter(|record| {
+                !result
+                    .iter()
+                    .any(|value| value.run_id == record.record.run_id && value.kind == kind)
+            })
+            .cloned()
+            .collect();
+        if !missing.is_empty() {
+            result.extend(assessment::assess(&missing, &[kind])?);
+        }
+    }
+    assessment::validate_bindings(records, &result)?;
+    Ok(result)
+}
+
 pub fn cli(args: &[String]) -> Result<serde_json::Value, String> {
     match args.first().map(String::as_str) {
         Some("plan" | "catalog") => {
@@ -153,7 +183,19 @@ pub fn cli(args: &[String]) -> Result<serde_json::Value, String> {
             records::write_jsonl_new(Path::new(required(&flags, "--output")?), &assessed)?;
             Ok(serde_json::json!({"schema_version":1,"retrieval_records":stored.len(),"assessments":assessed.len(),"retrieval_calls":0,"codex_calls":0,"ai_judge_calls":0}))
         }
-        _ => Err("Usage: lab plan | run --output <new.jsonl> | assess --input <run.jsonl> --output <new.jsonl>".into()),
+        Some("report") => {
+            let flags = flags(&args[1..], &["--input", "--assessments", "--output"])?;
+            let records = read_inputs(required(&flags, "--input")?)?;
+            let assessments = report_assessments(&records, flags.get("--assessments"))?;
+            let html = super::report::render_html(&records, &assessments)?;
+            let output = Path::new(required(&flags, "--output")?);
+            let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(output)
+                .map_err(|error| format!("Cannot create new report {}: {error}", output.display()))?;
+            file.write_all(html.as_bytes()).and_then(|_| file.sync_all()).map_err(|error| error.to_string())?;
+            Ok(serde_json::json!({"schema_version":1,"retrieval_records":records.len(),"assessments":assessments.len(),
+                "output_sha256":crate::manifest::hash(html.as_bytes()),"retrieval_calls":0,"codex_calls":0,"ai_judge_calls":0}))
+        }
+        _ => Err("Usage: lab plan | run --output <new.jsonl> | assess --input <run.jsonl> --output <new.jsonl> | report --input <run.jsonl> [--assessments <reviews.jsonl>] --output <new.html>".into()),
     }
 }
 
@@ -229,6 +271,89 @@ mod tests {
         assert_eq!(assessed.len(), 6);
         assert!(!base.join("MISSING-MODEL").exists());
         assert!(cli(&values).is_err());
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
+    fn report_imports_manual_reviews_without_retrieval_or_overwriting_artifacts() {
+        let base = std::env::temp_dir().join(format!(
+            "coa-lab-report-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&base).unwrap();
+        let input = base.join("runs.jsonl");
+        let review_path = base.join("reviews.jsonl");
+        let output = base.join("report.html");
+        let run = vec![
+            "run".into(),
+            "--methods".into(),
+            "bm25".into(),
+            "--profiles".into(),
+            "documents_sections".into(),
+            "--cases".into(),
+            "T02".into(),
+            "--output".into(),
+            input.display().to_string(),
+            "--model-cache".into(),
+            base.join("MISSING-MODEL").display().to_string(),
+        ];
+        assert_eq!(cli(&run).unwrap()["completed"], 1);
+        let source_bytes = std::fs::read(&input).unwrap();
+        let stored = records::read_records(&input).unwrap();
+        let mut reviews = assessment::assess(&stored, &[AssessmentKind::Manual]).unwrap();
+        reviews[0].status = assessment::AssessmentStatus::Completed;
+        reviews[0].manual = Some(assessment::ManualReview {
+            verdict: assessment::ManualVerdict::Good,
+            notes: "Explicit test review; not a human reference label.".into(),
+            reviewed_at_unix_ms: 1,
+        });
+        records::write_jsonl_new(&review_path, &reviews).unwrap();
+        let review_bytes = std::fs::read(&review_path).unwrap();
+        let command = vec![
+            "report".into(),
+            "--input".into(),
+            input.display().to_string(),
+            "--assessments".into(),
+            review_path.display().to_string(),
+            "--output".into(),
+            output.display().to_string(),
+        ];
+        let summary = cli(&command).unwrap();
+        assert_eq!(summary["retrieval_records"], 1);
+        assert_eq!(summary["assessments"], 3);
+        assert_eq!(summary["retrieval_calls"], 0);
+        assert_eq!(summary["codex_calls"], 0);
+        assert_eq!(summary["ai_judge_calls"], 0);
+        let html = std::fs::read_to_string(&output).unwrap();
+        assert!(html.contains("\"verdict\":\"good\""));
+        assert!(html.contains("\"status\":\"paused\""));
+        assert!(html.contains("\"evidence_coverage\""));
+        assert_eq!(std::fs::read(&input).unwrap(), source_bytes);
+        assert_eq!(std::fs::read(&review_path).unwrap(), review_bytes);
+        assert!(!base.join("MISSING-MODEL").exists());
+        assert!(cli(&command).is_err());
+        assert_eq!(std::fs::read_to_string(&output).unwrap(), html);
+        reviews[0].retrieval_sha256 = "a".repeat(64);
+        let stale = base.join("stale-reviews.jsonl");
+        records::write_jsonl_new(&stale, &reviews).unwrap();
+        let rejected = base.join("rejected.html");
+        assert!(
+            cli(&[
+                "report".into(),
+                "--input".into(),
+                input.display().to_string(),
+                "--assessments".into(),
+                stale.display().to_string(),
+                "--output".into(),
+                rejected.display().to_string()
+            ])
+            .is_err()
+        );
+        assert!(!rejected.exists());
         std::fs::remove_dir_all(base).unwrap();
     }
 }
