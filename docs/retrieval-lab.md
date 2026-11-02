@@ -8,7 +8,7 @@ Het lab gebruikt dezelfde vijf fictieve activiteiten, dertig oorspronkelijke pas
 | Opslag/structuur | `documents_sections`, `documents_activities`, `sqlite_sections`, `sqlite_activities` |
 | Beoordeling | `deterministic`, `manual`, `ai` (gepauzeerd) |
 
-De volledige hoofdmatrix heeft **16 varianten × 18 vragen = 288 zoekuitvoeringen**. Verschillende beoordelingen gebruiken daarna dezelfde opgeslagen resultaten. Het lab genereert geen antwoorden en doet geen Codex- of AI-beoordelaarsaanroepen.
+De volledige hoofdmatrix heeft **16 varianten × 18 vragen = 288 zoekuitvoeringen**. Verschillende beoordelingen gebruiken daarna dezelfde opgeslagen resultaten. De offline opdrachten `lab run`, `lab assess` en `lab report` genereren geen antwoorden en doen geen Codex- of AI-beoordelaarsaanroepen.
 
 ## Uitvoeren
 
