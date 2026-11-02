@@ -20,3 +20,8 @@ rusqlite = { version = "=0.41.1", optional = true, default-features = false, fea
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
+
+# Keep source/runtime SHA-256 checks fast in debug builds without changing their
+# bytes, dependencies, or the release profile.
+[profile.dev.package.sha2]
+opt-level = 3
