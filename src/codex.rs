@@ -522,6 +522,44 @@ pub struct CodexRunner {
     configuration: Value,
     active: Arc<Semaphore>,
 }
+
+fn runtime_locations() -> Result<(PathBuf, PathBuf, PathBuf), String> {
+    if !cfg!(unix) {
+        return Err("runtime: This child-process isolation currently requires macOS/Linux".into());
+    }
+    Ok((
+        std::fs::canonicalize(runtime_path()?)
+            .map_err(|_| "runtime: Codex executable unavailable")?,
+        std::env::current_exe().map_err(|_| "runtime: Cannot locate MCP executable")?,
+        std::env::current_dir().map_err(|_| "runtime: Cannot locate workspace")?,
+    ))
+}
+
+fn validated_version(bytes: &[u8]) -> Result<String, String> {
+    let version = std::str::from_utf8(bytes)
+        .map_err(|_| "runtime: Invalid Codex version")?
+        .trim();
+    if !version.strip_prefix("codex-cli ").is_some_and(|number| {
+        !number.is_empty()
+            && number.len() <= 80
+            && number.as_bytes()[0].is_ascii_digit()
+            && number
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || b".-+".contains(&byte))
+    }) {
+        return Err("runtime: Invalid Codex version".into());
+    }
+    Ok(version.to_owned())
+}
+
+fn configured_model() -> Result<String, String> {
+    let model = std::env::var("COA_CODEX_MODEL").unwrap_or_else(|_| "gpt-6.1-sol".into());
+    if model.is_empty() || model.len() > 100 {
+        return Err("runtime: Invalid model setting".into());
+    }
+    Ok(model)
+}
+
 impl CodexRunner {
     /// Evaluation-only no-tool session. Production `run` still requires real MCP retrieval.
     pub async fn run_isolated_json(
@@ -570,16 +608,7 @@ impl CodexRunner {
         })
     }
     pub fn new() -> Result<Self, String> {
-        if !cfg!(unix) {
-            return Err(
-                "runtime: This child-process isolation currently requires macOS/Linux".into(),
-            );
-        }
-        let executable = std::fs::canonicalize(runtime_path()?)
-            .map_err(|_| "runtime: Codex executable unavailable")?;
-        let mcp_executable =
-            std::env::current_exe().map_err(|_| "runtime: Cannot locate MCP executable")?;
-        let workspace = std::env::current_dir().map_err(|_| "runtime: Cannot locate workspace")?;
+        let (executable, mcp_executable, workspace) = runtime_locations()?;
         let version = std::process::Command::new(&executable)
             .arg("--version")
             .output()
@@ -587,26 +616,53 @@ impl CodexRunner {
         if !version.status.success() {
             return Err("runtime: Cannot read Codex version".into());
         }
-        let version = std::str::from_utf8(&version.stdout)
-            .map_err(|_| "runtime: Invalid Codex version")?
-            .trim();
-        if !version.strip_prefix("codex-cli ").is_some_and(|number| {
-            !number.is_empty()
-                && number.len() <= 80
-                && number.as_bytes()[0].is_ascii_digit()
-                && number
-                    .bytes()
-                    .all(|byte| byte.is_ascii_alphanumeric() || b".-+".contains(&byte))
-        }) {
-            return Err("runtime: Invalid Codex version".into());
+        let version = validated_version(&version.stdout)?;
+        let model = configured_model()?;
+        let binaries = runtime_fingerprints(&executable, &mcp_executable)?;
+        Ok(Self::from_runtime(
+            executable,
+            mcp_executable,
+            workspace,
+            version,
+            model,
+            binaries,
+        ))
+    }
+
+    /// Selected lab sessions include startup in their deadline and cancellation scope.
+    pub(crate) async fn new_selected(timeout: Duration) -> Result<Self, String> {
+        if timeout.is_zero() || timeout > RUN_TIMEOUT {
+            return Err("input: Invalid selected runtime startup timeout".into());
         }
-        let version = version.to_owned();
-        let model = std::env::var("COA_CODEX_MODEL").unwrap_or_else(|_| "gpt-6.1-sol".into());
-        if model.is_empty() || model.len() > 100 {
-            return Err("runtime: Invalid model setting".into());
-        }
-        let configuration = json!({"prompt_version":PROMPT_VERSION,"output_schema_version":2,"tool_policy_version":1,"client_version":version,"model":model,"reasoning_effort":"low","binaries":runtime_fingerprints(&executable,&mcp_executable)?});
-        Ok(Self {
+        let (executable, mcp_executable, workspace) = runtime_locations()?;
+        let mut probe = Command::new(&executable);
+        probe.arg("--version");
+        // This uses the same bounded pipes and child-owned process group as a run.
+        // Dropping this future on timeout/Ctrl+C also kills a stalled probe's descendants.
+        let stdout = execute(probe, b"", timeout).await?;
+        let version = validated_version(stdout.as_bytes())?;
+        let model = configured_model()?;
+        let binaries = runtime_fingerprints_cooperative(&executable, &mcp_executable).await?;
+        Ok(Self::from_runtime(
+            executable,
+            mcp_executable,
+            workspace,
+            version,
+            model,
+            binaries,
+        ))
+    }
+
+    fn from_runtime(
+        executable: PathBuf,
+        mcp_executable: PathBuf,
+        workspace: PathBuf,
+        version: String,
+        model: String,
+        binaries: Value,
+    ) -> Self {
+        let configuration = json!({"prompt_version":PROMPT_VERSION,"output_schema_version":2,"tool_policy_version":1,"client_version":version,"model":model,"reasoning_effort":"low","binaries":binaries});
+        Self {
             executable,
             mcp_executable,
             workspace,
@@ -614,7 +670,7 @@ impl CodexRunner {
             model,
             configuration,
             active: Arc::new(Semaphore::new(1)),
-        })
+        }
     }
     pub fn configuration(&self) -> Value {
         // Shared records contain only the reproducibility fields below. Paths and
@@ -670,9 +726,12 @@ impl CodexRunner {
         timeout: Duration,
     ) -> Result<CodexRun, String> {
         let preparation_started = Instant::now();
-        if runtime_fingerprints(&self.executable, &self.mcp_executable)?
-            != self.configuration["binaries"]
-        {
+        let binaries = if launch.is_some() {
+            runtime_fingerprints_cooperative(&self.executable, &self.mcp_executable).await?
+        } else {
+            runtime_fingerprints(&self.executable, &self.mcp_executable)?
+        };
+        if binaries != self.configuration["binaries"] {
             return Err("runtime: Executable changed; restart the app before replay".into());
         }
         let query = crate::validate_query(query).map_err(|e| format!("input: {e}"))?;
@@ -1094,10 +1153,119 @@ fn runtime_fingerprints(runtime: &Path, mcp: &Path) -> Result<Value, String> {
     )
 }
 
+async fn file_fingerprint_cooperative(path: &Path) -> Result<String, String> {
+    use std::io::Read;
+    let mut options = std::fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.custom_flags(libc::O_NONBLOCK);
+    }
+    let mut file = options
+        .open(path)
+        .map_err(|_| "runtime: Executable unavailable")?;
+    if !file
+        .metadata()
+        .map_err(|_| "runtime: Cannot inspect executable")?
+        .is_file()
+    {
+        return Err("runtime: Executable fingerprint requires a regular file".into());
+    }
+    let mut hash = Sha256::new();
+    let mut buffer = [0; 65536];
+    loop {
+        // Large debug binaries must not monopolize the async task while its timer
+        // or Ctrl+C is pending. No uncancellable blocking task or external process
+        // is spawned for hashing.
+        tokio::task::yield_now().await;
+        let count = file
+            .read(&mut buffer)
+            .map_err(|_| "runtime: Cannot fingerprint executable")?;
+        if count == 0 {
+            break;
+        }
+        hash.update(&buffer[..count]);
+    }
+    Ok(format!("{:x}", hash.finalize()))
+}
+
+async fn runtime_fingerprints_cooperative(runtime: &Path, mcp: &Path) -> Result<Value, String> {
+    let host = runtime
+        .parent()
+        .ok_or("runtime: Missing runtime directory")?
+        .join("codex-code-mode-host");
+    Ok(json!({
+        "codex":file_fingerprint_cooperative(runtime).await?,
+        "mcp":file_fingerprint_cooperative(mcp).await?,
+        "code_mode_host":file_fingerprint_cooperative(&host).await?,
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn selected_fingerprints_preserve_identity_and_yield_to_the_deadline() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "coa-cooperative-fingerprint-{}-{nonce}",
+            std::process::id()
+        ));
+        let directory = RunDirectory(path);
+        let runner = fake_runner(&directory.0, "#!/bin/sh\nexit 0\n");
+        assert_eq!(
+            runtime_fingerprints_cooperative(&runner.executable, &runner.mcp_executable)
+                .await
+                .unwrap(),
+            runtime_fingerprints(&runner.executable, &runner.mcp_executable).unwrap()
+        );
+        let started = Instant::now();
+        let result = tokio::time::timeout(
+            Duration::from_millis(1),
+            file_fingerprint_cooperative(&std::env::current_exe().unwrap()),
+        )
+        .await;
+        assert!(
+            result.is_err(),
+            "The large test binary must yield before completing its fingerprint"
+        );
+        assert!(
+            started.elapsed() < Duration::from_secs(1),
+            "Fingerprinting must remain cancellable"
+        );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn selected_fingerprint_rejects_a_fifo_without_opening_a_blocking_reader() {
+        use std::os::unix::ffi::OsStrExt;
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "coa-fingerprint-fifo-{}-{nonce}",
+            std::process::id()
+        ));
+        let directory = RunDirectory(path);
+        std::fs::create_dir(&directory.0).unwrap();
+        let path = directory.0.join("not-a-binary");
+        let name = std::ffi::CString::new(path.as_os_str().as_bytes()).unwrap();
+        assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+        let result = tokio::time::timeout(
+            Duration::from_millis(100),
+            file_fingerprint_cooperative(&path),
+        )
+        .await;
+        assert!(result.unwrap().unwrap_err().contains("regular file"));
+    }
 
     #[cfg(unix)]
     #[test]

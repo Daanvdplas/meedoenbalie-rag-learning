@@ -216,7 +216,12 @@ fn cancelling_a_live_cli_stops_its_child_and_keeps_the_reserved_failure() {
         .spawn()
         .unwrap();
     for _ in 0..800 {
-        if marker.exists() || child.try_wait().unwrap().is_some() {
+        if std::fs::read_to_string(&marker)
+            .ok()
+            .and_then(|pid| pid.parse::<i32>().ok())
+            .is_some()
+            || child.try_wait().unwrap().is_some()
+        {
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(25));
@@ -260,4 +265,154 @@ fn cancelling_a_live_cli_stops_its_child_and_keeps_the_reserved_failure() {
         child_stopped,
         "Cancelling the CLI must stop the owned runtime group"
     );
+}
+
+#[cfg(unix)]
+fn process_running(pid: i32) -> bool {
+    let status = Command::new("/bin/ps")
+        .args(["-o", "stat=", "-p", &pid.to_string()])
+        .output()
+        .unwrap();
+    status.status.success()
+        && !String::from_utf8_lossy(&status.stdout)
+            .trim()
+            .starts_with('Z')
+}
+
+#[cfg(unix)]
+fn verify_stalled_version_probe(cancel: bool) {
+    use std::{
+        os::unix::{fs::PermissionsExt, process::CommandExt},
+        time::{Duration, Instant},
+    };
+    let base = temporary();
+    let runtime = base.0.join("codex");
+    let marker = base.0.join("PROBE_STARTED");
+    let generation = base.0.join("GENERATION_STARTED");
+    let script = format!(
+        "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then\n sleep 30 &\n printf '%s %s' \"$$\" \"$!\" > '{}'\n wait\n printf 'codex-cli 0.163.0\\n'\n exit 0\nfi\nprintf 'started' > '{}'\nexit 1\n",
+        marker.display(),
+        generation.display()
+    );
+    std::fs::write(&runtime, script).unwrap();
+    std::fs::set_permissions(&runtime, std::fs::Permissions::from_mode(0o700)).unwrap();
+    std::fs::write(base.0.join("codex-code-mode-host"), b"fixture host").unwrap();
+    let output = base.0.join("answer.jsonl");
+    let ledger = base.0.join("budget.json");
+    let started = Instant::now();
+    let mut child = Command::new(env!("CARGO_BIN_EXE_meedoen-retrieval"))
+        .args([
+            "lab",
+            "ask",
+            "--live",
+            "--methods",
+            "bm25",
+            "--profiles",
+            "documents_sections",
+            "--question",
+            "Wanneer?",
+            "--output",
+            output.to_str().unwrap(),
+            "--ledger",
+            ledger.to_str().unwrap(),
+            "--max-generations",
+            "1",
+            "--max-seconds",
+            if cancel { "60" } else { "1" },
+        ])
+        .env("COA_CODEX_BIN", &runtime)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .process_group(0)
+        .spawn()
+        .unwrap();
+    let owned_cli_group = child.id() as i32;
+    while started.elapsed() < Duration::from_secs(2)
+        && std::fs::read_to_string(&marker).ok().is_none_or(|text| {
+            text.split_whitespace()
+                .filter_map(|pid| pid.parse::<i32>().ok())
+                .count()
+                != 2
+        })
+        && child.try_wait().unwrap().is_none()
+    {
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let pids: Vec<i32> = std::fs::read_to_string(&marker)
+        .unwrap_or_default()
+        .split_whitespace()
+        .map(|pid| pid.parse().unwrap())
+        .collect();
+    if cancel && pids.len() == 2 {
+        std::thread::sleep(Duration::from_millis(30));
+        unsafe {
+            libc::kill(owned_cli_group, libc::SIGINT);
+        }
+    }
+    let deadline = Instant::now() + Duration::from_secs(3);
+    while child.try_wait().unwrap().is_none() && Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let exceeded = child.try_wait().unwrap().is_none();
+    if exceeded {
+        unsafe {
+            libc::kill(-owned_cli_group, libc::SIGKILL);
+        }
+    }
+    let result = child.wait_with_output().unwrap();
+    let elapsed = started.elapsed();
+    std::thread::sleep(Duration::from_millis(60));
+    let surviving: Vec<_> = pids
+        .iter()
+        .copied()
+        .filter(|pid| process_running(*pid))
+        .collect();
+    // The watchdog cleans up only this regression's explicitly owned groups/PIDs.
+    unsafe {
+        libc::kill(-owned_cli_group, libc::SIGKILL);
+    }
+    for pid in &surviving {
+        unsafe {
+            libc::kill(-*pid, libc::SIGKILL);
+            libc::kill(*pid, libc::SIGKILL);
+        }
+    }
+    assert_eq!(pids.len(), 2, "The actual version probe must have started");
+    assert!(
+        !exceeded,
+        "A stalled --version probe must be bounded/cancellable"
+    );
+    if !cancel {
+        assert!(
+            elapsed < Duration::from_millis(2500),
+            "A one-second budget cannot wait for a stalled probe: {elapsed:?}"
+        );
+    }
+    let saved: Value = serde_json::from_slice(&std::fs::read(&output).unwrap()).unwrap();
+    assert!(!result.status.success());
+    assert_eq!(saved["status"], "failed");
+    assert_eq!(saved["error"], if cancel { "cancelled" } else { "timeout" });
+    assert_eq!(saved["generation_session_index"], 1);
+    assert_eq!(saved["ai_judge_calls"], 0);
+    assert!(saved["run"].is_null());
+    assert!(!generation.exists());
+    assert!(
+        surviving.is_empty(),
+        "Version probe and descendants must stop: {surviving:?}"
+    );
+    let budget: Value = serde_json::from_slice(&std::fs::read(&ledger).unwrap()).unwrap();
+    assert_eq!(budget["attempts"].as_array().unwrap().len(), 1);
+}
+
+#[cfg(unix)]
+#[test]
+fn stalled_version_probe_is_inside_the_global_deadline() {
+    verify_stalled_version_probe(false);
+}
+
+#[cfg(unix)]
+#[test]
+fn cancelling_during_version_probe_preserves_failure_and_stops_probe_group() {
+    verify_stalled_version_probe(true);
 }

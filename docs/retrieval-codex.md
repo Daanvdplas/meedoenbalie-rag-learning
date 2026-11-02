@@ -28,6 +28,9 @@ ledger en dezelfde limieten voor vervolgvragen, met steeds een nieuw uitvoerbest
 Ook mislukte pogingen verbruiken een reservering. Een verlopen of beschadigd ledger
 wordt niet automatisch vernieuwd; bestaande resultaten worden nooit overschreven.
 Ctrl+C stopt de eigen subprocessen en bewaart de gereserveerde poging als geannuleerd.
+Ook runtime-startup valt binnen deze grens: de `--version`-probe wordt asynchroon
+uitgevoerd en bij timeout/annulering met zijn eigen subprocessgroep gestopt.
+Het controleren van grote uitvoerbare bestanden onderbreekt de deadline niet.
 Deze aantallen zijn sessies, geen bekende aantallen provider-HTTP-requests.
 
 `--methods` accepteert precies één van `dense`, `bm25`, `hybrid_rrf` en

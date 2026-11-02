@@ -150,7 +150,7 @@ pub async fn cli(args: &[String]) -> Result<(), String> {
             .parse()
             .map_err(|_| "Invalid --max-seconds")?,
     };
-    let record = ask_with_runtime(options, CodexRunner::new).await?;
+    let record = ask_with_runtime(options, CodexRunner::new_selected).await?;
     println!(
         "{}",
         serde_json::json!({"schema_version":1,"run_id":record.run_id,"status":record.status,"config_id":record.config_id,"generation_session_index":record.generation_session_index,"ai_judge_calls":0,"source_guard_passed":record.source_guard_passed,"answer_quality_status":"not_assessed"})
@@ -183,10 +183,11 @@ fn persist(file: &mut File, record: &LiveRecord) -> Result<(), String> {
         .map_err(|_| "Cannot persist selected live result".into())
 }
 
-async fn ask_with_runtime(
-    options: LiveOptions,
-    runtime: impl FnOnce() -> Result<CodexRunner, String>,
-) -> Result<LiveRecord, String> {
+async fn ask_with_runtime<F, R>(options: LiveOptions, runtime: F) -> Result<LiveRecord, String>
+where
+    F: FnOnce(std::time::Duration) -> R,
+    R: std::future::Future<Output = Result<CodexRunner, String>>,
+{
     use std::sync::atomic::{AtomicU64, Ordering};
     static NEXT: AtomicU64 = AtomicU64::new(0);
     let started = Instant::now();
@@ -256,7 +257,7 @@ async fn ask_with_runtime(
     };
     persist(&mut output, &record)?;
     let execution = tokio::time::timeout(timeout, async {
-        let runner = runtime()?;
+        let runner = runtime(budget.remaining()?).await?;
         record.runtime_configuration = Some(runner.configuration());
         let launch = crate::codex::SelectedMcpLaunch {
             arguments: vec![
@@ -377,7 +378,7 @@ mod tests {
         let script =
             format!("#!/bin/sh\ncat >/dev/null\ncat <<'COA_EVENTS'\n{events}\nCOA_EVENTS\n");
         let runner = crate::codex::fixture_runner(&base.join("runtime"), &script);
-        let record = ask_with_runtime(options.clone(), || Ok(runner))
+        let record = ask_with_runtime(options.clone(), |_| async { Ok(runner) })
             .await
             .unwrap();
         assert_eq!(record.status, "completed");
@@ -390,9 +391,9 @@ mod tests {
         assert!(!options.session.model_cache.exists());
         let saved = std::fs::read(&options.output).unwrap();
         assert!(
-            ask_with_runtime(options.clone(), || panic!(
-                "Existing output must fail before runtime"
-            ))
+            ask_with_runtime(options.clone(), |_| async {
+                panic!("Existing output must fail before runtime")
+            })
             .await
             .is_err()
         );
@@ -407,7 +408,7 @@ mod tests {
         let base = temporary();
         std::fs::create_dir(&base).unwrap();
         let options = options(&base);
-        let record = ask_with_runtime(options.clone(), || {
+        let record = ask_with_runtime(options.clone(), |_| async {
             Err("runtime: FAKE-PRIVATE-TOKEN /Users/PRIVATE".into())
         })
         .await
@@ -450,8 +451,8 @@ mod tests {
             marker.display()
         );
         let runner = crate::codex::fixture_runner(&base.join("runtime"), &script);
-        let record = ask_with_runtime(options, || {
-            std::thread::sleep(std::time::Duration::from_millis(1100));
+        let record = ask_with_runtime(options, |_| async {
+            tokio::time::sleep(std::time::Duration::from_millis(1100)).await;
             Ok(runner)
         })
         .await
