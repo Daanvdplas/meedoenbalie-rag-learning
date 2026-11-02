@@ -16,6 +16,7 @@ Voer dit uit vanuit de projectmap met de bestaande `.model-cache`. Zonder modelb
 
 ```sh
 LAB_RUN_DIR="$(mktemp -d /tmp/coa-retrieval-lab.XXXXXX)"
+export CARGO_TARGET_DIR="$PWD/target/retrieval-lab"
 
 cargo run --locked --features sqlite -- lab plan
 cargo run --locked --features sqlite -- lab run \
@@ -37,6 +38,28 @@ cargo run --locked --no-default-features -- lab run \
   --methods bm25 --profiles documents_sections --cases T02 \
   --output "$LAB_RUN_DIR/t02-keyword.jsonl"
 ```
+
+## Resultaten bekijken en zelf beoordelen
+
+Maak van opgeslagen uitvoeringen een zelfstandig HTML-rapport:
+
+    cargo run --locked --features sqlite -- lab report --input "$LAB_RUN_DIR/retrieval.jsonl" --assessments "$LAB_RUN_DIR/assessments.jsonl" --output "$LAB_RUN_DIR/report.html"
+    open "$LAB_RUN_DIR/report.html"
+
+**open** is voor macOS; op andere systemen kun je het bestand in je browser openen. Het rapport heeft geen server, externe scripts of internetverbinding nodig. De report-opdracht laadt geen embeddingmodel en doet geen nieuwe zoek- of modelaanroepen. Zonder **--assessments** vult zij de actuele deterministische metingen, lege handmatige beoordelingen en gepauzeerde AI-records offline aan.
+
+1. Kies een vraag, zoekmethode, opslag-/structuurprofiel en beoordeling.
+2. Open een resultaat. Links staan de verwachte feiten; rechts de werkelijk opgehaalde passages met bron en datum.
+3. Bekijk wat ontbreekt en open desgewenst de metingen en instellingen.
+4. Kies **Zelf beoordelen** om een oordeel en optionele notitie vast te leggen. Je browser bewaart dit lokaal; exporteer de beoordelingen voor een los JSONL-bestand.
+
+Importeer zo'n export in een nieuw rapport:
+
+    cargo run --locked --features sqlite -- lab report --input "$LAB_RUN_DIR/retrieval.jsonl" --assessments /pad/naar/beoordelingen.jsonl --output "$LAB_RUN_DIR/report-met-oordelen.html"
+
+Het lab behoudt de gegeven oordelen en vult ontbrekende beoordelingstypen aan. Een verkeerd gekoppelde of verouderde beoordeling wordt geweigerd; zoeken wordt niet herhaald. Browseropslag die niet beschikbaar is, wordt zichtbaar gemeld. Niet-uitgevoerde combinaties tonen geen verzonnen nulscore.
+
+Lokale tijden bewijzen geen algemene snelheidswinst. Het retrieval-buildprofiel staat niet in de records: gebruik voor prestatieonderzoek consequent **--release** en bewaar ook het commando, de binaryhash en de omgeving. De pagina telt gedeelde voorbereiding eenmaal per batch en houdt deze los van de lokale zoektijden.
 
 ## Wat wordt beoordeeld?
 

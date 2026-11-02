@@ -8,5 +8,6 @@ pub mod live;
 mod live_budget;
 pub mod preparation;
 pub mod records;
+pub mod report;
 pub mod runner;
 pub mod types;
