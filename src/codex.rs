@@ -67,6 +67,11 @@ pub struct IsolatedRun {
     pub usage: Option<crate::experiment::types::TokenUsage>,
 }
 
+pub(crate) struct SelectedMcpLaunch {
+    pub arguments: Vec<String>,
+    pub instructions: String,
+}
+
 fn usage_from_events(events: &str) -> Option<crate::experiment::types::TokenUsage> {
     events
         .lines()
@@ -630,6 +635,37 @@ impl CodexRunner {
     }
 
     pub async fn run(&self, query: &str, top_k: usize) -> Result<CodexRun, String> {
+        self.run_with_launch(query, top_k, None, RUN_TIMEOUT).await
+    }
+
+    pub(crate) async fn run_with_selected_retrieval(
+        &self,
+        query: &str,
+        top_k: usize,
+        launch: &SelectedMcpLaunch,
+        timeout: Duration,
+    ) -> Result<CodexRun, String> {
+        if launch.arguments.is_empty()
+            || launch.arguments.len() > 8
+            || launch.arguments.iter().any(|arg| arg.is_empty() || arg.len() > 16_384)
+            || launch.instructions.is_empty()
+            || launch.instructions.len() > 4000
+            || timeout.is_zero()
+            || timeout > RUN_TIMEOUT
+        {
+            return Err("input: Invalid selected retrieval launch".into());
+        }
+        self.run_with_launch(query, top_k, Some(launch), timeout).await
+    }
+
+    async fn run_with_launch(
+        &self,
+        query: &str,
+        top_k: usize,
+        launch: Option<&SelectedMcpLaunch>,
+        timeout: Duration,
+    ) -> Result<CodexRun, String> {
+        let preparation_started = Instant::now();
         if runtime_fingerprints(&self.executable, &self.mcp_executable)?
             != self.configuration["binaries"]
         {
@@ -656,7 +692,9 @@ impl CodexRunner {
         std::fs::create_dir(&directory)
             .map_err(|_| "runtime: Cannot create temporary run directory")?;
         let directory = RunDirectory(directory);
-        self.run_in(&directory.0, &id, &query, top_k).await
+        let remaining = timeout.checked_sub(preparation_started.elapsed()).filter(|remaining| !remaining.is_zero())
+            .ok_or("runtime: Codex run timed out during preparation")?;
+        self.run_in(&directory.0, &id, &query, top_k, launch, remaining).await
     }
 
     fn command_in(
@@ -664,6 +702,16 @@ impl CodexRunner {
         directory: &Path,
         schema_path: &Path,
         with_mcp: bool,
+    ) -> Result<Command, String> {
+        self.command_in_with_mcp_args(directory, schema_path, with_mcp, None)
+    }
+
+    fn command_in_with_mcp_args(
+        &self,
+        directory: &Path,
+        schema_path: &Path,
+        with_mcp: bool,
+        arguments: Option<&[String]>,
     ) -> Result<Command, String> {
         let mut command = Command::new(&self.executable);
         command
@@ -701,7 +749,7 @@ impl CodexRunner {
         if with_mcp {
             settings.extend([
                 ("mcp_servers.coa.command", json!(self.mcp_executable)),
-                ("mcp_servers.coa.args", json!(["mcp"])),
+                ("mcp_servers.coa.args", arguments.map(|args| json!(args)).unwrap_or_else(|| json!(["mcp"]))),
                 ("mcp_servers.coa.cwd", json!(self.workspace)),
                 ("mcp_servers.coa.required", json!(true)),
                 ("mcp_servers.coa.enabled_tools", json!(["search_document"])),
@@ -773,20 +821,37 @@ impl CodexRunner {
         Ok(command)
     }
 
+    fn command_for_selected_retrieval(
+        &self,
+        directory: &Path,
+        schema_path: &Path,
+        arguments: &[String],
+    ) -> Result<Command, String> {
+        self.command_in_with_mcp_args(directory, schema_path, true, Some(arguments))
+    }
+
     async fn run_in(
         &self,
         directory: &Path,
         id: &str,
         query: &str,
         top_k: usize,
+        launch: Option<&SelectedMcpLaunch>,
+        timeout: Duration,
     ) -> Result<CodexRun, String> {
         let schema_path = directory.join("answer-schema.json");
         std::fs::write(&schema_path, output_schema().to_string())
             .map_err(|_| "runtime: Cannot write answer schema")?;
-        let command = self.command_in(directory, &schema_path, true)?;
-        let prompt = generation_prompt(query, top_k);
+        let command = match launch {
+            Some(launch) => self.command_for_selected_retrieval(directory, &schema_path, &launch.arguments)?,
+            None => self.command_in(directory, &schema_path, true)?,
+        };
+        let prompt = match launch {
+            Some(launch) => format!("{}\n\n{}", launch.instructions, generation_prompt(query, top_k)),
+            None => generation_prompt(query, top_k),
+        };
         let started = Instant::now();
-        let stdout = execute(command, prompt.as_bytes(), RUN_TIMEOUT).await?;
+        let stdout = execute(command, prompt.as_bytes(), timeout).await?;
         let mut parsed = parse_events(&stdout).map_err(|error| {
             diagnostic_error("agent_event_validation", &error, &stdout, Some(0))
         })?;
@@ -1015,6 +1080,25 @@ fn runtime_fingerprints(runtime: &Path, mcp: &Path) -> Result<Value, String> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[cfg(unix)]
+    #[test]
+    fn selected_retrieval_launch_uses_only_its_fixed_mcp_arguments() {
+        let directory = RunDirectory(std::env::temp_dir().join(format!(
+            "coa-selected-command-{}-{}", std::process::id(),
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+        )));
+        let runner = fake_runner(&directory.0, "#!/bin/sh\nexit 0\n");
+        let selected = vec!["lab".into(), "mcp".into(), "--session".into(), "{\"fixed\":true}".into()];
+        let command = runner.command_for_selected_retrieval(&directory.0, &directory.0.join("schema.json"), &selected).unwrap();
+        let args: Vec<_> = command.as_std().get_args().map(|value| value.to_string_lossy().into_owned()).collect();
+        let setting = format!("mcp_servers.coa.args={}", json!(selected));
+        assert!(args.contains(&setting), "Selected retrieval must launch the selected MCP route");
+        assert!(!args.contains(&"mcp_servers.coa.args=[\"mcp\"]".into()));
+        assert!(args.contains(&"mcp_servers.coa.enabled_tools=[\"search_document\"]".into()));
+        assert!(args.contains(&"--ignore-user-config".into()));
+        assert!(args.contains(&"permissions.coa-rag.network.enabled=false".into()));
+    }
 
     #[test]
     fn isolated_parser_requires_completion_and_rejects_every_tool_event() {
@@ -1339,7 +1423,7 @@ mod tests {
         )));
         let runner = fake_runner(&directory.0, "#!/bin/sh\nexit 1\n");
         let error = runner
-            .run_in(&directory.0.join("missing"), "test", "Wanneer?", 3)
+            .run_in(&directory.0.join("missing"), "test", "Wanneer?", 3, None, RUN_TIMEOUT)
             .await
             .unwrap_err();
         assert_eq!(error, "runtime: Cannot write answer schema");
