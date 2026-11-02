@@ -67,6 +67,11 @@ pub struct IsolatedRun {
     pub usage: Option<crate::experiment::types::TokenUsage>,
 }
 
+pub(crate) struct SelectedMcpLaunch {
+    pub arguments: Vec<String>,
+    pub instructions: String,
+}
+
 fn usage_from_events(events: &str) -> Option<crate::experiment::types::TokenUsage> {
     events
         .lines()
@@ -517,6 +522,44 @@ pub struct CodexRunner {
     configuration: Value,
     active: Arc<Semaphore>,
 }
+
+fn runtime_locations() -> Result<(PathBuf, PathBuf, PathBuf), String> {
+    if !cfg!(unix) {
+        return Err("runtime: This child-process isolation currently requires macOS/Linux".into());
+    }
+    Ok((
+        std::fs::canonicalize(runtime_path()?)
+            .map_err(|_| "runtime: Codex executable unavailable")?,
+        std::env::current_exe().map_err(|_| "runtime: Cannot locate MCP executable")?,
+        std::env::current_dir().map_err(|_| "runtime: Cannot locate workspace")?,
+    ))
+}
+
+fn validated_version(bytes: &[u8]) -> Result<String, String> {
+    let version = std::str::from_utf8(bytes)
+        .map_err(|_| "runtime: Invalid Codex version")?
+        .trim();
+    if !version.strip_prefix("codex-cli ").is_some_and(|number| {
+        !number.is_empty()
+            && number.len() <= 80
+            && number.as_bytes()[0].is_ascii_digit()
+            && number
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || b".-+".contains(&byte))
+    }) {
+        return Err("runtime: Invalid Codex version".into());
+    }
+    Ok(version.to_owned())
+}
+
+fn configured_model() -> Result<String, String> {
+    let model = std::env::var("COA_CODEX_MODEL").unwrap_or_else(|_| "gpt-6.1-sol".into());
+    if model.is_empty() || model.len() > 100 {
+        return Err("runtime: Invalid model setting".into());
+    }
+    Ok(model)
+}
+
 impl CodexRunner {
     /// Evaluation-only no-tool session. Production `run` still requires real MCP retrieval.
     pub async fn run_isolated_json(
@@ -565,16 +608,7 @@ impl CodexRunner {
         })
     }
     pub fn new() -> Result<Self, String> {
-        if !cfg!(unix) {
-            return Err(
-                "runtime: This child-process isolation currently requires macOS/Linux".into(),
-            );
-        }
-        let executable = std::fs::canonicalize(runtime_path()?)
-            .map_err(|_| "runtime: Codex executable unavailable")?;
-        let mcp_executable =
-            std::env::current_exe().map_err(|_| "runtime: Cannot locate MCP executable")?;
-        let workspace = std::env::current_dir().map_err(|_| "runtime: Cannot locate workspace")?;
+        let (executable, mcp_executable, workspace) = runtime_locations()?;
         let version = std::process::Command::new(&executable)
             .arg("--version")
             .output()
@@ -582,26 +616,53 @@ impl CodexRunner {
         if !version.status.success() {
             return Err("runtime: Cannot read Codex version".into());
         }
-        let version = std::str::from_utf8(&version.stdout)
-            .map_err(|_| "runtime: Invalid Codex version")?
-            .trim();
-        if !version.strip_prefix("codex-cli ").is_some_and(|number| {
-            !number.is_empty()
-                && number.len() <= 80
-                && number.as_bytes()[0].is_ascii_digit()
-                && number
-                    .bytes()
-                    .all(|byte| byte.is_ascii_alphanumeric() || b".-+".contains(&byte))
-        }) {
-            return Err("runtime: Invalid Codex version".into());
+        let version = validated_version(&version.stdout)?;
+        let model = configured_model()?;
+        let binaries = runtime_fingerprints(&executable, &mcp_executable)?;
+        Ok(Self::from_runtime(
+            executable,
+            mcp_executable,
+            workspace,
+            version,
+            model,
+            binaries,
+        ))
+    }
+
+    /// Selected lab sessions include startup in their deadline and cancellation scope.
+    pub(crate) async fn new_selected(timeout: Duration) -> Result<Self, String> {
+        if timeout.is_zero() || timeout > RUN_TIMEOUT {
+            return Err("input: Invalid selected runtime startup timeout".into());
         }
-        let version = version.to_owned();
-        let model = std::env::var("COA_CODEX_MODEL").unwrap_or_else(|_| "gpt-6.1-sol".into());
-        if model.is_empty() || model.len() > 100 {
-            return Err("runtime: Invalid model setting".into());
-        }
-        let configuration = json!({"prompt_version":PROMPT_VERSION,"output_schema_version":2,"tool_policy_version":1,"client_version":version,"model":model,"reasoning_effort":"low","binaries":runtime_fingerprints(&executable,&mcp_executable)?});
-        Ok(Self {
+        let (executable, mcp_executable, workspace) = runtime_locations()?;
+        let mut probe = Command::new(&executable);
+        probe.arg("--version");
+        // This uses the same bounded pipes and child-owned process group as a run.
+        // Dropping this future on timeout/Ctrl+C also kills a stalled probe's descendants.
+        let stdout = execute(probe, b"", timeout).await?;
+        let version = validated_version(stdout.as_bytes())?;
+        let model = configured_model()?;
+        let binaries = runtime_fingerprints_cooperative(&executable, &mcp_executable).await?;
+        Ok(Self::from_runtime(
+            executable,
+            mcp_executable,
+            workspace,
+            version,
+            model,
+            binaries,
+        ))
+    }
+
+    fn from_runtime(
+        executable: PathBuf,
+        mcp_executable: PathBuf,
+        workspace: PathBuf,
+        version: String,
+        model: String,
+        binaries: Value,
+    ) -> Self {
+        let configuration = json!({"prompt_version":PROMPT_VERSION,"output_schema_version":2,"tool_policy_version":1,"client_version":version,"model":model,"reasoning_effort":"low","binaries":binaries});
+        Self {
             executable,
             mcp_executable,
             workspace,
@@ -609,7 +670,7 @@ impl CodexRunner {
             model,
             configuration,
             active: Arc::new(Semaphore::new(1)),
-        })
+        }
     }
     pub fn configuration(&self) -> Value {
         // Shared records contain only the reproducibility fields below. Paths and
@@ -630,9 +691,47 @@ impl CodexRunner {
     }
 
     pub async fn run(&self, query: &str, top_k: usize) -> Result<CodexRun, String> {
-        if runtime_fingerprints(&self.executable, &self.mcp_executable)?
-            != self.configuration["binaries"]
+        self.run_with_launch(query, top_k, None, RUN_TIMEOUT).await
+    }
+
+    pub(crate) async fn run_with_selected_retrieval(
+        &self,
+        query: &str,
+        top_k: usize,
+        launch: &SelectedMcpLaunch,
+        timeout: Duration,
+    ) -> Result<CodexRun, String> {
+        if launch.arguments.is_empty()
+            || launch.arguments.len() > 8
+            || launch
+                .arguments
+                .iter()
+                .any(|arg| arg.is_empty() || arg.len() > 16_384)
+            || launch.instructions.is_empty()
+            || launch.instructions.len() > 4000
+            || timeout.is_zero()
+            || timeout > RUN_TIMEOUT
         {
+            return Err("input: Invalid selected retrieval launch".into());
+        }
+        self.run_with_launch(query, top_k, Some(launch), timeout)
+            .await
+    }
+
+    async fn run_with_launch(
+        &self,
+        query: &str,
+        top_k: usize,
+        launch: Option<&SelectedMcpLaunch>,
+        timeout: Duration,
+    ) -> Result<CodexRun, String> {
+        let preparation_started = Instant::now();
+        let binaries = if launch.is_some() {
+            runtime_fingerprints_cooperative(&self.executable, &self.mcp_executable).await?
+        } else {
+            runtime_fingerprints(&self.executable, &self.mcp_executable)?
+        };
+        if binaries != self.configuration["binaries"] {
             return Err("runtime: Executable changed; restart the app before replay".into());
         }
         let query = crate::validate_query(query).map_err(|e| format!("input: {e}"))?;
@@ -656,7 +755,12 @@ impl CodexRunner {
         std::fs::create_dir(&directory)
             .map_err(|_| "runtime: Cannot create temporary run directory")?;
         let directory = RunDirectory(directory);
-        self.run_in(&directory.0, &id, &query, top_k).await
+        let remaining = timeout
+            .checked_sub(preparation_started.elapsed())
+            .filter(|remaining| !remaining.is_zero())
+            .ok_or("runtime: Codex run timed out during preparation")?;
+        self.run_in(&directory.0, &id, &query, top_k, launch, remaining)
+            .await
     }
 
     fn command_in(
@@ -664,6 +768,16 @@ impl CodexRunner {
         directory: &Path,
         schema_path: &Path,
         with_mcp: bool,
+    ) -> Result<Command, String> {
+        self.command_in_with_mcp_args(directory, schema_path, with_mcp, None)
+    }
+
+    fn command_in_with_mcp_args(
+        &self,
+        directory: &Path,
+        schema_path: &Path,
+        with_mcp: bool,
+        arguments: Option<&[String]>,
     ) -> Result<Command, String> {
         let mut command = Command::new(&self.executable);
         command
@@ -701,7 +815,12 @@ impl CodexRunner {
         if with_mcp {
             settings.extend([
                 ("mcp_servers.coa.command", json!(self.mcp_executable)),
-                ("mcp_servers.coa.args", json!(["mcp"])),
+                (
+                    "mcp_servers.coa.args",
+                    arguments
+                        .map(|args| json!(args))
+                        .unwrap_or_else(|| json!(["mcp"])),
+                ),
                 ("mcp_servers.coa.cwd", json!(self.workspace)),
                 ("mcp_servers.coa.required", json!(true)),
                 ("mcp_servers.coa.enabled_tools", json!(["search_document"])),
@@ -773,20 +892,43 @@ impl CodexRunner {
         Ok(command)
     }
 
+    fn command_for_selected_retrieval(
+        &self,
+        directory: &Path,
+        schema_path: &Path,
+        arguments: &[String],
+    ) -> Result<Command, String> {
+        self.command_in_with_mcp_args(directory, schema_path, true, Some(arguments))
+    }
+
     async fn run_in(
         &self,
         directory: &Path,
         id: &str,
         query: &str,
         top_k: usize,
+        launch: Option<&SelectedMcpLaunch>,
+        timeout: Duration,
     ) -> Result<CodexRun, String> {
         let schema_path = directory.join("answer-schema.json");
         std::fs::write(&schema_path, output_schema().to_string())
             .map_err(|_| "runtime: Cannot write answer schema")?;
-        let command = self.command_in(directory, &schema_path, true)?;
-        let prompt = generation_prompt(query, top_k);
+        let command = match launch {
+            Some(launch) => {
+                self.command_for_selected_retrieval(directory, &schema_path, &launch.arguments)?
+            }
+            None => self.command_in(directory, &schema_path, true)?,
+        };
+        let prompt = match launch {
+            Some(launch) => format!(
+                "{}\n\n{}",
+                launch.instructions,
+                generation_prompt(query, top_k)
+            ),
+            None => generation_prompt(query, top_k),
+        };
         let started = Instant::now();
-        let stdout = execute(command, prompt.as_bytes(), RUN_TIMEOUT).await?;
+        let stdout = execute(command, prompt.as_bytes(), timeout).await?;
         let mut parsed = parse_events(&stdout).map_err(|error| {
             diagnostic_error("agent_event_validation", &error, &stdout, Some(0))
         })?;
@@ -1011,10 +1153,170 @@ fn runtime_fingerprints(runtime: &Path, mcp: &Path) -> Result<Value, String> {
     )
 }
 
+async fn file_fingerprint_cooperative(path: &Path) -> Result<String, String> {
+    use std::io::Read;
+    let mut options = std::fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.custom_flags(libc::O_NONBLOCK);
+    }
+    let mut file = options
+        .open(path)
+        .map_err(|_| "runtime: Executable unavailable")?;
+    if !file
+        .metadata()
+        .map_err(|_| "runtime: Cannot inspect executable")?
+        .is_file()
+    {
+        return Err("runtime: Executable fingerprint requires a regular file".into());
+    }
+    let mut hash = Sha256::new();
+    let mut buffer = [0; 65536];
+    const SLICE_BYTES: usize = 1024 * 1024;
+    let mut processed = SLICE_BYTES;
+    loop {
+        // Yield per MiB, rather than per read: debug binaries stay cancellable
+        // without thousands of scheduler handoffs on the main runtime task.
+        // No uncancellable background job or external process performs hashing.
+        if processed >= SLICE_BYTES {
+            tokio::task::yield_now().await;
+            processed = 0;
+        }
+        let count = file
+            .read(&mut buffer)
+            .map_err(|_| "runtime: Cannot fingerprint executable")?;
+        if count == 0 {
+            break;
+        }
+        hash.update(&buffer[..count]);
+        processed += count;
+    }
+    Ok(format!("{:x}", hash.finalize()))
+}
+
+async fn runtime_fingerprints_cooperative(runtime: &Path, mcp: &Path) -> Result<Value, String> {
+    let host = runtime
+        .parent()
+        .ok_or("runtime: Missing runtime directory")?
+        .join("codex-code-mode-host");
+    Ok(json!({
+        "codex":file_fingerprint_cooperative(runtime).await?,
+        "mcp":file_fingerprint_cooperative(mcp).await?,
+        "code_mode_host":file_fingerprint_cooperative(&host).await?,
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn selected_fingerprints_preserve_identity_and_yield_to_the_deadline() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "coa-cooperative-fingerprint-{}-{nonce}",
+            std::process::id()
+        ));
+        let directory = RunDirectory(path);
+        let runner = fake_runner(&directory.0, "#!/bin/sh\nexit 0\n");
+        let reference = directory.0.join("sha256-reference");
+        std::fs::write(&reference, b"abc").unwrap();
+        let expected = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+        assert_eq!(file_fingerprint(&reference).unwrap(), expected);
+        assert_eq!(
+            file_fingerprint_cooperative(&reference).await.unwrap(),
+            expected
+        );
+        assert_eq!(
+            runtime_fingerprints_cooperative(&runner.executable, &runner.mcp_executable)
+                .await
+                .unwrap(),
+            runtime_fingerprints(&runner.executable, &runner.mcp_executable).unwrap()
+        );
+        let started = Instant::now();
+        let result = tokio::time::timeout(
+            Duration::from_millis(1),
+            file_fingerprint_cooperative(&std::env::current_exe().unwrap()),
+        )
+        .await;
+        assert!(
+            result.is_err(),
+            "The large test binary must yield before completing its fingerprint"
+        );
+        assert!(
+            started.elapsed() < Duration::from_secs(1),
+            "Fingerprinting must remain cancellable"
+        );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn selected_fingerprint_rejects_a_fifo_without_opening_a_blocking_reader() {
+        use std::os::unix::ffi::OsStrExt;
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "coa-fingerprint-fifo-{}-{nonce}",
+            std::process::id()
+        ));
+        let directory = RunDirectory(path);
+        std::fs::create_dir(&directory.0).unwrap();
+        let path = directory.0.join("not-a-binary");
+        let name = std::ffi::CString::new(path.as_os_str().as_bytes()).unwrap();
+        assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+        let result = tokio::time::timeout(
+            Duration::from_millis(100),
+            file_fingerprint_cooperative(&path),
+        )
+        .await;
+        assert!(result.unwrap().unwrap_err().contains("regular file"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn selected_retrieval_launch_uses_only_its_fixed_mcp_arguments() {
+        let directory = RunDirectory(std::env::temp_dir().join(format!(
+            "coa-selected-command-{}-{}", std::process::id(),
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+        )));
+        let runner = fake_runner(&directory.0, "#!/bin/sh\nexit 0\n");
+        let selected = vec![
+            "lab".into(),
+            "mcp".into(),
+            "--session".into(),
+            "{\"fixed\":true}".into(),
+        ];
+        let command = runner
+            .command_for_selected_retrieval(
+                &directory.0,
+                &directory.0.join("schema.json"),
+                &selected,
+            )
+            .unwrap();
+        let args: Vec<_> = command
+            .as_std()
+            .get_args()
+            .map(|value| value.to_string_lossy().into_owned())
+            .collect();
+        let setting = format!("mcp_servers.coa.args={}", json!(selected));
+        assert!(
+            args.contains(&setting),
+            "Selected retrieval must launch the selected MCP route"
+        );
+        assert!(!args.contains(&"mcp_servers.coa.args=[\"mcp\"]".into()));
+        assert!(args.contains(&"mcp_servers.coa.enabled_tools=[\"search_document\"]".into()));
+        assert!(args.contains(&"--ignore-user-config".into()));
+        assert!(args.contains(&"permissions.coa-rag.network.enabled=false".into()));
+    }
 
     #[test]
     fn isolated_parser_requires_completion_and_rejects_every_tool_event() {
@@ -1339,7 +1641,14 @@ mod tests {
         )));
         let runner = fake_runner(&directory.0, "#!/bin/sh\nexit 1\n");
         let error = runner
-            .run_in(&directory.0.join("missing"), "test", "Wanneer?", 3)
+            .run_in(
+                &directory.0.join("missing"),
+                "test",
+                "Wanneer?",
+                3,
+                None,
+                RUN_TIMEOUT,
+            )
             .await
             .unwrap_err();
         assert_eq!(error, "runtime: Cannot write answer schema");

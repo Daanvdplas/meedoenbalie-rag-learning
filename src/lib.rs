@@ -3,8 +3,11 @@ pub mod experiment;
 pub mod manifest;
 pub mod mcp;
 pub mod ranking;
+pub mod retrieval;
+pub mod retrieval_lab;
 pub mod runs;
 pub mod source;
+pub mod storage;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

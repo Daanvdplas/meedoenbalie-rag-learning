@@ -3,15 +3,25 @@ name = "meedoen-retrieval"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = []
+sqlite = ["dep:rusqlite"]
+
 [dependencies]
 axum = "0.8.8"
 fastembed = { version = "=7.1.2", default-features = false, features = ["hf-hub-native-tls", "ort-download-binaries-native-tls"] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde_json = { version = "1", features = ["float_roundtrip"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "process", "io-util", "sync", "time", "signal"] }
 
 sha2 = "0.10"
 libc = "0.2"
+rusqlite = { version = "=0.41.1", optional = true, default-features = false, features = ["bundled"] }
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
+
+# Keep source/runtime SHA-256 checks fast in debug builds without changing their
+# bytes, dependencies, or the release profile.
+[profile.dev.package.sha2]
+opt-level = 3
