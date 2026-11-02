@@ -5,5 +5,6 @@ pub mod cli;
 pub mod dataset;
 pub mod preparation;
 pub mod records;
+pub mod report;
 pub mod runner;
 pub mod types;

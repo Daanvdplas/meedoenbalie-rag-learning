@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Het zoeklab · Activiteiten vinden</title>
+  <style>__REPORT_STYLE__</style>
+</head>
+<body>
+  <a class="skip-link" href="#comparison">Naar de vergelijking</a>
+  <main>
+    <header class="page-header">
+      <p class="eyebrow">Activiteiten vinden <span aria-hidden="true">/</span> het zoeklab</p>
+      <h1>Wat vindt jouw zoekmethode?</h1>
+      <p class="intro">Dezelfde vraag, dezelfde bronnen. Vergelijk wat elke combinatie vindt en wat nog ontbreekt.</p>
+      <p id="artifact-summary" class="subtle"></p>
+    </header>
+
+    <aside id="fixture-note" class="notice" hidden><strong>Oefengegevens.</strong> Deze pagina bevat voorbeeldruns. Gebruik deze tijden niet als prestatiemeting.</aside>
+    <section id="empty-state" class="notice" hidden><h2>Nog geen uitvoeringen</h2><p>Maak eerst een lokale testuitvoering en bouw daarna dit rapport.</p></section>
+    <noscript><p class="notice">Schakel JavaScript in om de opgeslagen resultaten te vergelijken. Deze pagina doet geen modelaanroepen.</p></noscript>
+
+    <div id="lab" hidden>
+      <section class="controls" aria-label="Kies je vergelijking">
+        <label class="question-control" for="question-select">Welke vraag wil je bekijken?<select id="question-select"></select></label>
+        <div class="primary-controls">
+          <label for="method-select"><span class="control-number">1</span> Zoekmethode<select id="method-select"><option value="all">Alle zoekmethoden</option></select></label>
+          <label for="profile-select"><span class="control-number">2</span> Opslag en structuur<select id="profile-select"><option value="all">Alle structuren</option></select></label>
+          <label for="assessment-select"><span class="control-number">3</span> Beoordeling<select id="assessment-select"><option value="deterministic">Deterministische metingen</option><option value="manual">Zelf beoordelen</option><option value="ai">AI · gepauzeerd</option></select></label>
+        </div>
+        <details class="settings-control"><summary>Instellingen en uitleg</summary><label for="settings-select">Vergelijkbare instellingen<select id="settings-select"></select></label><p>Een andere beoordeling gebruikt dezelfde opgeslagen uitvoering. Uitbreiding naar een hele activiteit, filters en diversiteit zijn afzonderlijke instellingen.</p></details>
+      </section>
+
+      <section id="comparison" class="comparison-section" aria-labelledby="comparison-heading">
+        <div class="section-heading"><div><p class="eyebrow" id="question-kind"></p><h2 id="comparison-heading"></h2></div><p id="selection-count" class="subtle" aria-live="polite"></p></div>
+        <p id="comparison-help" class="help">Klik op een resultaat om de verwachte informatie en de gevonden passages te vergelijken.</p>
+        <p id="assessment-notice" class="notice" hidden></p>
+        <div id="comparison-grid"></div>
+        <div class="legend"><span><i class="legend-dot covered"></i> Feiten ondersteund of goed beoordeeld</span><span><i class="legend-dot partial"></i> Niet compleet of nader bekijken</span><span><i class="legend-dot unavailable"></i> Niet beoordeeld of n.v.t.</span><span><i class="legend-dot failed"></i> Uitvoering mislukt of onvoldoende beoordeeld</span></div>
+        <p class="help">Dekking meet of de benodigde bronpassages zijn gevonden. Het is geen oordeel over een antwoord. Er is hier geen antwoord gegenereerd.</p>
+      </section>
+
+      <section id="result-detail" class="detail-section" aria-labelledby="detail-heading" hidden>
+        <div class="section-heading"><div><p class="eyebrow">Deze uitvoering</p><h2 id="detail-heading" tabindex="-1"></h2></div><span id="detail-status" class="badge"></span></div>
+        <p id="detail-caption" class="subtle"></p>
+        <div id="result-error" class="notice error" hidden></div>
+        <div id="measurements" class="measurements"></div>
+        <div class="evidence-layout">
+          <section class="expected-column" aria-labelledby="expected-heading"><h3 id="expected-heading">Dit verwachten we</h3><p class="help">Een feit kan meerdere passages nodig hebben. Alle delen moeten samen gevonden zijn.</p><div id="expected-facts"></div></section>
+          <section class="sources-column" aria-labelledby="sources-heading"><h3 id="sources-heading">Dit is opgehaald</h3><p id="passage-count" class="help"></p><div id="retrieved-passages"></div></section>
+        </div>
+        <section id="manual-review" class="manual-review" aria-labelledby="manual-heading" hidden>
+          <h3 id="manual-heading">Jouw beoordeling van de opgehaalde informatie</h3>
+          <p class="help">Zijn de passages bruikbaar voor deze vraag? Je beoordeelt de zoekresultaten, niet een modelantwoord.</p>
+          <div class="review-actions" role="group" aria-label="Beoordeling van deze uitvoering"><button type="button" data-verdict="good">Goed</button><button type="button" data-verdict="bad">Onvoldoende</button><button type="button" data-verdict="review_needed">Nader bekijken</button><button type="button" id="clear-review">Wis beoordeling</button></div>
+          <label for="review-notes">Notitie <span class="optional">optioneel</span><textarea id="review-notes" rows="3" maxlength="4000" placeholder="Wat helpt, of wat ontbreekt er?"></textarea></label>
+          <div class="review-footer"><p id="review-status" class="help" aria-live="polite"></p><button type="button" id="export-reviews">Exporteer beoordelingen</button></div>
+          <p id="storage-notice" class="help" hidden></p>
+        </section>
+        <details class="technical-details"><summary>Metingen, controles en instellingen</summary><div id="technical-content"></div></details>
+      </section>
+
+      <details class="overview"><summary>Vergelijk over alle vragen</summary><p id="overview-help" class="help"></p><div id="all-questions-summary"></div></details>
+      <footer><p>Vijf fictieve activiteiten · regressie- en ontwikkelvragen · lokale retrieval zonder Codex- of AI-beoordelaaraanroepen.</p><p>Brondata, verwachtingen en beoordelingen blijven gescheiden. Ontbrekende informatie blijft onbekend.</p></footer>
+    </div>
+  </main>
+  <script id="report-data" type="application/json">__REPORT_DATA__</script>
+  <script>__REPORT_SCRIPT__</script>
+</body>
+</html>
