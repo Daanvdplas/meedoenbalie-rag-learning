@@ -170,46 +170,18 @@ fn clock_minutes(value: &str) -> Option<u16> {
 
 fn explicit_environment(sentence: &str) -> Option<Environment> {
     let sentence = sentence.trim().to_lowercase();
-    let words: Vec<_> = sentence
-        .split(|character: char| !character.is_alphanumeric())
-        .filter(|word| !word.is_empty())
-        .collect();
-    if words.iter().any(|word| {
-        [
-            "niet",
-            "geen",
-            "of",
-            "tenzij",
-            "soms",
-            "noch",
-            "als",
-            "wanneer",
-            "meestal",
-            "mogelijk",
-            "misschien",
-            "alleen",
-        ]
-        .contains(word)
-    }) || (words.contains(&"binnen") && words.contains(&"buiten"))
-    {
-        return None;
+    // A controlled statement grammar, not general Dutch interpretation: "binnen"
+    // can also mean "within", and arbitrary tails can add conditions or exceptions.
+    match sentence.as_str() {
+        "we werken binnen"
+        | "we zitten binnen"
+        | "we zitten binnen aan een grote tafel"
+        | "de activiteit is binnen" => Some(Environment::Indoor),
+        "je werkt buiten"
+        | "je werkt buiten met je handen"
+        | "we werken buiten"
+        | "de wandeling is buiten"
+        | "de activiteit is buiten" => Some(Environment::Outdoor),
+        _ => None,
     }
-    for (prefix, environment) in [
-        ("we werken binnen", Environment::Indoor),
-        ("we zitten binnen", Environment::Indoor),
-        ("de activiteit is binnen", Environment::Indoor),
-        ("je werkt buiten", Environment::Outdoor),
-        ("we werken buiten", Environment::Outdoor),
-        ("de wandeling is buiten", Environment::Outdoor),
-        ("de activiteit is buiten", Environment::Outdoor),
-    ] {
-        if sentence == prefix
-            || sentence
-                .strip_prefix(prefix)
-                .is_some_and(|rest| rest.starts_with(' '))
-        {
-            return Some(environment);
-        }
-    }
-    None
 }

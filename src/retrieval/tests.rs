@@ -88,12 +88,38 @@ fn conditional_environment_statements_do_not_become_hard_filter_facts() {
         "We werken binnen soms.",
         "We werken binnen en buiten.",
         "We werken binnen tenzij het zonnig is.",
+        "We werken binnen twee weken aan fietsen.",
+        "We werken binnen de gemeente.",
+        "We werken binnen bij regen.",
+        "We werken buiten de gemeente.",
+        "We werken buiten kantooruren.",
+        "Je werkt buiten de openingstijden.",
     ] {
         let corpus = PreparedCorpus::new(vec![section("A", "S1", text)], None, None).unwrap();
         assert!(
             corpus.activities[0].environment.is_none(),
             "inferred unconditional environment from {text}"
         );
+        let outcome = retrieve(
+            &corpus,
+            &RetrievalRequest {
+                query: text.into(),
+                filters: QueryFilters {
+                    environment: Some(Environment::Indoor),
+                    ..Default::default()
+                },
+            },
+            &RetrievalConfig {
+                method: SearchMethod::Bm25,
+                apply_filters: true,
+                ..Default::default()
+            },
+            None,
+        )
+        .unwrap();
+        assert!(outcome.filters.matched_activity_ids.is_empty());
+        assert_eq!(outcome.filters.unknown_activities[0].source_id, "A");
+        assert!(outcome.hits.is_empty());
     }
 }
 
@@ -445,6 +471,7 @@ fn validation_rejects_invalid_queries_budgets_and_nonfinite_weights() {
     assert!(retrieve(&corpus, &request("query"), &config, Some(&[1.0, 0.0])).is_err());
     config.candidate_k = 30;
     config.vector_weight = f64::NAN;
+    assert!(validate_config(&config, &QueryFilters::default()).is_err());
     assert!(retrieve(&corpus, &request("query"), &config, Some(&[1.0, 0.0])).is_err());
     config.vector_weight = 0.7;
     let request = RetrievalRequest {

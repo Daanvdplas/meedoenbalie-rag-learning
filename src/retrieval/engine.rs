@@ -303,7 +303,8 @@ pub fn retrieve(
     })
 }
 
-fn validate_config(config: &RetrievalConfig, filters: &QueryFilters) -> Result<(), String> {
+/// Validate selectable parameters before preparing an index or initializing a model.
+pub fn validate_config(config: &RetrievalConfig, filters: &QueryFilters) -> Result<(), String> {
     crate::ranking::validate_top_k(config.top_k)?;
     if !(1..=1000).contains(&config.candidate_k)
         || config.context_token_limit == 0
