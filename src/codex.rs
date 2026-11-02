@@ -1174,11 +1174,16 @@ async fn file_fingerprint_cooperative(path: &Path) -> Result<String, String> {
     }
     let mut hash = Sha256::new();
     let mut buffer = [0; 65536];
+    const SLICE_BYTES: usize = 1024 * 1024;
+    let mut processed = SLICE_BYTES;
     loop {
-        // Large debug binaries must not monopolize the async task while its timer
-        // or Ctrl+C is pending. No uncancellable blocking task or external process
-        // is spawned for hashing.
-        tokio::task::yield_now().await;
+        // Yield per MiB, rather than per read: debug binaries stay cancellable
+        // without thousands of scheduler handoffs on the main runtime task.
+        // No uncancellable background job or external process performs hashing.
+        if processed >= SLICE_BYTES {
+            tokio::task::yield_now().await;
+            processed = 0;
+        }
         let count = file
             .read(&mut buffer)
             .map_err(|_| "runtime: Cannot fingerprint executable")?;
@@ -1186,6 +1191,7 @@ async fn file_fingerprint_cooperative(path: &Path) -> Result<String, String> {
             break;
         }
         hash.update(&buffer[..count]);
+        processed += count;
     }
     Ok(format!("{:x}", hash.finalize()))
 }
