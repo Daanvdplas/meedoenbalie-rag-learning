@@ -493,5 +493,21 @@
   byId("artifact-summary").textContent = rows.length + " uitvoeringen · " + questions.size + " vragen · " +
     new Set(rows.map((row) => row.record.config_id)).size + " combinaties · " + measured + " echte lokale metingen";
   byId("fixture-note").hidden = measured === rows.length;
+  const sharedPreparations = data.shared_preparations || [];
+  byId("shared-preparation-details").hidden = !sharedPreparations.length;
+  sharedPreparations.forEach((batch) => {
+    const list = element("dl", "definition-list"), summary = batch.summary;
+    const host = byId("shared-preparation-summary");
+    host.append(element("h3", "", "Batch " + batch.batch_id));
+    appendDefinition(list, "Voorbereiding", summary.preparation_id);
+    [["Bronnen lezen", summary.source_parse_ms], ["Modelidentiteit controleren", summary.model_identity_ms],
+      ["Model laden", summary.model_load_ms], ["Documentembeddings", summary.document_inference_ms],
+      ["Vraagembeddings", summary.query_inference_ms]].forEach(([label, value]) => appendDefinition(list, label, milliseconds(value)));
+    appendDefinition(list, "Nieuwe documentembeddings", summary.document_inputs_encoded);
+    appendDefinition(list, "Nieuwe vraagembeddings", summary.query_inputs_encoded);
+    appendDefinition(list, "Zoekpad", "Dezelfde Rust-zoekberekening na het laden van de gekozen opslag",
+      "SQLite is hier opslag en cache; dit is geen aparte SQLite FTS- of ANN-zoekmethode.");
+    host.append(list);
+  });
   loadReviews(); renderAll();
 })();
