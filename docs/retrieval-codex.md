@@ -27,6 +27,7 @@ minuten, één tegelijk, en maximaal 120 seconden per sessie. Gebruik hetzelfde
 ledger en dezelfde limieten voor vervolgvragen, met steeds een nieuw uitvoerbestand.
 Ook mislukte pogingen verbruiken een reservering. Een verlopen of beschadigd ledger
 wordt niet automatisch vernieuwd; bestaande resultaten worden nooit overschreven.
+Ctrl+C stopt de eigen subprocessen en bewaart de gereserveerde poging als geannuleerd.
 Deze aantallen zijn sessies, geen bekende aantallen provider-HTTP-requests.
 
 `--methods` accepteert precies één van `dense`, `bm25`, `hybrid_rrf` en

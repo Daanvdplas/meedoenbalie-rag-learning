@@ -14,11 +14,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     match command.as_str() {
         "lab" => {
             if matches!(args.first().map(String::as_str), Some("ask" | "mcp")) {
-                meedoen_retrieval::retrieval_lab::live::cli(&args).await.map_err(std::io::Error::other)?;
+                meedoen_retrieval::retrieval_lab::live::cli(&args)
+                    .await
+                    .map_err(std::io::Error::other)?;
                 return Ok(());
             }
-            let output = meedoen_retrieval::retrieval_lab::cli::cli(&args)
-                .map_err(std::io::Error::other)?;
+            let output =
+                meedoen_retrieval::retrieval_lab::cli::cli(&args).map_err(std::io::Error::other)?;
             println!("{}", serde_json::to_string_pretty(&output)?);
             return Ok(());
         }

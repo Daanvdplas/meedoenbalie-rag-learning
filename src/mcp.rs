@@ -16,12 +16,17 @@ impl SearchPolicy {
         if !(1..=6).contains(&top_k) || description.is_empty() || description.len() > 4000 {
             return Err("Invalid fixed retrieval tool policy".into());
         }
-        Ok(Self { fixed_top_k: Some(top_k), description: Some(description) })
+        Ok(Self {
+            fixed_top_k: Some(top_k),
+            description: Some(description),
+        })
     }
 }
 
 pub fn handle_request<F>(request: Value, search: &mut F) -> Option<Value>
-where F: FnMut(&str, usize) -> Result<Value, String> {
+where
+    F: FnMut(&str, usize) -> Result<Value, String>,
+{
     handle_request_with_policy(request, search, &SearchPolicy::default())
 }
 
@@ -29,7 +34,11 @@ fn rpc_error(id: Value, code: i32, message: &str) -> Value {
     json!({"jsonrpc":"2.0","id":id,"error":{"code":code,"message":message}})
 }
 
-pub fn handle_request_with_policy<F>(request: Value, search: &mut F, policy: &SearchPolicy) -> Option<Value>
+pub fn handle_request_with_policy<F>(
+    request: Value,
+    search: &mut F,
+    policy: &SearchPolicy,
+) -> Option<Value>
 where
     F: FnMut(&str, usize) -> Result<Value, String>,
 {
@@ -74,17 +83,19 @@ where
                 .as_str()
                 .and_then(|q| crate::validate_query(q).ok());
             let top_k = args["top_k"].as_u64().filter(|k| (1..=6).contains(k));
-            if params["name"] != "search_document" || !valid || query.is_none() || top_k.is_none()
-                || policy.fixed_top_k.is_some_and(|fixed| top_k != Some(fixed as u64)) {
+            if params["name"] != "search_document"
+                || !valid
+                || query.is_none()
+                || top_k.is_none()
+                || policy
+                    .fixed_top_k
+                    .is_some_and(|fixed| top_k != Some(fixed as u64))
+            {
                 let message = match policy.fixed_top_k {
                     Some(top_k) => format!("Expected search_document with query (1–1000 characters), fixed top_k={top_k}, and no extra arguments"),
                     None => "Expected search_document with query (1–1000 characters) and top_k (1–6), and no extra arguments".into(),
                 };
-                return Some(rpc_error(
-                    id,
-                    -32602,
-                    &message,
-                ));
+                return Some(rpc_error(id, -32602, &message));
             }
             match search(&query.unwrap(), top_k.unwrap() as usize) {
                 Ok(value) => {
@@ -106,12 +117,10 @@ where
 }
 
 /// MCP stdout contains protocol responses only. The caller owns the fixed index.
-pub fn serve<F>(
-    reader: impl BufRead,
-    writer: impl Write,
-    search: F,
-) -> Result<(), String>
-where F: FnMut(&str, usize) -> Result<Value, String> {
+pub fn serve<F>(reader: impl BufRead, writer: impl Write, search: F) -> Result<(), String>
+where
+    F: FnMut(&str, usize) -> Result<Value, String>,
+{
     serve_with_policy(reader, writer, search, SearchPolicy::default())
 }
 
@@ -166,10 +175,22 @@ mod tests {
 
     #[test]
     fn fixed_search_policy_is_advertised_and_rejects_treatment_changes_before_search() {
-        let policy = SearchPolicy::fixed(3, "Keyword search in the selected SQLite activity structure".into()).unwrap();
+        let policy = SearchPolicy::fixed(
+            3,
+            "Keyword search in the selected SQLite activity structure".into(),
+        )
+        .unwrap();
         let mut never = |_: &str, _: usize| panic!("A changed top-k must never reach retrieval");
-        let list = handle_request_with_policy(json!({"jsonrpc":"2.0","id":1,"method":"tools/list"}), &mut never, &policy).unwrap();
-        assert_eq!(list["result"]["tools"][0]["inputSchema"]["properties"]["top_k"]["enum"], json!([3]));
+        let list = handle_request_with_policy(
+            json!({"jsonrpc":"2.0","id":1,"method":"tools/list"}),
+            &mut never,
+            &policy,
+        )
+        .unwrap();
+        assert_eq!(
+            list["result"]["tools"][0]["inputSchema"]["properties"]["top_k"]["enum"],
+            json!([3])
+        );
         let response = handle_request_with_policy(json!({"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search_document","arguments":{"query":"Waar?","top_k":6}}}), &mut never, &policy).unwrap();
         assert_eq!(response["error"]["code"], -32602);
         assert!(SearchPolicy::fixed(7, "invalid".into()).is_err());
