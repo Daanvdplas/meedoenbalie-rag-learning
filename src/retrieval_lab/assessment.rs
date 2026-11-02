@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use super::types::StoredRecord;
 
-pub const ASSESSOR_VERSION: &str = "retrieval-assessment-v1";
+pub const ASSESSOR_VERSION: &str = "retrieval-assessment-v2";
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -156,12 +156,119 @@ fn reference(section: &crate::Section) -> SectionRef {
     }
 }
 
+fn canonical_trace(record: &super::types::RetrievalRecord, corpus: &[crate::Section]) -> bool {
+    use crate::retrieval::{Inclusion, SearchMethod, SectionKey};
+    use std::collections::BTreeSet;
+    let Some(outcome) = &record.outcome else {
+        return false;
+    };
+    let canonical: BTreeSet<_> = corpus.iter().map(SectionKey::from).collect();
+    let candidates: BTreeSet<_> = outcome
+        .candidates
+        .iter()
+        .map(|candidate| candidate.key.clone())
+        .collect();
+    let seeds: BTreeSet<_> = outcome.seeds.iter().cloned().collect();
+    let offered: BTreeSet<_> = outcome
+        .hits
+        .iter()
+        .map(|hit| SectionKey::from(&hit.section))
+        .collect();
+    let actual_seeds: Vec<_> = outcome
+        .hits
+        .iter()
+        .filter(|hit| hit.inclusion == Inclusion::Seed)
+        .map(|hit| SectionKey::from(&hit.section))
+        .collect();
+    let omitted: BTreeSet<_> = outcome
+        .omitted
+        .iter()
+        .map(|omission| omission.key.clone())
+        .collect();
+    let uses_dense = outcome.config.method != SearchMethod::Bm25;
+    let uses_keyword = outcome.config.method != SearchMethod::Dense;
+    let ranks_coherent = |dense: bool| {
+        let ranks: Vec<_> = outcome
+            .candidates
+            .iter()
+            .filter_map(|candidate| {
+                if dense {
+                    candidate.scores.dense_rank
+                } else {
+                    candidate.scores.keyword_rank
+                }
+            })
+            .collect();
+        let unique: BTreeSet<_> = ranks.iter().copied().collect();
+        ranks.len() <= outcome.config.candidate_k
+            && unique.len() == ranks.len()
+            && unique == (1..=ranks.len()).collect()
+    };
+    outcome.version == crate::retrieval::RETRIEVAL_VERSION
+        && outcome.config == record.config.retrieval
+        && outcome.query == record.question
+        && record.preparation.corpus_identity.as_ref() == Some(&outcome.corpus_identity)
+        && candidates.len() == outcome.candidates.len()
+        && candidates.is_subset(&canonical)
+        && outcome.work.union_candidates == outcome.candidates.len()
+        && ranks_coherent(true)
+        && ranks_coherent(false)
+        && outcome.candidates.iter().all(|candidate| {
+            let score = &candidate.scores;
+            score.dense_similarity.is_some() == uses_dense
+                && score.bm25_score.is_some() == uses_keyword
+                && (uses_dense || score.dense_rank.is_none())
+                && (uses_keyword || score.keyword_rank.is_none())
+                && (score.dense_rank.is_some() || score.keyword_rank.is_some())
+                && score
+                    .dense_similarity
+                    .is_none_or(|value| (-1.0..=1.0).contains(&value))
+                && score.bm25_score.is_none_or(|value| value >= 0.0)
+                && (score.keyword_rank.is_none()
+                    || score.bm25_score.is_some_and(|value| value > 0.0))
+        })
+        && outcome.candidates.windows(2).all(|pair| {
+            pair[1]
+                .scores
+                .rank_score
+                .total_cmp(&pair[0].scores.rank_score)
+                .then(pair[0].key.cmp(&pair[1].key))
+                != std::cmp::Ordering::Greater
+        })
+        && seeds.len() == outcome.seeds.len()
+        && seeds.is_subset(&candidates)
+        && outcome.seeds == actual_seeds
+        && seeds.len() <= record.config.retrieval.top_k
+        && outcome.hits.iter().all(|hit| {
+            let candidate = outcome
+                .candidates
+                .iter()
+                .find(|candidate| candidate.key == SectionKey::from(&hit.section));
+            hit.scores.as_ref() == candidate.map(|candidate| &candidate.scores)
+                && (hit.inclusion != Inclusion::ActivityExpansion
+                    || seeds
+                        .iter()
+                        .any(|key| key.source_id == hit.section.source_id))
+        })
+        && omitted.len() == outcome.omitted.len()
+        && omitted.is_subset(&canonical)
+        && omitted.is_disjoint(&offered)
+        && outcome.omitted.iter().all(|omission| {
+            !omission.reason.trim().is_empty()
+                && seeds
+                    .iter()
+                    .any(|key| key.source_id == omission.key.source_id)
+        })
+        && (outcome.config.selection == crate::retrieval::SelectionMode::ActivityExpansion
+            || outcome.omitted.is_empty())
+}
+
 fn deterministic(
     record: &super::types::RetrievalRecord,
     criteria: &crate::experiment::dataset::CaseCriteria,
 ) -> Result<DeterministicAssessment, String> {
     use super::types::{ExecutionKind, ExecutionStatus};
-    use crate::retrieval::{Inclusion, SectionKey, estimate_section_tokens};
+    use crate::retrieval::estimate_section_tokens;
     use std::collections::BTreeSet;
     let catalog = super::dataset::bundled_questions()?;
     let corpus = crate::source::parse_sources(crate::DOCUMENTS)?
@@ -200,35 +307,7 @@ fn deterministic(
                 identity.source_sha256 == prepared.identity.source_sha256
                     && identity.embedding_inputs_sha256 == prepared.identity.embedding_inputs_sha256
             });
-    let trace = record.outcome.as_ref().is_some_and(|outcome| {
-        let candidates: BTreeSet<_> = outcome
-            .candidates
-            .iter()
-            .map(|candidate| candidate.key.clone())
-            .collect();
-        let seeds: BTreeSet<_> = outcome.seeds.iter().cloned().collect();
-        let actual_seeds: BTreeSet<_> = hits
-            .iter()
-            .filter(|hit| hit.inclusion == Inclusion::Seed)
-            .map(|hit| SectionKey::from(&hit.section))
-            .collect();
-        outcome.config == record.config.retrieval
-            && outcome.query == record.question
-            && record.preparation.corpus_identity.as_ref() == Some(&outcome.corpus_identity)
-            && candidates.len() == outcome.candidates.len()
-            && seeds.len() == outcome.seeds.len()
-            && seeds.is_subset(&candidates)
-            && seeds == actual_seeds
-            && seeds.len() <= record.config.retrieval.top_k
-            && hits
-                .iter()
-                .filter(|hit| hit.inclusion == Inclusion::ActivityExpansion)
-                .all(|hit| {
-                    seeds
-                        .iter()
-                        .any(|key| key.source_id == hit.section.source_id)
-                })
-    });
+    let trace = canonical_trace(record, &corpus);
     let budget = record.outcome.as_ref().is_some_and(|outcome| {
         outcome.token_estimator == crate::retrieval::TOKEN_ESTIMATOR
             && outcome.estimated_context_tokens
@@ -309,7 +388,7 @@ fn deterministic(
         (
             "retrieval_trace",
             trace,
-            "Candidates, seeds, expansion and actual configuration agree",
+            "All candidate/omission references are canonical; ranks, seed scores and configuration are structurally coherent (not trace authentication)",
         ),
         (
             "context_budget",
@@ -339,7 +418,8 @@ fn deterministic(
         detail: detail.into(),
     })
     .collect();
-    let valid_evidence = completed && identity && canonical && trace && budget && filter_check;
+    // Offered evidence can remain measurable while a separate trace/budget/filter check fails.
+    let valid_evidence = completed && identity && canonical;
     let positive_count = criteria
         .facts
         .iter()
@@ -391,19 +471,27 @@ fn deterministic(
                     section_id: key.section_id.clone(),
                 })
             });
-        metrics.push(match rank {
-            Some(index) => ratio(
+        metrics.push(if !trace {
+            unavailable(
                 "first_relevant_reciprocal_rank",
-                1,
-                index + 1,
-                "Reciprocal rank of first relevant seed; activity expansion is not a ranking",
-            ),
-            None => ratio(
-                "first_relevant_reciprocal_rank",
-                0,
-                1,
-                "No relevant seed was retrieved",
-            ),
+                "Reciprocal rank of first relevant seed",
+                "The ranking trace failed structural integrity checks",
+            )
+        } else {
+            match rank {
+                Some(index) => ratio(
+                    "first_relevant_reciprocal_rank",
+                    1,
+                    index + 1,
+                    "Reciprocal rank of first relevant seed; activity expansion is not a ranking",
+                ),
+                None => ratio(
+                    "first_relevant_reciprocal_rank",
+                    0,
+                    1,
+                    "No relevant seed was retrieved",
+                ),
+            }
         });
     } else {
         for (id, definition) in [
@@ -674,6 +762,9 @@ mod tests {
             assert!(metric.not_applicable_reason.is_some());
         }
         validate_bindings(std::slice::from_ref(&input), &result).unwrap();
+        let mut previous_assessor = result.clone();
+        previous_assessor[0].assessor_version = "retrieval-assessment-v1".into();
+        assert!(validate_bindings(std::slice::from_ref(&input), &previous_assessor).is_err());
         let mut stale = input;
         stale.record_sha256 = "a".repeat(64);
         assert!(validate_bindings(&[stale], &result).is_err());
@@ -760,5 +851,138 @@ mod tests {
                 .iter()
                 .all(|fact| fact.covered.is_none())
         );
+    }
+
+    fn assess_fixture(record: RetrievalRecord) -> DeterministicAssessment {
+        assess(&[stored(record)], &[AssessmentKind::Deterministic])
+            .unwrap()
+            .remove(0)
+            .deterministic
+            .unwrap()
+    }
+
+    fn trace_passed(assessment: &DeterministicAssessment) -> bool {
+        assessment
+            .hard_checks
+            .iter()
+            .find(|check| check.id == "retrieval_trace")
+            .unwrap()
+            .passed
+    }
+
+    #[test]
+    fn all_candidate_references_are_canonical_even_when_the_candidate_is_not_selected() {
+        let original = records::fixture_record();
+        let baseline = assess_fixture(original.clone());
+        assert!(trace_passed(&baseline));
+        let baseline_coverage = baseline
+            .metrics
+            .iter()
+            .find(|metric| metric.id == "evidence_coverage")
+            .unwrap()
+            .value;
+        for change_source in [true, false] {
+            let mut corrupted = original.clone();
+            let outcome = corrupted.outcome.as_mut().unwrap();
+            let non_seed = outcome
+                .candidates
+                .iter_mut()
+                .find(|candidate| !outcome.seeds.contains(&candidate.key))
+                .unwrap();
+            if change_source {
+                non_seed.key.source_id = "ACT-INVENTED-999".into();
+            } else {
+                non_seed.key.section_id = "S999".into();
+            }
+            let result = assess_fixture(corrupted);
+            assert!(
+                !trace_passed(&result),
+                "A foreign non-seed candidate cannot have a certified trace"
+            );
+            assert!(!result.hard_checks_passed);
+            assert!(
+                result
+                    .hard_checks
+                    .iter()
+                    .find(|check| check.id == "canonical_evidence")
+                    .unwrap()
+                    .passed
+            );
+            assert_eq!(
+                result
+                    .metrics
+                    .iter()
+                    .find(|metric| metric.id == "evidence_coverage")
+                    .unwrap()
+                    .value,
+                baseline_coverage,
+                "The unchanged canonical offered evidence remains separately measurable"
+            );
+            assert!(
+                result
+                    .metrics
+                    .iter()
+                    .find(|metric| metric.id == "first_relevant_reciprocal_rank")
+                    .unwrap()
+                    .value
+                    .is_none()
+            );
+        }
+    }
+
+    #[test]
+    fn candidate_ranks_and_seed_scores_are_structurally_coherent() {
+        let original = records::fixture_record();
+        assert!(trace_passed(&assess_fixture(original.clone())));
+        let mut bad_rank = original.clone();
+        bad_rank.outcome.as_mut().unwrap().candidates[0]
+            .scores
+            .keyword_rank = Some(0);
+        assert!(!trace_passed(&assess_fixture(bad_rank)));
+        let mut bad_link = original;
+        bad_link.outcome.as_mut().unwrap().hits[0]
+            .scores
+            .as_mut()
+            .unwrap()
+            .rank_score += 0.25;
+        assert!(!trace_passed(&assess_fixture(bad_link)));
+    }
+
+    #[test]
+    fn omitted_references_must_be_canonical_related_and_not_already_offered() {
+        let mut original = records::fixture_record();
+        let corpus = crate::retrieval::PreparedCorpus::new(
+            crate::source::parse_sources(crate::DOCUMENTS)
+                .unwrap()
+                .into_iter()
+                .flat_map(|source| source.sections)
+                .collect(),
+            None,
+            None,
+        )
+        .unwrap();
+        let request = crate::retrieval::RetrievalRequest {
+            query: original.question.clone(),
+            filters: original.request_filters.clone(),
+        };
+        original.config.retrieval.top_k = 1;
+        let seed = crate::retrieval::retrieve(&corpus, &request, &original.config.retrieval, None)
+            .unwrap();
+        original.config.retrieval.selection = crate::retrieval::SelectionMode::ActivityExpansion;
+        original.config.retrieval.context_token_limit = seed.estimated_context_tokens;
+        original.config_id = super::super::catalog::config_id(&original.config).unwrap();
+        original.outcome = Some(
+            crate::retrieval::retrieve(&corpus, &request, &original.config.retrieval, None)
+                .unwrap(),
+        );
+        assert!(!original.outcome.as_ref().unwrap().omitted.is_empty());
+        assert!(trace_passed(&assess_fixture(original.clone())));
+        let mut foreign = original.clone();
+        foreign.outcome.as_mut().unwrap().omitted[0].key.source_id = "ACT-INVENTED-999".into();
+        assert!(!trace_passed(&assess_fixture(foreign)));
+        let mut offered_again = original;
+        let outcome = offered_again.outcome.as_mut().unwrap();
+        outcome.omitted[0].key = crate::retrieval::SectionKey::from(&outcome.hits[0].section);
+        assert!(!trace_passed(&assess_fixture(offered_again)));
     }
 }

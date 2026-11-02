@@ -48,6 +48,8 @@ Handmatige beoordelingen beginnen leeg. Een mens kan later een oordeel en notiti
 
 Beoordelingen zijn gekoppeld aan de SHA-256 van de exacte opgeslagen JSONL-regel. Bij opnieuw beoordelen wordt niet opnieuw gezocht. Een beoordeling van andere of gewijzigde resultaatbytes wordt geweigerd.
 
+Assessor `retrieval-assessment-v2` controleert ook alle niet-geselecteerde kandidaten en weggelaten verwijzingen. Bewijsdekking van ongewijzigde bronpassages blijft een afzonderlijke meting; een ongeldige trace krijgt geen geldige rangschikkingsscore. Maak bij een oudere assessorversie een nieuw beoordelingsbestand van dezelfde opgeslagen zoekresultaten. De zoekresultaten hoeven daarvoor niet opnieuw te worden uitgevoerd.
+
 ## Verdieping en eerlijke metingen
 
 Geavanceerde opties zijn `--top-k 3|6`, `--candidate-k`, `--context-limit`, `--selection sections|activity_expansion`, `--mmr on|off`, `--apply-filters on|off`, `--rrf-k`, `--vector-weight` en `--mmr-lambda`. `--query-filters` accepteert expliciete JSON-criteria, bijvoorbeeld `'{"weekdays":["tuesday"],"environment":"indoor"}'`. Deze gelden voor de geselecteerde vragen; het lab leidt geen criteria uit verwachte antwoorden af. Onbekende bronvelden blijven onbekend.
