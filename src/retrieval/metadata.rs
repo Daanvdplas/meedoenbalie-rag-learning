@@ -170,9 +170,27 @@ fn clock_minutes(value: &str) -> Option<u16> {
 
 fn explicit_environment(sentence: &str) -> Option<Environment> {
     let sentence = sentence.trim().to_lowercase();
-    if [" niet ", " geen ", " of ", " tenzij ", " soms ", " noch "]
-        .iter()
-        .any(|modifier| sentence.contains(modifier))
+    let words: Vec<_> = sentence
+        .split(|character: char| !character.is_alphanumeric())
+        .filter(|word| !word.is_empty())
+        .collect();
+    if words.iter().any(|word| {
+        [
+            "niet",
+            "geen",
+            "of",
+            "tenzij",
+            "soms",
+            "noch",
+            "als",
+            "wanneer",
+            "meestal",
+            "mogelijk",
+            "misschien",
+            "alleen",
+        ]
+        .contains(word)
+    }) || (words.contains(&"binnen") && words.contains(&"buiten"))
     {
         return None;
     }
