@@ -1,0 +1,794 @@
+{
+  "schema_version": "1",
+  "dataset_version": "independent-20261103-v1",
+  "reference_date": "2026-10-20",
+  "authored_on": "2026-11-03",
+  "origin": "agent_authored_not_human",
+  "status": "candidate_unreviewed_not_frozen",
+  "claims": {
+    "question_level_holdout": true,
+    "unchanged_known_corpus": true,
+    "novel_document_generalization": false,
+    "human_authored": false,
+    "prior_results_used": false,
+    "model_or_retrieval_calls_used": false
+  },
+  "source_revision": "ff1f13f20ff1be4329e454c278c5407b5fe715ce",
+  "sources": [
+    {
+      "id": "ACT-TUIN-001",
+      "date": "2026-10-20",
+      "sha256": "bca80ca505327a9d8882bc24da8643722c909b4a4a53d5b2dd7ab1affa9d6434",
+      "path": "fixtures/document.md"
+    },
+    {
+      "id": "ACT-FIETS-002",
+      "date": "2026-10-18",
+      "sha256": "325779cb17203fe2a8966e405c7e6671837a08a8cd74b12e0401f0492d233024",
+      "path": "fixtures/bicycle-workshop.md"
+    },
+    {
+      "id": "ACT-TAAL-003",
+      "date": "2026-10-19",
+      "sha256": "18b7b85dec63666b1744c1ba0f1ad549fa6304c68c8ad184a13c2be7347910ef",
+      "path": "fixtures/language-cafe.md"
+    },
+    {
+      "id": "ACT-KOKEN-004",
+      "date": "2026-10-17",
+      "sha256": "3aacb079e7201f131bfc6e1134e113c4d0003bb4eed8167958e60c6b639fe053",
+      "path": "fixtures/community-cooking.md"
+    },
+    {
+      "id": "ACT-WANDEL-005",
+      "date": "2026-10-20",
+      "sha256": "f65335bb91b8fc17b68836916619dbaa459837c29c3396e47d658069376bd691",
+      "path": "fixtures/walking.md"
+    }
+  ],
+  "logical_contract": {
+    "fact_goal": "Every required fact goal must be met (AND across facts).",
+    "evidence_alternatives": "Each outer alternative is sufficient (OR); all document+section refs in one alternative are jointly necessary (AND).",
+    "source_identity": "Use canonical source_id and section_id together; S1-S6 repeat across documents.",
+    "evidence_roles": "support = positive described fact; exclusion = valid reason an option fails a hard condition; unknown = explicit missing/stale information; clarification = missing user referent, no retrieval target.",
+    "completeness": "relevance_labels_complete covers required source sections within the five known documents, not all activities outside the corpus. A false value for IND26-11 means retrieval grading is not applicable.",
+    "dates": "All dates are fictional. Answers should attach source IDs and source dates; historical observation dates must not be replaced by document dates.",
+    "voluntary": "Any suggestion is voluntary and must be discussed by the employee with the resident; no registration, messages or dossier writes.",
+    "capacity": "No case authorizes assuming current vacancies from a source date or historical count."
+  },
+  "cases": [
+    {
+      "case_id": "IND26-01",
+      "origin": "agent_authored_not_human",
+      "expected_action": "answer_all_matches",
+      "supported_candidate_activity_ids": [
+        "ACT-FIETS-002",
+        "ACT-TAAL-003"
+      ],
+      "user_provided_hard_conditions": [
+        "binnen",
+        "start 14.00 uur",
+        "gratis",
+        "activiteitsmateriaal aanwezig"
+      ],
+      "user_provided_soft_preferences": [],
+      "retrieval_metrics_applicable": true,
+      "fact_roles": {
+        "bike-work": "support",
+        "bike-time": "support",
+        "bike-indoor": "support",
+        "bike-free": "support",
+        "bike-materials": "support",
+        "language-work": "support",
+        "language-time": "support",
+        "language-indoor": "support",
+        "language-free": "support",
+        "language-materials": "support",
+        "other-start-times": "exclusion"
+      },
+      "evidence": [
+        {
+          "fact_id": "bike-work",
+          "role": "support",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S1",
+          "source_date": "2026-10-18",
+          "quote": "We knappen samen oude fietsen op in de werkplaats. Je helpt met banden plakken, fietsen schoonmaken en eenvoudige reparaties. Dit is een vrijwillige activiteit, geen betaalde baan. Je hoeft geen ervaring met fietsreparatie te hebben."
+        },
+        {
+          "fact_id": "bike-time",
+          "role": "support",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2",
+          "source_date": "2026-10-18",
+          "quote": "Iedere dinsdag van 14.00 tot 16.00 uur."
+        },
+        {
+          "fact_id": "bike-indoor",
+          "role": "support",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S3",
+          "source_date": "2026-10-18",
+          "quote": "Werkplaats De Werkbank, in het fictieve wijkgebouw aan de Esdoornstraat 8 in het fictieve Lindedorp. We werken binnen."
+        },
+        {
+          "fact_id": "bike-free",
+          "role": "support",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S5",
+          "source_date": "2026-10-18",
+          "quote": "Deelname is gratis en vrijwillig. Gereedschap en reparatiemateriaal zijn aanwezig. Trek kleding aan die vies mag worden."
+        },
+        {
+          "fact_id": "bike-materials",
+          "role": "support",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S5",
+          "source_date": "2026-10-18",
+          "quote": "Deelname is gratis en vrijwillig. Gereedschap en reparatiemateriaal zijn aanwezig. Trek kleding aan die vies mag worden."
+        },
+        {
+          "fact_id": "language-work",
+          "role": "support",
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S1",
+          "source_date": "2026-10-19",
+          "quote": "We oefenen Nederlands door samen te praten over dagelijkse onderwerpen en korte taalspelletjes te doen. Dit is een vrijwillige activiteit, geen betaalde baan. Je mag meedoen als je nog weinig Nederlands spreekt."
+        },
+        {
+          "fact_id": "language-time",
+          "role": "support",
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S2",
+          "source_date": "2026-10-19",
+          "quote": "Iedere woensdag van 14.00 tot 15.30 uur."
+        },
+        {
+          "fact_id": "language-indoor",
+          "role": "support",
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S3",
+          "source_date": "2026-10-19",
+          "quote": "Leeszaal Het Woordhuis, aan de fictieve Kastanjelaan 4 in het fictieve Lindedorp. We zitten binnen aan een grote tafel."
+        },
+        {
+          "fact_id": "language-free",
+          "role": "support",
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S5",
+          "source_date": "2026-10-19",
+          "quote": "Deelname is gratis. Kaartjes, papier en pennen zijn aanwezig. Je hoeft zelf niets mee te nemen."
+        },
+        {
+          "fact_id": "language-materials",
+          "role": "support",
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S5",
+          "source_date": "2026-10-19",
+          "quote": "Deelname is gratis. Kaartjes, papier en pennen zijn aanwezig. Je hoeft zelf niets mee te nemen."
+        },
+        {
+          "fact_id": "other-start-times",
+          "role": "exclusion",
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2",
+          "source_date": "2026-10-20",
+          "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+        },
+        {
+          "fact_id": "other-start-times",
+          "role": "exclusion",
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S2",
+          "source_date": "2026-10-17",
+          "quote": "Iedere vrijdag van 11.00 tot 13.00 uur."
+        },
+        {
+          "fact_id": "other-start-times",
+          "role": "exclusion",
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S2",
+          "source_date": "2026-10-20",
+          "quote": "Iedere donderdag van 9.30 tot 10.30 uur."
+        }
+      ],
+      "author_note": "Two complete activity answers; each needs S1 AND S2 AND S3 AND S5. Other S2 sections are exclusion evidence, not positive support."
+    },
+    {
+      "case_id": "IND26-02",
+      "origin": "agent_authored_not_human",
+      "expected_action": "answer_match_with_unmet_soft_preference",
+      "supported_candidate_activity_ids": [
+        "ACT-KOKEN-004"
+      ],
+      "user_provided_hard_conditions": [
+        "vrijdag",
+        "volledig binnen 10.00–14.00 uur",
+        "gratis",
+        "geen ervaring vereist"
+      ],
+      "user_provided_soft_preferences": [
+        "buiten"
+      ],
+      "retrieval_metrics_applicable": true,
+      "fact_roles": {
+        "cooking-time": "support",
+        "cooking-beginner": "support",
+        "cooking-free": "support",
+        "cooking-indoor": "support",
+        "other-days": "exclusion"
+      },
+      "evidence": [
+        {
+          "fact_id": "cooking-time",
+          "role": "support",
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S2",
+          "source_date": "2026-10-17",
+          "quote": "Iedere vrijdag van 11.00 tot 13.00 uur."
+        },
+        {
+          "fact_id": "cooking-beginner",
+          "role": "support",
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S1",
+          "source_date": "2026-10-17",
+          "quote": "We maken samen een eenvoudige groentemaaltijd en ruimen de keuken op. Je helpt met wassen, snijden en tafeldekken. Kookervaring is niet nodig. Dit is een vrijwillige activiteit, geen betaalde baan."
+        },
+        {
+          "fact_id": "cooking-free",
+          "role": "support",
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S5",
+          "source_date": "2026-10-17",
+          "quote": "Deelname is gratis. Ingrediënten, schorten en keukengerei zijn aanwezig. Informatie over allergenen en alternatieve diëten ontbreekt."
+        },
+        {
+          "fact_id": "cooking-indoor",
+          "role": "support",
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S3",
+          "source_date": "2026-10-17",
+          "quote": "De oefenkeuken van buurthuis De Pan, aan de fictieve Beukenstraat 6 in het fictieve Lindedorp. We werken binnen."
+        },
+        {
+          "fact_id": "other-days",
+          "role": "exclusion",
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2",
+          "source_date": "2026-10-20",
+          "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+        },
+        {
+          "fact_id": "other-days",
+          "role": "exclusion",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2",
+          "source_date": "2026-10-18",
+          "quote": "Iedere dinsdag van 14.00 tot 16.00 uur."
+        },
+        {
+          "fact_id": "other-days",
+          "role": "exclusion",
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S2",
+          "source_date": "2026-10-19",
+          "quote": "Iedere woensdag van 14.00 tot 15.30 uur."
+        },
+        {
+          "fact_id": "other-days",
+          "role": "exclusion",
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S2",
+          "source_date": "2026-10-20",
+          "quote": "Iedere donderdag van 9.30 tot 10.30 uur."
+        }
+      ],
+      "author_note": ""
+    },
+    {
+      "case_id": "IND26-03",
+      "origin": "agent_authored_not_human",
+      "expected_action": "no_match_in_known_corpus",
+      "supported_candidate_activity_ids": [],
+      "user_provided_hard_conditions": [
+        "zondag"
+      ],
+      "user_provided_soft_preferences": [],
+      "retrieval_metrics_applicable": true,
+      "fact_roles": {
+        "all-weekday-schedules": "exclusion"
+      },
+      "evidence": [
+        {
+          "fact_id": "all-weekday-schedules",
+          "role": "exclusion",
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2",
+          "source_date": "2026-10-20",
+          "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+        },
+        {
+          "fact_id": "all-weekday-schedules",
+          "role": "exclusion",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2",
+          "source_date": "2026-10-18",
+          "quote": "Iedere dinsdag van 14.00 tot 16.00 uur."
+        },
+        {
+          "fact_id": "all-weekday-schedules",
+          "role": "exclusion",
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S2",
+          "source_date": "2026-10-19",
+          "quote": "Iedere woensdag van 14.00 tot 15.30 uur."
+        },
+        {
+          "fact_id": "all-weekday-schedules",
+          "role": "exclusion",
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S2",
+          "source_date": "2026-10-17",
+          "quote": "Iedere vrijdag van 11.00 tot 13.00 uur."
+        },
+        {
+          "fact_id": "all-weekday-schedules",
+          "role": "exclusion",
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S2",
+          "source_date": "2026-10-20",
+          "quote": "Iedere donderdag van 9.30 tot 10.30 uur."
+        }
+      ],
+      "author_note": "No-match means only no supported match in these five sources. All five S2 sections are jointly required exclusion proof."
+    },
+    {
+      "case_id": "IND26-04",
+      "origin": "agent_authored_not_human",
+      "expected_action": "no_match_in_known_corpus",
+      "supported_candidate_activity_ids": [],
+      "user_provided_hard_conditions": [
+        "betaald werk",
+        "volledig dinsdag 14.00–16.00 uur"
+      ],
+      "user_provided_soft_preferences": [
+        "fietsreparatie"
+      ],
+      "retrieval_metrics_applicable": true,
+      "fact_roles": {
+        "bike-unpaid": "exclusion",
+        "other-time-exclusions": "exclusion"
+      },
+      "evidence": [
+        {
+          "fact_id": "bike-unpaid",
+          "role": "exclusion",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S1",
+          "source_date": "2026-10-18",
+          "quote": "We knappen samen oude fietsen op in de werkplaats. Je helpt met banden plakken, fietsen schoonmaken en eenvoudige reparaties. Dit is een vrijwillige activiteit, geen betaalde baan. Je hoeft geen ervaring met fietsreparatie te hebben."
+        },
+        {
+          "fact_id": "other-time-exclusions",
+          "role": "exclusion",
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2",
+          "source_date": "2026-10-20",
+          "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+        },
+        {
+          "fact_id": "other-time-exclusions",
+          "role": "exclusion",
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S2",
+          "source_date": "2026-10-19",
+          "quote": "Iedere woensdag van 14.00 tot 15.30 uur."
+        },
+        {
+          "fact_id": "other-time-exclusions",
+          "role": "exclusion",
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S2",
+          "source_date": "2026-10-17",
+          "quote": "Iedere vrijdag van 11.00 tot 13.00 uur."
+        },
+        {
+          "fact_id": "other-time-exclusions",
+          "role": "exclusion",
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S2",
+          "source_date": "2026-10-20",
+          "quote": "Iedere donderdag van 9.30 tot 10.30 uur."
+        }
+      ],
+      "author_note": "The garden does not explicitly state paid/unpaid employment; exclude it using time, not an invented employment rule."
+    },
+    {
+      "case_id": "IND26-05",
+      "origin": "agent_authored_not_human",
+      "expected_action": "answer_source_facts",
+      "supported_candidate_activity_ids": [
+        "ACT-FIETS-002"
+      ],
+      "user_provided_hard_conditions": [],
+      "user_provided_soft_preferences": [],
+      "retrieval_metrics_applicable": true,
+      "fact_roles": {
+        "bike-experience": "support",
+        "bike-language": "support",
+        "bike-help": "support",
+        "bike-tools": "support",
+        "bike-clothes": "support"
+      },
+      "evidence": [
+        {
+          "fact_id": "bike-experience",
+          "role": "support",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S1",
+          "source_date": "2026-10-18",
+          "quote": "We knappen samen oude fietsen op in de werkplaats. Je helpt met banden plakken, fietsen schoonmaken en eenvoudige reparaties. Dit is een vrijwillige activiteit, geen betaalde baan. Je hoeft geen ervaring met fietsreparatie te hebben."
+        },
+        {
+          "fact_id": "bike-language",
+          "role": "support",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S4",
+          "source_date": "2026-10-18",
+          "quote": "Een begeleider laat iedere reparatie stap voor stap zien en helpt tijdens de activiteit. Eenvoudig Nederlands is voldoende. Er is geen informatie over ondersteuning in andere talen."
+        },
+        {
+          "fact_id": "bike-help",
+          "role": "support",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S4",
+          "source_date": "2026-10-18",
+          "quote": "Een begeleider laat iedere reparatie stap voor stap zien en helpt tijdens de activiteit. Eenvoudig Nederlands is voldoende. Er is geen informatie over ondersteuning in andere talen."
+        },
+        {
+          "fact_id": "bike-tools",
+          "role": "support",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S5",
+          "source_date": "2026-10-18",
+          "quote": "Deelname is gratis en vrijwillig. Gereedschap en reparatiemateriaal zijn aanwezig. Trek kleding aan die vies mag worden."
+        },
+        {
+          "fact_id": "bike-clothes",
+          "role": "support",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S5",
+          "source_date": "2026-10-18",
+          "quote": "Deelname is gratis en vrijwillig. Gereedschap en reparatiemateriaal zijn aanwezig. Trek kleding aan die vies mag worden."
+        }
+      ],
+      "author_note": "English question; Dutch evidence and source dates remain unchanged."
+    },
+    {
+      "case_id": "IND26-06",
+      "origin": "agent_authored_not_human",
+      "expected_action": "verify_unknown_hard_condition_before_suggesting",
+      "supported_candidate_activity_ids": [
+        "ACT-WANDEL-005"
+      ],
+      "user_provided_hard_conditions": [
+        "rolstoeltoegankelijke route"
+      ],
+      "user_provided_soft_preferences": [],
+      "retrieval_metrics_applicable": true,
+      "fact_roles": {
+        "walk-accessibility-unknown": "unknown",
+        "walk-length": "support",
+        "walk-place": "support",
+        "walk-time": "support",
+        "walk-water": "support"
+      },
+      "evidence": [
+        {
+          "fact_id": "walk-accessibility-unknown",
+          "role": "unknown",
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S4",
+          "source_date": "2026-10-20",
+          "quote": "Een wandelvrijwilliger loopt met de groep mee. Goed Nederlands spreken is niet nodig. De toegankelijkheid van de route voor rolstoelen is niet beschreven."
+        },
+        {
+          "fact_id": "walk-length",
+          "role": "support",
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S1",
+          "source_date": "2026-10-20",
+          "quote": "We maken samen een rustige wandeling van ongeveer één kilometer door het park. Onderweg is er tijd om te praten. Dit is een vrijwillige activiteit, geen betaalde baan."
+        },
+        {
+          "fact_id": "walk-place",
+          "role": "support",
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S3",
+          "source_date": "2026-10-20",
+          "quote": "We verzamelen bij de ingang van het fictieve Park De Wilg, aan het fictieve Iepenpad 2 in het fictieve Lindedorp. De wandeling is buiten."
+        },
+        {
+          "fact_id": "walk-time",
+          "role": "support",
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S2",
+          "source_date": "2026-10-20",
+          "quote": "Iedere donderdag van 9.30 tot 10.30 uur."
+        },
+        {
+          "fact_id": "walk-water",
+          "role": "support",
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S5",
+          "source_date": "2026-10-20",
+          "quote": "Deelname is gratis. Trek schoenen aan waarop je prettig kunt lopen en neem zelf water mee."
+        }
+      ],
+      "author_note": ""
+    },
+    {
+      "case_id": "IND26-07",
+      "origin": "agent_authored_not_human",
+      "expected_action": "verify_unknown_hard_condition_before_suggesting",
+      "supported_candidate_activity_ids": [
+        "ACT-KOKEN-004"
+      ],
+      "user_provided_hard_conditions": [
+        "sesam kunnen vermijden bevestigd"
+      ],
+      "user_provided_soft_preferences": [],
+      "retrieval_metrics_applicable": true,
+      "fact_roles": {
+        "allergen-unknown": "unknown",
+        "cooking-supplies": "support"
+      },
+      "evidence": [
+        {
+          "fact_id": "allergen-unknown",
+          "role": "unknown",
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S5",
+          "source_date": "2026-10-17",
+          "quote": "Deelname is gratis. Ingrediënten, schorten en keukengerei zijn aanwezig. Informatie over allergenen en alternatieve diëten ontbreekt."
+        },
+        {
+          "fact_id": "cooking-supplies",
+          "role": "support",
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S5",
+          "source_date": "2026-10-17",
+          "quote": "Deelname is gratis. Ingrediënten, schorten en keukengerei zijn aanwezig. Informatie over allergenen en alternatieve diëten ontbreekt."
+        }
+      ],
+      "author_note": ""
+    },
+    {
+      "case_id": "IND26-08",
+      "origin": "agent_authored_not_human",
+      "expected_action": "answer_known_facts_and_mark_unknowns",
+      "supported_candidate_activity_ids": [
+        "ACT-TAAL-003"
+      ],
+      "user_provided_hard_conditions": [],
+      "user_provided_soft_preferences": [],
+      "retrieval_metrics_applicable": true,
+      "fact_roles": {
+        "language-other-language-unknown": "unknown",
+        "language-transport-unknown": "unknown",
+        "language-address": "support",
+        "language-start": "support"
+      },
+      "evidence": [
+        {
+          "fact_id": "language-other-language-unknown",
+          "role": "unknown",
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S4",
+          "source_date": "2026-10-19",
+          "quote": "Een taalvrijwilliger begeleidt de gesprekken en legt woorden eenvoudig uit. Er is geen informatie over ondersteuning in andere talen."
+        },
+        {
+          "fact_id": "language-transport-unknown",
+          "role": "unknown",
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S6",
+          "source_date": "2026-10-19",
+          "quote": "De actuele beschikbaarheid op 2026-10-20 is niet vastgelegd. Vervoer naar het taalcafé is niet beschreven."
+        },
+        {
+          "fact_id": "language-address",
+          "role": "support",
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S3",
+          "source_date": "2026-10-19",
+          "quote": "Leeszaal Het Woordhuis, aan de fictieve Kastanjelaan 4 in het fictieve Lindedorp. We zitten binnen aan een grote tafel."
+        },
+        {
+          "fact_id": "language-start",
+          "role": "support",
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S2",
+          "source_date": "2026-10-19",
+          "quote": "Iedere woensdag van 14.00 tot 15.30 uur."
+        }
+      ],
+      "author_note": ""
+    },
+    {
+      "case_id": "IND26-09",
+      "origin": "agent_authored_not_human",
+      "expected_action": "answer_historical_counts_and_require_capacity_check",
+      "supported_candidate_activity_ids": [
+        "ACT-TUIN-001",
+        "ACT-FIETS-002"
+      ],
+      "user_provided_hard_conditions": [],
+      "user_provided_soft_preferences": [],
+      "retrieval_metrics_applicable": true,
+      "fact_roles": {
+        "garden-old-count": "support",
+        "bike-old-count": "support",
+        "garden-current-unknown": "unknown",
+        "bike-current-unknown": "unknown"
+      },
+      "evidence": [
+        {
+          "fact_id": "garden-old-count",
+          "role": "support",
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S6",
+          "source_date": "2026-10-20",
+          "quote": "Op 2026-09-01 waren er twee vrije plekken. Sindsdien is het aantal plekken niet opnieuw gecontroleerd."
+        },
+        {
+          "fact_id": "bike-old-count",
+          "role": "support",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S6",
+          "source_date": "2026-10-18",
+          "quote": "Op 2026-10-18 waren er drie vrije plekken. Er is geen recentere controle vastgelegd. De actuele beschikbaarheid op 2026-10-20 is onbekend. Vervoer naar de werkplaats is niet beschreven."
+        },
+        {
+          "fact_id": "garden-current-unknown",
+          "role": "unknown",
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S6",
+          "source_date": "2026-10-20",
+          "quote": "Op 2026-09-01 waren er twee vrije plekken. Sindsdien is het aantal plekken niet opnieuw gecontroleerd."
+        },
+        {
+          "fact_id": "bike-current-unknown",
+          "role": "unknown",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S6",
+          "source_date": "2026-10-18",
+          "quote": "Op 2026-10-18 waren er drie vrije plekken. Er is geen recentere controle vastgelegd. De actuele beschikbaarheid op 2026-10-20 is onbekend. Vervoer naar de werkplaats is niet beschreven."
+        }
+      ],
+      "author_note": "Garden source publication date 2026-10-20 is different from its historical capacity observation date 2026-09-01."
+    },
+    {
+      "case_id": "IND26-10",
+      "origin": "agent_authored_not_human",
+      "expected_action": "compare_match_and_exclusion",
+      "supported_candidate_activity_ids": [
+        "ACT-WANDEL-005"
+      ],
+      "user_provided_hard_conditions": [
+        "buiten",
+        "volledig klaar vóór 11.00 uur"
+      ],
+      "user_provided_soft_preferences": [],
+      "retrieval_metrics_applicable": true,
+      "fact_roles": {
+        "garden-outdoor": "support",
+        "garden-too-late": "exclusion",
+        "walk-outdoor": "support",
+        "walk-finish": "support"
+      },
+      "evidence": [
+        {
+          "fact_id": "garden-outdoor",
+          "role": "support",
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S1",
+          "source_date": "2026-10-20",
+          "quote": "We verzorgen samen groenten en bloemen in de buurttuin. Je werkt buiten met je handen. Ervaring met tuinieren is niet nodig."
+        },
+        {
+          "fact_id": "garden-too-late",
+          "role": "exclusion",
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2",
+          "source_date": "2026-10-20",
+          "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+        },
+        {
+          "fact_id": "walk-outdoor",
+          "role": "support",
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S3",
+          "source_date": "2026-10-20",
+          "quote": "We verzamelen bij de ingang van het fictieve Park De Wilg, aan het fictieve Iepenpad 2 in het fictieve Lindedorp. De wandeling is buiten."
+        },
+        {
+          "fact_id": "walk-finish",
+          "role": "support",
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S2",
+          "source_date": "2026-10-20",
+          "quote": "Iedere donderdag van 9.30 tot 10.30 uur."
+        }
+      ],
+      "author_note": ""
+    },
+    {
+      "case_id": "IND26-11",
+      "origin": "agent_authored_not_human",
+      "expected_action": "ask_which_activity",
+      "supported_candidate_activity_ids": [],
+      "user_provided_hard_conditions": [],
+      "user_provided_soft_preferences": [],
+      "retrieval_metrics_applicable": false,
+      "fact_roles": {
+        "activity-unspecified": "clarification"
+      },
+      "evidence": [],
+      "author_note": "Standalone question: no previous conversational referent is provided. This has no retrievable evidence target and must be excluded from retrieval coverage denominators, while still requiring the clarification action."
+    },
+    {
+      "case_id": "IND26-12",
+      "origin": "agent_authored_not_human",
+      "expected_action": "answer_source_facts",
+      "supported_candidate_activity_ids": [
+        "ACT-TUIN-001"
+      ],
+      "user_provided_hard_conditions": [],
+      "user_provided_soft_preferences": [],
+      "retrieval_metrics_applicable": true,
+      "fact_roles": {
+        "garden-task": "support",
+        "garden-place": "support",
+        "garden-time": "support",
+        "garden-materials": "support"
+      },
+      "evidence": [
+        {
+          "fact_id": "garden-task",
+          "role": "support",
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S1",
+          "source_date": "2026-10-20",
+          "quote": "We verzorgen samen groenten en bloemen in de buurttuin. Je werkt buiten met je handen. Ervaring met tuinieren is niet nodig."
+        },
+        {
+          "fact_id": "garden-place",
+          "role": "support",
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S3",
+          "source_date": "2026-10-20",
+          "quote": "Buurttuin De Linde, achter het fictieve buurthuis aan de Lindenlaan 12 in het fictieve Lindedorp."
+        },
+        {
+          "fact_id": "garden-time",
+          "role": "support",
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2",
+          "source_date": "2026-10-20",
+          "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+        },
+        {
+          "fact_id": "garden-materials",
+          "role": "support",
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S5",
+          "source_date": "2026-10-20",
+          "quote": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+        }
+      ],
+      "author_note": "Question targets exact task, location, schedule and supplied items rather than an implicit resident profile."
+    }
+  ]
+}
