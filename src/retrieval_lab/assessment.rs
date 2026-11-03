@@ -626,6 +626,14 @@ pub fn validate_bindings(
     records: &[StoredRecord],
     assessments: &[AssessmentRecord],
 ) -> Result<(), String> {
+    let current_expectations = if assessments
+        .iter()
+        .any(|assessment| assessment.kind == AssessmentKind::Deterministic)
+    {
+        Some(expectations()?)
+    } else {
+        None
+    };
     let mut identities = std::collections::BTreeSet::new();
     for assessment in assessments {
         let stored = records
@@ -673,6 +681,23 @@ pub fn validate_bindings(
         };
         if !valid {
             return Err("Assessment status and payload disagree".into());
+        }
+        if let Some(imported) = &assessment.deterministic {
+            let (criteria, expectations_sha256) = current_expectations.as_ref().unwrap();
+            if assessment.expectations_sha256.as_ref() != Some(expectations_sha256) {
+                return Err("Deterministic assessment does not match current expectations; use lab assess with a new output file to regrade stored retrieval without new searches".into());
+            }
+            let expected = deterministic(
+                &stored.record,
+                criteria
+                    .get(&stored.record.case_id)
+                    .ok_or("No expectations for recorded case")?,
+            )?;
+            if serde_json::to_value(imported).map_err(|error| error.to_string())?
+                != serde_json::to_value(expected).map_err(|error| error.to_string())?
+            {
+                return Err("Deterministic assessment differs from recomputed scores and criteria for the stored retrieval; use lab assess with a new output file to regrade without new searches".into());
+            }
         }
     }
     Ok(())
@@ -768,6 +793,122 @@ mod tests {
         let mut stale = input;
         stale.record_sha256 = "a".repeat(64);
         assert!(validate_bindings(&[stale], &result).is_err());
+    }
+
+    #[test]
+    fn deterministic_import_rejects_a_foreign_expectations_hash() {
+        let input = stored(records::fixture_record());
+        let mut assessments = assess(
+            std::slice::from_ref(&input),
+            &[AssessmentKind::Deterministic],
+        )
+        .unwrap();
+        assessments[0].expectations_sha256 = Some("0".repeat(64));
+        assert!(validate_bindings(&[input], &assessments).is_err());
+    }
+
+    #[test]
+    fn deterministic_import_rejects_altered_scores_and_criteria_with_valid_hashes() {
+        let input = stored(records::fixture_record());
+        let assessment = assess(
+            std::slice::from_ref(&input),
+            &[AssessmentKind::Deterministic],
+        )
+        .unwrap()
+        .remove(0);
+        let original = serde_json::to_value(&assessment).unwrap();
+        let metrics = original["deterministic"]["metrics"].as_array().unwrap();
+        let coverage = metrics
+            .iter()
+            .position(|value| value["id"] == "evidence_coverage")
+            .unwrap();
+        let rank = metrics
+            .iter()
+            .position(|value| value["id"] == "first_relevant_reciprocal_rank")
+            .unwrap();
+        for (path, value) in [
+            (
+                format!("/deterministic/metrics/{coverage}/value"),
+                serde_json::json!(0.12345),
+            ),
+            (
+                format!("/deterministic/metrics/{coverage}/numerator"),
+                serde_json::json!(999),
+            ),
+            (
+                format!("/deterministic/metrics/{coverage}/denominator"),
+                serde_json::json!(999),
+            ),
+            (
+                format!("/deterministic/metrics/{rank}/value"),
+                serde_json::json!(0.12345),
+            ),
+            (
+                "/deterministic/expected_facts/0/covered".into(),
+                serde_json::json!(
+                    !original["deterministic"]["expected_facts"][0]["covered"]
+                        .as_bool()
+                        .unwrap()
+                ),
+            ),
+            (
+                "/deterministic/expected_facts/0/criterion/description".into(),
+                serde_json::json!("Forged expected fact"),
+            ),
+            (
+                "/deterministic/hard_checks/0/passed".into(),
+                serde_json::json!(false),
+            ),
+            (
+                "/deterministic/hard_checks_passed".into(),
+                serde_json::json!(
+                    !original["deterministic"]["hard_checks_passed"]
+                        .as_bool()
+                        .unwrap()
+                ),
+            ),
+            (
+                "/deterministic/conditions".into(),
+                serde_json::json!(["Forged condition"]),
+            ),
+        ] {
+            let mut altered = original.clone();
+            *altered.pointer_mut(&path).unwrap() = value;
+            assert_ne!(altered, original);
+            let altered: AssessmentRecord = serde_json::from_value(altered).unwrap();
+            assert!(
+                validate_bindings(std::slice::from_ref(&input), &[altered]).is_err(),
+                "Accepted altered {path}"
+            );
+        }
+    }
+
+    #[test]
+    fn imported_manual_decisions_remain_independent_and_bound_to_the_run() {
+        let input = stored(records::fixture_record());
+        let mut assessment = assess(std::slice::from_ref(&input), &[AssessmentKind::Manual])
+            .unwrap()
+            .remove(0);
+        assessment.status = AssessmentStatus::Completed;
+        assessment.manual = Some(ManualReview {
+            verdict: ManualVerdict::Bad,
+            notes: "Test decision, not a human reference label".into(),
+            reviewed_at_unix_ms: 1,
+        });
+        validate_bindings(
+            std::slice::from_ref(&input),
+            std::slice::from_ref(&assessment),
+        )
+        .unwrap();
+        for foreign_case in [false, true] {
+            let mut foreign = assessment.clone();
+            if foreign_case {
+                foreign.case_id = "P01".into();
+            } else {
+                foreign.run_id = "absent-run".into();
+            }
+            assert!(validate_bindings(std::slice::from_ref(&input), &[foreign]).is_err());
+        }
     }
 
     #[test]
