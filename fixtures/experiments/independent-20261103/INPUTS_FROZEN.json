@@ -1,0 +1,135 @@
+{
+  "schema_version": "independent-user-input-supplemental-freeze-v1",
+  "reviewed_at_utc": "2026-11-03T13:47:43.222045+00:00",
+  "dataset": "independent-20261103",
+  "reviewed_head": "22d27012dd72995500f624ba04e3c395e155db94",
+  "reviewer": "independent_agent_dataset_ui_input_review_v2",
+  "reviewer_kind": "agent_not_human",
+  "input_artifact": "user-query-inputs.json",
+  "input_sha256_bytes": "1ce0566f643532be2c1722c4f107c365ad6265c33b77af21b14eb0fe89217f96",
+  "source_question_sha256_bytes": "b983c32840ce08dca68ba316367932fa3a98466449ec3afd578869ad94f468a1",
+  "source_questions_canonical_sha256": "06cbd0737c98e672c5704765b6e8ed2e22d940e681b71e0eec6c74ca73338a88",
+  "original_frozen_manifest_sha256_bytes": "351a7df4d85e5295e36d3fbbb31c62948619425158b038bd8370a11c982e2fe6",
+  "method": "Read the12 frozen natural-language questions and derive supported hard constraints before reading the sidecar. Then compare all12 mappings. No filters inferred from expected answers, source-target labels or observed new-dataset retrieval scores.",
+  "exposure_disclosure": "Reviewer read repository README orientation and knew historical development-set results. No first frozen12-case benchmark measurement existed or was run. Later boundary probes used explicitly relabelled fixtures, never newly measured retrieval.",
+  "approved": true,
+  "supported_filter_case_count": 5,
+  "empty_filter_case_count": 7,
+  "original_reference_files_unchanged": true,
+  "limitations": [
+    "Agent review, not human calibration.",
+    "Explicit typed user inputs; no automatic natural-language filter extraction is claimed.",
+    "Unsupported requirements remain in the natural question and must not be presented as enforced.",
+    "Same five known fictional documents; no unseen-corpus or unseen-intent generalization claim.",
+    "Filtering may remove textual exclusion evidence needed for comparison; source-evidence completeness can decrease."
+  ],
+  "cases": [
+    {
+      "case_id": "IND26-01",
+      "approved_filters": {
+        "environment": "indoor"
+      },
+      "decision": "Indoor is an explicit hard condition. Starting exactly14:00 is not a whole-activity availability interval. Free participation/material provision remain in the question, not invented filter fields."
+    },
+    {
+      "case_id": "IND26-02",
+      "approved_filters": {
+        "weekdays": [
+          "friday"
+        ],
+        "time": {
+          "start_minutes": 600,
+          "end_minutes": 840
+        }
+      },
+      "decision": "Friday600–840 is the full-activity availability window. Outdoor is explicitly a soft preference and must not become a filter."
+    },
+    {
+      "case_id": "IND26-03",
+      "approved_filters": {
+        "weekdays": [
+          "sunday"
+        ]
+      },
+      "decision": "Sunday is an explicit required scheduled day."
+    },
+    {
+      "case_id": "IND26-04",
+      "approved_filters": {
+        "weekdays": [
+          "tuesday"
+        ],
+        "time": {
+          "start_minutes": 840,
+          "end_minutes": 960
+        }
+      },
+      "decision": "Tuesday840–960 is the complete-activity window. Paid work is unsupported and remains a question condition. Bicycle repair is an interest, not a hard activity identifier."
+    },
+    {
+      "case_id": "IND26-05",
+      "approved_filters": {},
+      "decision": "Questions about experience, fluent Dutch, guidance, tools and clothing do not supply supported hard day/environment/window filters."
+    },
+    {
+      "case_id": "IND26-06",
+      "approved_filters": {},
+      "decision": "Wheelchair accessibility is a hard but unsupported requirement; retain unknown handling. Requested time/place/length are information requests, not availability filters."
+    },
+    {
+      "case_id": "IND26-07",
+      "approved_filters": {},
+      "decision": "Sesame avoidance is a hard but unsupported requirement. Do not pretend to enforce allergens through environment/day/time filters."
+    },
+    {
+      "case_id": "IND26-08",
+      "approved_filters": {},
+      "decision": "Wednesday describes the named cafe, rather than requested user availability. Arabic support and transport are unsupported fields."
+    },
+    {
+      "case_id": "IND26-09",
+      "approved_filters": {},
+      "decision": "Historical capacity comparison/date does not supply a supported hard activity filter."
+    },
+    {
+      "case_id": "IND26-10",
+      "approved_filters": {
+        "environment": "outdoor",
+        "time": {
+          "start_minutes": 0,
+          "end_minutes": 659
+        }
+      },
+      "decision": "Outdoor and fully finished before11:00 are hard constraints. Minute-resolution inclusive end659 matches that requirement; unlike a start-before11 request, this constrains activity completion."
+    },
+    {
+      "case_id": "IND26-11",
+      "approved_filters": {},
+      "decision": "The activity referent is missing. No typed filter can be inferred safely."
+    },
+    {
+      "case_id": "IND26-12",
+      "approved_filters": {},
+      "decision": "Vegetables/flowers versus bicycle repair identifies the question topic, not a hard supported day/environment/window constraint."
+    }
+  ],
+  "source_reference_reviewed_commit": "deac4428589a89d08d012ae800e6e388902186fe",
+  "purpose": "Supplemental pre-measurement freeze of question-derived typed user inputs. Does not modify or replace the original FROZEN.json or reference labels.",
+  "first_frozen_benchmark_status_at_freeze": "not_started",
+  "actual_codex_calls_in_review": 0,
+  "actual_ai_judge_calls_in_review": 0,
+  "new_neural_retrieval_measurements_in_review": 0,
+  "runtime_binding_at_reviewed_code_head": {
+    "head": "22d27012dd72995500f624ba04e3c395e155db94",
+    "record_to_current_input_artifact_hash_checked": true,
+    "fixed_approved_input_digest_checked": false,
+    "note": "This manifest freezes the approved bytes independently. A fixed-digest runtime guard is a separate author change requiring review before measurement."
+  },
+  "original_frozen_artifacts_sha256_bytes": {
+    "questions.json": "b983c32840ce08dca68ba316367932fa3a98466449ec3afd578869ad94f468a1",
+    "expectations.json": "91db64915b44f483fd902d46aa857c6eeae0e50591a18619d9dc28e132115ef9",
+    "reference-details.json": "e28262da746ecd3b37346a1fa214eb641f7b314d796606f0b8bbb5d5009ed959",
+    "AUTHORING.md": "2ddf4e46ee7628126af6d3378a9b18b1fd37f723d0207e3fbb985ebcb5cecec4",
+    "FROZEN.json": "351a7df4d85e5295e36d3fbbb31c62948619425158b038bd8370a11c982e2fe6"
+  }
+}

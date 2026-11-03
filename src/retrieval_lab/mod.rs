@@ -9,6 +9,7 @@ mod live_budget;
 pub mod mcp_trace;
 pub mod preparation;
 pub mod records;
+pub mod reference;
 pub mod report;
 pub mod runner;
 pub mod task_metrics;

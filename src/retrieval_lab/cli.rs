@@ -11,6 +11,8 @@ use crate::{
 use std::{collections::BTreeMap, io::Write, path::Path};
 
 const COMMON: &[&str] = &[
+    "--dataset",
+    "--protocol",
     "--methods",
     "--profiles",
     "--cases",
@@ -67,6 +69,32 @@ fn boolean(value: Option<&String>, default: bool) -> Result<bool, String> {
 }
 
 fn selected_plan(flags: &BTreeMap<String, String>) -> Result<super::types::ExperimentPlan, String> {
+    let dataset = super::dataset::load(
+        flags
+            .get("--dataset")
+            .map(String::as_str)
+            .unwrap_or("legacy"),
+    )?;
+    if let Some(protocol) = flags.get("--protocol") {
+        if protocol == "quality-v1" {
+            if flags.keys().any(|key| {
+                ![
+                    "--dataset",
+                    "--protocol",
+                    "--output",
+                    "--model-cache",
+                    "--sqlite-dir",
+                ]
+                .contains(&key.as_str())
+            }) {
+                return Err("quality-v1 is frozen: do not override methods, profiles, cases or advanced settings".into());
+            }
+            return catalog::quality_plan(&dataset);
+        }
+        if protocol != "baseline" {
+            return Err("Unknown protocol; select baseline or quality-v1".into());
+        }
+    }
     let mut advanced = RetrievalConfig::default();
     for (key, target) in [
         ("--top-k", &mut advanced.top_k),
@@ -103,7 +131,7 @@ fn selected_plan(flags: &BTreeMap<String, String>) -> Result<super::types::Exper
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
-    catalog::plan(&methods, &profiles, &cases, &advanced)
+    catalog::plan_for(&dataset, &methods, &profiles, &cases, &advanced)
 }
 
 fn required<'a>(flags: &'a BTreeMap<String, String>, key: &str) -> Result<&'a str, String> {
@@ -130,9 +158,10 @@ pub fn read_inputs(input: &str) -> Result<Vec<super::types::StoredRecord>, Strin
 fn report_assessments(
     records: &[super::types::StoredRecord],
     input: Option<&String>,
+    context: &super::reference::ExpectationsContext,
 ) -> Result<Vec<assessment::AssessmentRecord>, String> {
     let mut result = match input {
-        Some(path) => assessment::read_assessments(Path::new(path), records)?,
+        Some(path) => assessment::read_assessments_with_context(Path::new(path), records, context)?,
         None => Vec::new(),
     };
     for kind in [
@@ -150,10 +179,10 @@ fn report_assessments(
             .cloned()
             .collect();
         if !missing.is_empty() {
-            result.extend(assessment::assess(&missing, &[kind])?);
+            result.extend(assessment::assess_with_context(&missing, &[kind], context)?);
         }
     }
-    assessment::validate_bindings(records, &result)?;
+    assessment::validate_bindings_with_context(records, &result, context)?;
     Ok(result)
 }
 
@@ -175,19 +204,21 @@ pub fn cli(args: &[String]) -> Result<serde_json::Value, String> {
             serde_json::to_value(runner::run(&selected_plan(&flags)?, &options)?).map_err(|error| error.to_string())
         }
         Some("assess") => {
-            let flags = flags(&args[1..], &["--input", "--output", "--types"])?;
+            let flags = flags(&args[1..], &["--input", "--output", "--types", "--dataset"])?;
             let stored = read_inputs(required(&flags, "--input")?)?;
             let kinds = choices(flags.get("--types"), &[AssessmentKind::Deterministic, AssessmentKind::Manual, AssessmentKind::Ai])?;
-            let assessed = assessment::assess(&stored, &kinds)?;
-            assessment::validate_bindings(&stored, &assessed)?;
+            let context = super::reference::ExpectationsContext::load(flags.get("--dataset").map(String::as_str).unwrap_or("legacy"))?;
+            let assessed = assessment::assess_with_context(&stored, &kinds, &context)?;
+            assessment::validate_bindings_with_context(&stored, &assessed, &context)?;
             records::write_jsonl_new(Path::new(required(&flags, "--output")?), &assessed)?;
             Ok(serde_json::json!({"schema_version":1,"retrieval_records":stored.len(),"assessments":assessed.len(),"retrieval_calls":0,"codex_calls":0,"ai_judge_calls":0}))
         }
         Some("report") => {
-            let flags = flags(&args[1..], &["--input", "--assessments", "--output"])?;
+            let flags = flags(&args[1..], &["--input", "--assessments", "--output", "--dataset"])?;
             let records = read_inputs(required(&flags, "--input")?)?;
-            let assessments = report_assessments(&records, flags.get("--assessments"))?;
-            let html = super::report::render_html(&records, &assessments)?;
+            let context = super::reference::ExpectationsContext::load(flags.get("--dataset").map(String::as_str).unwrap_or("legacy"))?;
+            let assessments = report_assessments(&records, flags.get("--assessments"), &context)?;
+            let html = super::report::render_html_with_context(&records, &assessments, &context)?;
             let output = Path::new(required(&flags, "--output")?);
             let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(output)
                 .map_err(|error| format!("Cannot create new report {}: {error}", output.display()))?;
@@ -195,7 +226,7 @@ pub fn cli(args: &[String]) -> Result<serde_json::Value, String> {
             Ok(serde_json::json!({"schema_version":1,"retrieval_records":records.len(),"assessments":assessments.len(),
                 "output_sha256":crate::manifest::hash(html.as_bytes()),"retrieval_calls":0,"codex_calls":0,"ai_judge_calls":0}))
         }
-        _ => Err("Usage: lab plan | run --output <new.jsonl> | assess --input <run.jsonl> --output <new.jsonl> | report --input <run.jsonl> [--assessments <reviews.jsonl>] --output <new.html>".into()),
+        _ => Err("Usage: lab plan | run --output <new.jsonl> | assess --input <run.jsonl> --output <new.jsonl> | report --input <run.jsonl> [--assessments <reviews.jsonl>] --output <new.html>; use --dataset legacy|independent-20261103 consistently; plan/run accept --protocol baseline|quality-v1".into()),
     }
 }
 
@@ -400,5 +431,127 @@ mod tests {
         assert_eq!(std::fs::read(&input).unwrap(), raw_before);
         assert_eq!(std::fs::read(&assessment_path).unwrap(), grades_before);
         std::fs::remove_dir_all(base).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod quality_protocol_tests {
+    #[test]
+    fn frozen_dataset_assess_report_and_import_bind_the_selected_reference() {
+        let base = std::env::temp_dir().join(format!(
+            "coa-new-reference-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&base).unwrap();
+        let raw = base.join("raw.jsonl");
+        let grades = base.join("grades.jsonl");
+        let html = base.join("report.html");
+        let call = |values: Vec<String>| super::cli(&values);
+        let run = call(vec![
+            "run".into(),
+            "--dataset".into(),
+            "independent-20261103".into(),
+            "--methods".into(),
+            "bm25".into(),
+            "--profiles".into(),
+            "documents_sections".into(),
+            "--cases".into(),
+            "IND26-11".into(),
+            "--output".into(),
+            raw.display().to_string(),
+            "--model-cache".into(),
+            base.join("NO_MODEL").display().to_string(),
+        ])
+        .unwrap();
+        assert_eq!(run["completed"], 1);
+        let before = std::fs::read(&raw).unwrap();
+        let summary = call(vec![
+            "assess".into(),
+            "--dataset".into(),
+            "independent-20261103".into(),
+            "--input".into(),
+            raw.display().to_string(),
+            "--output".into(),
+            grades.display().to_string(),
+        ])
+        .expect("assessment must use actual selected criteria");
+        assert_eq!(summary["assessments"], 3);
+        assert!(
+            call(vec![
+                "assess".into(),
+                "--input".into(),
+                raw.display().to_string(),
+                "--output".into(),
+                base.join("wrong.jsonl").display().to_string()
+            ])
+            .is_err()
+        );
+        call(vec![
+            "report".into(),
+            "--dataset".into(),
+            "independent-20261103".into(),
+            "--input".into(),
+            raw.display().to_string(),
+            "--assessments".into(),
+            grades.display().to_string(),
+            "--output".into(),
+            html.display().to_string(),
+        ])
+        .unwrap();
+        let contents = std::fs::read_to_string(html).unwrap();
+        assert!(contents.contains("ask_which_activity"));
+        assert!(contents.contains("retrieval-task-metrics-v1"));
+        let json = contents
+            .split("id=\"report-data\" type=\"application/json\">")
+            .nth(1)
+            .unwrap()
+            .split("</script>")
+            .next()
+            .unwrap();
+        let data: serde_json::Value = serde_json::from_str(json).unwrap();
+        assert!(data["rows"][0]["task_metrics"]["complete_goal_set"].is_null());
+        assert_eq!(data["rows"][0]["task_metrics"]["target_goals"], 0);
+        assert_eq!(
+            data["rows"][0]["task_metrics"]["answer_review"],
+            "not_generated"
+        );
+        assert_eq!(std::fs::read(&raw).unwrap(), before);
+        assert!(!base.join("NO_MODEL").exists());
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
+    fn frozen_dataset_plan_is_explicit_and_has_preregistered_336_rows() {
+        let values = [
+            "plan",
+            "--dataset",
+            "independent-20261103",
+            "--protocol",
+            "quality-v1",
+        ]
+        .map(String::from);
+        let plan = super::cli(&values)
+            .expect("frozen dataset must be selectable without loading gold or a model");
+        assert_eq!(plan["cases"].as_array().unwrap().len(), 12);
+        assert_eq!(plan["configurations"].as_array().unwrap().len(), 28);
+        assert_eq!(plan["planned_rows"], 336);
+        assert_eq!(
+            plan["dataset"]["questions_sha256"],
+            "06cbd0737c98e672c5704765b6e8ed2e22d940e681b71e0eec6c74ca73338a88"
+        );
+        let encoded = plan.to_string();
+        for protected in [
+            "expected_action",
+            "fact_roles",
+            "evidence_alternatives",
+            "forbidden_claims",
+            "supported_candidate_activity_ids",
+        ] {
+            assert!(!encoded.contains(protected));
+        }
     }
 }
