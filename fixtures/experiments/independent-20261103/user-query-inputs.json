@@ -1,0 +1,98 @@
+{
+  "schema_version": "user-query-inputs-v1",
+  "dataset": "independent-20261103",
+  "questions_sha256": "06cbd0737c98e672c5704765b6e8ed2e22d940e681b71e0eec6c74ca73338a88",
+  "frozen_reference_sha256": "351a7df4d85e5295e36d3fbbb31c62948619425158b038bd8370a11c982e2fe6",
+  "provenance": "mechanically_encoded_explicit_user_constraints; agent_authored_not_human; requires_independent_review_before_measurement",
+  "semantics": "Only explicit hard conditions in question text. Soft preferences never filter. Unsupported requirements stay in the natural question. Whole-activity windows, inclusive minute granularity; before 11:00 means latest 10:59. Starting exactly at 14:00 cannot be represented by a whole-activity window and is not encoded. Known corpus uses minute-resolution schedules.",
+  "cases": [
+    {
+      "case_id": "IND26-01",
+      "question": "Welke activiteiten uit deze bronnen zijn binnen, beginnen om 14.00 uur, zijn gratis en hebben het materiaal voor de activiteit al aanwezig? Zet alle passende opties naast elkaar met de dag, eindtijd en wat je daar doet.",
+      "filters": {
+        "environment": "indoor"
+      }
+    },
+    {
+      "case_id": "IND26-02",
+      "question": "Ik kan een volledige activiteit alleen op vrijdag tussen 10.00 en 14.00 uur volgen. Het moet gratis zijn en ik heb geen ervaring. Buiten lijkt me fijn, maar dat is een voorkeur. Welke beschreven activiteit past bij mijn harde eisen, en hoe zit het met die voorkeur?",
+      "filters": {
+        "weekdays": [
+          "friday"
+        ],
+        "time": {
+          "start_minutes": 600,
+          "end_minutes": 840
+        }
+      }
+    },
+    {
+      "case_id": "IND26-03",
+      "question": "Welke van deze vijf activiteiten kan ik op zondag volgen? Ik zoek een activiteit die volgens het rooster echt op zondag plaatsvindt.",
+      "filters": {
+        "weekdays": [
+          "sunday"
+        ]
+      }
+    },
+    {
+      "case_id": "IND26-04",
+      "question": "Ik zoek betaald werk op dinsdag van 14.00 tot 16.00 uur en wil in dat tijdvak de hele activiteit kunnen doen. Fietsen repareren spreekt me aan. Staat er in deze vijf bronnen iets dat aan die eisen voldoet?",
+      "filters": {
+        "weekdays": [
+          "tuesday"
+        ],
+        "time": {
+          "start_minutes": 840,
+          "end_minutes": 960
+        }
+      }
+    },
+    {
+      "case_id": "IND26-05",
+      "question": "For the bicycle workshop, do I need repair experience or fluent Dutch? Tell me whether someone helps during the session, whether I must bring tools, and what clothes the source asks me to wear.",
+      "filters": {}
+    },
+    {
+      "case_id": "IND26-06",
+      "question": "For the park walk, a wheelchair-accessible route is essential for me. Can the source confirm that condition? Also give the planned length, meeting place, time, and what I should bring to drink.",
+      "filters": {}
+    },
+    {
+      "case_id": "IND26-07",
+      "question": "Bij Samen koken wil ik alleen meedoen als vaststaat dat ik sesam kan vermijden. Bevestigt de bron dat? Moet ik daarnaast zelf een schort en keukengerei meenemen?",
+      "filters": {}
+    },
+    {
+      "case_id": "IND26-08",
+      "question": "Het Taalcafé op woensdag klinkt interessant. Staat vast dat iemand mij in het Arabisch kan helpen en dat er vervoer naartoe is? Geef ook het adres en de begintijd, zodat ik weet welke gegevens wel beschreven zijn.",
+      "filters": {}
+    },
+    {
+      "case_id": "IND26-09",
+      "question": "Zet voor Tuinieren en Fietsen opknappen naast elkaar hoeveel plekken voor het laatst zijn genoemd en op welke datum dat was. Mag ik die aantallen gebruiken als bevestiging dat er op de referentiedatum 20 oktober 2026 nog plek is?",
+      "filters": {}
+    },
+    {
+      "case_id": "IND26-10",
+      "question": "Ik wil een activiteit helemaal buiten volgen en moet vóór 11.00 uur klaar zijn. Vergelijk Tuinieren en Wandelen op die twee eisen. Welke voldoet, en welke valt af?",
+      "filters": {
+        "environment": "outdoor",
+        "time": {
+          "start_minutes": 0,
+          "end_minutes": 659
+        }
+      }
+    },
+    {
+      "case_id": "IND26-11",
+      "question": "Kan ik daar zonder zelf iets mee te nemen meedoen?",
+      "filters": {}
+    },
+    {
+      "case_id": "IND26-12",
+      "question": "Ik wil groenten en bloemen verzorgen in plaats van fietsen repareren. Op welke precieze plek kan dat volgens deze bronnen, op welke dag en tijden, en moet ik zelf handschoenen of tuingereedschap regelen?",
+      "filters": {}
+    }
+  ]
+}

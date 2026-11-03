@@ -218,6 +218,7 @@ pub(crate) fn fixture_record_for(case_id: &str) -> RetrievalRecord {
         config_id: config.config_id.clone(),
         config: config.config.clone(),
         request_filters: Default::default(),
+        query_inputs_sha256: None,
         execution_kind: ExecutionKind::Fixture,
         execution_status: ExecutionStatus::Completed,
         dataset: plan.dataset,

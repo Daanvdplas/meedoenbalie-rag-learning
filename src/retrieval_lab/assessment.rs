@@ -84,32 +84,6 @@ pub struct AssessmentRecord {
     pub note: Option<String>,
 }
 
-fn expectations() -> Result<
-    (
-        std::collections::BTreeMap<String, crate::experiment::dataset::CaseCriteria>,
-        String,
-    ),
-    String,
-> {
-    let texts = [
-        include_str!("../../fixtures/experiments/expectations.json"),
-        include_str!("../../fixtures/experiments/heldout-expectations.json"),
-    ];
-    let mut cases = std::collections::BTreeMap::new();
-    for (questions, labels) in super::dataset::QUESTION_INPUTS.iter().zip(texts) {
-        let (_, labels) = crate::experiment::dataset::parse(questions, labels)?;
-        for case in labels.cases {
-            if cases.insert(case.case_id.clone(), case).is_some() {
-                return Err("Duplicate expectation case".into());
-            }
-        }
-    }
-    Ok((
-        cases,
-        crate::manifest::hash(&serde_json::to_vec(&texts).map_err(|error| error.to_string())?),
-    ))
-}
-
 fn ratio(id: &str, numerator: usize, denominator: usize, definition: &str) -> Metric {
     Metric {
         id: id.into(),
@@ -266,11 +240,12 @@ fn canonical_trace(record: &super::types::RetrievalRecord, corpus: &[crate::Sect
 fn deterministic(
     record: &super::types::RetrievalRecord,
     criteria: &crate::experiment::dataset::CaseCriteria,
+    context: &super::reference::ExpectationsContext,
 ) -> Result<DeterministicAssessment, String> {
     use super::types::{ExecutionKind, ExecutionStatus};
     use crate::retrieval::estimate_section_tokens;
     use std::collections::BTreeSet;
-    let catalog = super::dataset::bundled_questions()?;
+    let catalog = &context.dataset.catalog;
     let corpus = crate::source::parse_sources(crate::DOCUMENTS)?
         .into_iter()
         .flat_map(|source| source.sections)
@@ -548,6 +523,18 @@ pub fn assess(
     records: &[StoredRecord],
     kinds: &[AssessmentKind],
 ) -> Result<Vec<AssessmentRecord>, String> {
+    assess_with_context(
+        records,
+        kinds,
+        &super::reference::ExpectationsContext::load("legacy")?,
+    )
+}
+
+pub fn assess_with_context(
+    records: &[StoredRecord],
+    kinds: &[AssessmentKind],
+    context: &super::reference::ExpectationsContext,
+) -> Result<Vec<AssessmentRecord>, String> {
     if records.is_empty()
         || kinds.is_empty()
         || kinds
@@ -557,7 +544,8 @@ pub fn assess(
     {
         return Err("Select nonempty distinct assessments for existing stored runs".into());
     }
-    let (criteria, expectations_sha256) = expectations()?;
+    let criteria = &context.criteria;
+    let expectations_sha256 = &context.expectations_sha256;
     let created = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|error| error.to_string())?
@@ -566,6 +554,7 @@ pub fn assess(
     for stored in records {
         super::records::validate_record(&stored.record)?;
         let record = &stored.record;
+        context.validate_record(record)?;
         for kind in kinds {
             let (status, deterministic, note) = match kind {
                 AssessmentKind::Deterministic => (
@@ -575,6 +564,7 @@ pub fn assess(
                         criteria
                             .get(&record.case_id)
                             .ok_or("No expectations for recorded case")?,
+                        context,
                     )?),
                     None,
                 ),
@@ -626,14 +616,21 @@ pub fn validate_bindings(
     records: &[StoredRecord],
     assessments: &[AssessmentRecord],
 ) -> Result<(), String> {
-    let current_expectations = if assessments
-        .iter()
-        .any(|assessment| assessment.kind == AssessmentKind::Deterministic)
-    {
-        Some(expectations()?)
-    } else {
-        None
-    };
+    validate_bindings_with_context(
+        records,
+        assessments,
+        &super::reference::ExpectationsContext::load("legacy")?,
+    )
+}
+
+pub fn validate_bindings_with_context(
+    records: &[StoredRecord],
+    assessments: &[AssessmentRecord],
+    context: &super::reference::ExpectationsContext,
+) -> Result<(), String> {
+    for stored in records {
+        context.validate_record(&stored.record)?;
+    }
     let mut identities = std::collections::BTreeSet::new();
     for assessment in assessments {
         let stored = records
@@ -683,7 +680,8 @@ pub fn validate_bindings(
             return Err("Assessment status and payload disagree".into());
         }
         if let Some(imported) = &assessment.deterministic {
-            let (criteria, expectations_sha256) = current_expectations.as_ref().unwrap();
+            let criteria = &context.criteria;
+            let expectations_sha256 = &context.expectations_sha256;
             if assessment.expectations_sha256.as_ref() != Some(expectations_sha256) {
                 return Err("Deterministic assessment does not match current expectations; use lab assess with a new output file to regrade stored retrieval without new searches".into());
             }
@@ -692,6 +690,7 @@ pub fn validate_bindings(
                 criteria
                     .get(&stored.record.case_id)
                     .ok_or("No expectations for recorded case")?,
+                context,
             )?;
             if serde_json::to_value(imported).map_err(|error| error.to_string())?
                 != serde_json::to_value(expected).map_err(|error| error.to_string())?
@@ -706,6 +705,18 @@ pub fn validate_bindings(
 pub fn read_assessments(
     path: &std::path::Path,
     records: &[StoredRecord],
+) -> Result<Vec<AssessmentRecord>, String> {
+    read_assessments_with_context(
+        path,
+        records,
+        &super::reference::ExpectationsContext::load("legacy")?,
+    )
+}
+
+pub fn read_assessments_with_context(
+    path: &std::path::Path,
+    records: &[StoredRecord],
+    context: &super::reference::ExpectationsContext,
 ) -> Result<Vec<AssessmentRecord>, String> {
     if std::fs::metadata(path)
         .map_err(|error| error.to_string())?
@@ -731,7 +742,7 @@ pub fn read_assessments(
         }
         values
     };
-    validate_bindings(records, &assessments)?;
+    validate_bindings_with_context(records, &assessments, context)?;
     Ok(assessments)
 }
 
