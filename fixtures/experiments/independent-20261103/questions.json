@@ -1,0 +1,120 @@
+{
+  "schema_version": "1",
+  "dataset_version": "independent-20261103-v1",
+  "as_of": "2026-10-20",
+  "corpus_sha256": "5e7143226ad250d1ed6e2e5242a740b6dc533a622d87147fb10b65dfcfbd71f8",
+  "sources": [
+    {
+      "id": "ACT-TUIN-001",
+      "date": "2026-10-20",
+      "sha256": "bca80ca505327a9d8882bc24da8643722c909b4a4a53d5b2dd7ab1affa9d6434"
+    },
+    {
+      "id": "ACT-FIETS-002",
+      "date": "2026-10-18",
+      "sha256": "325779cb17203fe2a8966e405c7e6671837a08a8cd74b12e0401f0492d233024"
+    },
+    {
+      "id": "ACT-TAAL-003",
+      "date": "2026-10-19",
+      "sha256": "18b7b85dec63666b1744c1ba0f1ad549fa6304c68c8ad184a13c2be7347910ef"
+    },
+    {
+      "id": "ACT-KOKEN-004",
+      "date": "2026-10-17",
+      "sha256": "3aacb079e7201f131bfc6e1134e113c4d0003bb4eed8167958e60c6b639fe053"
+    },
+    {
+      "id": "ACT-WANDEL-005",
+      "date": "2026-10-20",
+      "sha256": "f65335bb91b8fc17b68836916619dbaa459837c29c3396e47d658069376bd691"
+    }
+  ],
+  "selection_note": "agent_authored_not_human; 12 question-level held-out cases authored on 2026-11-03 solely from the five unchanged fictional source documents, before any retrieval or model outputs for this set. No prior questions, labels, ranks, results, or ranking code were read by this author. Reference date remains 2026-10-20 for loader compatibility; source dates do not establish current capacity. This is not novel-document generalization or a human-authored benchmark.",
+  "cases": [
+    {
+      "id": "IND26-01",
+      "family": "afternoon-conjunction",
+      "split": "held_out",
+      "kind": "all_matches",
+      "question": "Welke activiteiten uit deze bronnen zijn binnen, beginnen om 14.00 uur, zijn gratis en hebben het materiaal voor de activiteit al aanwezig? Zet alle passende opties naast elkaar met de dag, eindtijd en wat je daar doet."
+    },
+    {
+      "id": "IND26-02",
+      "family": "hard-condition-soft-preference",
+      "split": "held_out",
+      "kind": "combined_conditions",
+      "question": "Ik kan een volledige activiteit alleen op vrijdag tussen 10.00 en 14.00 uur volgen. Het moet gratis zijn en ik heb geen ervaring. Buiten lijkt me fijn, maar dat is een voorkeur. Welke beschreven activiteit past bij mijn harde eisen, en hoe zit het met die voorkeur?"
+    },
+    {
+      "id": "IND26-03",
+      "family": "closed-corpus-sunday",
+      "split": "held_out",
+      "kind": "no_matching_activity",
+      "question": "Welke van deze vijf activiteiten kan ik op zondag volgen? Ik zoek een activiteit die volgens het rooster echt op zondag plaatsvindt."
+    },
+    {
+      "id": "IND26-04",
+      "family": "paid-work-with-narrow-time",
+      "split": "held_out",
+      "kind": "no_matching_activity",
+      "question": "Ik zoek betaald werk op dinsdag van 14.00 tot 16.00 uur en wil in dat tijdvak de hele activiteit kunnen doen. Fietsen repareren spreekt me aan. Staat er in deze vijf bronnen iets dat aan die eisen voldoet?"
+    },
+    {
+      "id": "IND26-05",
+      "family": "english-bicycle-guidance",
+      "split": "held_out",
+      "kind": "multiple_facts",
+      "question": "For the bicycle workshop, do I need repair experience or fluent Dutch? Tell me whether someone helps during the session, whether I must bring tools, and what clothes the source asks me to wear."
+    },
+    {
+      "id": "IND26-06",
+      "family": "english-wheelchair-condition",
+      "split": "held_out",
+      "kind": "missing_information",
+      "question": "For the park walk, a wheelchair-accessible route is essential for me. Can the source confirm that condition? Also give the planned length, meeting place, time, and what I should bring to drink."
+    },
+    {
+      "id": "IND26-07",
+      "family": "cooking-allergen-unknown",
+      "split": "held_out",
+      "kind": "missing_information",
+      "question": "Bij Samen koken wil ik alleen meedoen als vaststaat dat ik sesam kan vermijden. Bevestigt de bron dat? Moet ik daarnaast zelf een schort en keukengerei meenemen?"
+    },
+    {
+      "id": "IND26-08",
+      "family": "language-support-and-transport",
+      "split": "held_out",
+      "kind": "missing_information",
+      "question": "Het Taalcafé op woensdag klinkt interessant. Staat vast dat iemand mij in het Arabisch kan helpen en dat er vervoer naartoe is? Geef ook het adres en de begintijd, zodat ik weet welke gegevens wel beschreven zijn."
+    },
+    {
+      "id": "IND26-09",
+      "family": "dated-capacity-comparison",
+      "split": "held_out",
+      "kind": "stale_information",
+      "question": "Zet voor Tuinieren en Fietsen opknappen naast elkaar hoeveel plekken voor het laatst zijn genoemd en op welke datum dat was. Mag ik die aantallen gebruiken als bevestiging dat er op de referentiedatum 20 oktober 2026 nog plek is?"
+    },
+    {
+      "id": "IND26-10",
+      "family": "outdoor-with-finish-deadline",
+      "split": "held_out",
+      "kind": "combined_conditions",
+      "question": "Ik wil een activiteit helemaal buiten volgen en moet vóór 11.00 uur klaar zijn. Vergelijk Tuinieren en Wandelen op die twee eisen. Welke voldoet, en welke valt af?"
+    },
+    {
+      "id": "IND26-11",
+      "family": "missing-activity-referent",
+      "split": "held_out",
+      "kind": "missing_information",
+      "question": "Kan ik daar zonder zelf iets mee te nemen meedoen?"
+    },
+    {
+      "id": "IND26-12",
+      "family": "garden-specific-material-and-place",
+      "split": "held_out",
+      "kind": "paraphrase",
+      "question": "Ik wil groenten en bloemen verzorgen in plaats van fietsen repareren. Op welke precieze plek kan dat volgens deze bronnen, op welke dag en tijden, en moet ik zelf handschoenen of tuingereedschap regelen?"
+    }
+  ]
+}
