@@ -28,6 +28,7 @@ assert((await page.locator("#question-select option").count()) === 1, "Questions
 assert((await content("#dataset-note")).includes("geen bewijs voor nieuwe documenten"), "Show the known-corpus limitation");
 await page.selectOption("#scenario-select", "activity_expansion");
 assert((await content("#selection-count")).includes("1 opgeslagen"), "A scenario must not silently combine several configurations");
+assert(await page.locator("#capacity-notice").isVisible() && (await content("#capacity-notice")).includes("niet vastgesteld"), "Activity expansion must not turn an unknown capacity bound into an assurance of feasibility");
 await page.selectOption("#scenario-select", "filtered_expansion");
 assert((await content("#filter-notice")).includes("Geen vraagfilters"), "No requested filters must not be presented as an effective filter improvement");
 assert((await page.locator(".no-cell").count()) === 15, "Unscheduled combinations stay neutral and visible");

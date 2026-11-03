@@ -118,8 +118,10 @@ def row(
             partial_goal_coverage=None if not target else covered / target,
             first_goal_support_reciprocal_rank=None if not target else 0.5,
             minimum_required_sections=minimum,
-            section_capacity_limit=top_k,
-            goal_set_exceeds_capacity=minimum > top_k,
+            section_capacity_limit=top_k if scenario == "baseline" else None,
+            goal_set_exceeds_capacity=minimum > top_k
+            if scenario == "baseline"
+            else None,
             unknown_obligations=1 if not target else 0,
             answer_review="not_generated",
             not_applicable_reason="No labelled source target" if not target else None,
