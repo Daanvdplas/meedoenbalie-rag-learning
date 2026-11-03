@@ -120,7 +120,8 @@
       settingsKey(row) === byId("settings-select").value);
   }
   function grade(row) {
-    if (row.record.execution_status !== "completed") return { text: row.record.execution_status === "unsupported" ? "Niet beschikbaar" : "Mislukt", style: "failed" };
+    if (row.record.execution_status === "unsupported") return { text: "Niet ondersteund · niet uitgevoerd", style: "unavailable" };
+    if (row.record.execution_status !== "completed") return { text: "Mislukt", style: "failed" };
     if (byId("assessment-select").value === "ai") return { text: "Gepauzeerd", style: "unavailable" };
     if (byId("assessment-select").value === "manual") {
       const review = manual(row);
@@ -428,6 +429,7 @@
     byId("detail-status").textContent = status.text;
     byId("detail-caption").textContent = row.record.case_id + " · " + (row.record.execution_kind === "fixture" ? "Oefenrun, geen prestatiemeting" : "Echte lokale uitvoering") +
       " · dezelfde opgeslagen resultaten bij elke beoordeling";
+    byId("result-error").className = "notice" + (row.record.execution_status === "unsupported" ? "" : " error");
     byId("result-error").hidden = !row.record.error;
     byId("result-error").textContent = row.record.error || "";
     const goals = task(row);
@@ -486,27 +488,27 @@
     groups.forEach((group) => {
       const row = group[0], tr = element("tr"), th = element("th", "", methodName(row) + " · " + profileName(row));
       th.scope = "row"; tr.append(th, element("td", "", group.length));
-      const coverage = group.map((item) => task(item)?.partial_goal_coverage).filter((value) => value !== null && value !== undefined);
-      const times = group.filter((item) => item.record.execution_kind === "local_measured")
+      const completed = group.filter((item) => item.record.execution_status === "completed");
+      const unsupported = group.filter((item) => item.record.execution_status === "unsupported").length;
+      const failed = group.length - completed.length - unsupported;
+      const coverage = completed.map((item) => task(item)?.partial_goal_coverage).filter((value) => value !== null && value !== undefined);
+      const times = completed.filter((item) => item.record.execution_kind === "local_measured")
         .map((item) => item.record.timings.retrieval_ms).filter((value) => value !== null).sort((a, b) => a - b);
       const middle = Math.floor(times.length / 2);
       const median = !times.length ? null : times.length % 2 ? times[middle] : (times[middle - 1] + times[middle]) / 2;
-      const applicable = group.filter((item) => typeof task(item)?.complete_goal_set === "boolean");
+      const applicable = completed.filter((item) => typeof task(item)?.complete_goal_set === "boolean");
       const complete = applicable.filter((item) => task(item).complete_goal_set).length;
-      const noTargets = group.filter((item) => task(item)?.target_goals === 0).length;
-      const invalid = group.length - applicable.length - noTargets;
+      const noTargets = completed.filter((item) => task(item)?.target_goals === 0).length;
+      const invalid = completed.length - applicable.length - noTargets;
       let quality = complete + "/" + applicable.length + " compleet · " + noTargets + " zonder bewijsdoelen" + (invalid ? " · " + invalid + " niet beoordeelbaar" : "");
       const partial = coverage.length ? number(100 * coverage.reduce((sum, value) => sum + value, 0) / coverage.length, 1) + "% · " + coverage.length + " uitvoeringen" : "N.v.t.";
       if (type === "ai") quality = "Gepauzeerd";
       if (type === "manual") {
-        const counts = { good: 0, bad: 0, review_needed: 0, unreviewed: 0, unavailable: 0 };
-        group.forEach((item) => {
-          if (item.record.execution_status !== "completed") counts.unavailable++;
-          else counts[manual(item)?.manual?.verdict || "unreviewed"]++;
-        });
-        quality = counts.good + " goed · " + counts.bad + " onvoldoende · " + counts.review_needed + " nader bekijken · " + counts.unreviewed + " onbeoordeeld" +
-          (counts.unavailable ? " · " + counts.unavailable + " n.v.t." : "");
+        const counts = { good: 0, bad: 0, review_needed: 0, unreviewed: 0 };
+        completed.forEach((item) => { counts[manual(item)?.manual?.verdict || "unreviewed"]++; });
+        quality = counts.good + " goed · " + counts.bad + " onvoldoende · " + counts.review_needed + " nader bekijken · " + counts.unreviewed + " onbeoordeeld";
       }
+      quality += (unsupported ? " · " + unsupported + " niet ondersteund" : "") + (failed ? " · " + failed + " mislukt" : "");
       tr.append(element("td", "", quality), element("td", "", type === "deterministic" ? partial : "N.v.t."),
         element("td", "", milliseconds(median)));
       body.append(tr);
@@ -534,9 +536,22 @@
     settings.forEach((name, id) => addOption(select, id, name));
     if (settings.has(previous)) select.value = previous;
   }
+  function datasetNote(info) {
+    if (!info) return "Bestaande ontwikkelvragen op vijf bekende documenten; geen menselijke ijking.";
+    const origins = {
+      previously_seen_regression: "Bestaande ontwikkelvragen, eerder gebruikt.",
+      agent_authored_and_independently_agent_reviewed_not_human: "Nieuwe vragen, door agents opgesteld en onafhankelijk door agents gecontroleerd."
+    };
+    const limitations = {
+      "Existing development/regression cases; previously seen comparison questions are not a new held-out benchmark": "Dezelfde vijf bekende documenten; geen menselijke ijking en geen nieuwe onafhankelijke testset.",
+      "Prospectively frozen AI-authored and AI-reviewed questions on the same five known documents; not human calibration or unseen-corpus/intent generalization": "Dezelfde vijf bekende documenten; geen menselijke ijking of bewijs voor nieuwe documenten of nieuwe soorten vragen."
+    };
+    if (!Object.hasOwn(origins, info.provenance)) return "Herkomst niet herkend. Bekijk de vastgelegde herkomst en beperkingen bij de technische gegevens.";
+    return origins[info.provenance] + " " + (Object.hasOwn(limitations, info.limitation) ? limitations[info.limitation] : "Bekijk de vastgelegde beperkingen bij de technische gegevens.");
+  }
   function refreshDataset() {
     const selected = selectedDatasetRows(), info = selected[0]?.dataset_info;
-    byId("dataset-note").textContent = info ? info.provenance + ". " + info.limitation : "Bestaande ontwikkelvragen op vijf bekende documenten; geen menselijke ijking.";
+    byId("dataset-note").textContent = datasetNote(info);
     byId("question-select").replaceChildren();
     const availableQuestions = new Map();
     selected.forEach((row) => availableQuestions.set(row.record.case_id, row.record.question));

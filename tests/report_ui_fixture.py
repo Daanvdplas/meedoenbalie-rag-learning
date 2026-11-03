@@ -33,6 +33,7 @@ def row(
     top_k=3,
     minimum=2,
     action="answer_with_sources",
+    execution_status="completed",
     minimum_activities=None,
 ):
     config = dict(
@@ -135,8 +136,12 @@ def row(
         ),
         dataset_info=dict(
             id=dataset,
-            provenance="Agentreferentie; niet door mensen beoordeeld",
-            limitation="Dezelfde vijf bekende documenten; geen bewijs voor nieuwe documenten",
+            provenance="previously_seen_regression"
+            if dataset == "legacy"
+            else "agent_authored_and_independently_agent_reviewed_not_human",
+            limitation="Existing development/regression cases; previously seen comparison questions are not a new held-out benchmark"
+            if dataset == "legacy"
+            else "Prospectively frozen AI-authored and AI-reviewed questions on the same five known documents; not human calibration or unseen-corpus/intent generalization",
             freeze_sha256="frozen-sha" if dataset != "legacy" else None,
         ),
         scenario=dict(
@@ -179,6 +184,40 @@ rows = [
         minimum_activities=5,
     ),
 ]
+# Stored unsupported and failed records are not negative retrieval results.
+for case_id, status in [
+    ("STATUS_UNSUPPORTED", "unsupported"),
+    ("STATUS_FAILED", "failed"),
+    ("STATUS_ZERO", "completed"),
+]:
+    example = row(case_id, 0, 2, dataset="qa-status")
+    example["record"]["config"]["profile"] = "sqlite_sections"
+    example["record"]["config_id"] = "dense_sqlite_sections_baseline"
+    example["record"]["preparation"]["actual_profile"] = (
+        "sqlite_sections" if status == "completed" else None
+    )
+    example["record"]["execution_status"] = status
+    example["record"]["question"] = "Stored English question must stay unchanged"
+    example["dataset_info"]["provenance"] = "unknown_external_reference"
+    example["dataset_info"]["limitation"] = (
+        "Unknown external limitation must stay in technical metadata"
+    )
+    if status != "completed":
+        example["record"]["outcome"] = None
+        example["record"]["error"] = (
+            "QA unsupported build" if status == "unsupported" else "QA execution failed"
+        )
+        for field in [
+            "complete_goal_set",
+            "covered_goals",
+            "partial_goal_coverage",
+            "first_goal_support_reciprocal_rank",
+        ]:
+            example["task_metrics"][field] = None
+        for fact in example["assessments"][0]["deterministic"]["expected_facts"]:
+            fact["covered"] = None
+    rows.append(example)
+
 data = dict(
     schema_version=1,
     artifact_id="qa-report-ui-only-v1",
