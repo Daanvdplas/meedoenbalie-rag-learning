@@ -10,4 +10,5 @@ pub mod preparation;
 pub mod records;
 pub mod report;
 pub mod runner;
+pub mod task_metrics;
 pub mod types;

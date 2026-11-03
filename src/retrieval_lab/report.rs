@@ -13,6 +13,7 @@ struct ReportRow<'a> {
     record: &'a super::types::RetrievalRecord,
     record_sha256: &'a str,
     assessments: Vec<&'a AssessmentRecord>,
+    task_metrics: super::task_metrics::TaskMetrics,
 }
 
 #[derive(Serialize)]
@@ -21,6 +22,7 @@ struct ReportData<'a> {
     artifact_id: String,
     record_hash_policy: &'static str,
     assessor_version: &'static str,
+    task_metrics_version: &'static str,
     shared_preparations: Vec<BatchPreparation<'a>>,
     rows: Vec<ReportRow<'a>>,
 }
@@ -36,6 +38,11 @@ pub fn render_html(
     assessments: &[AssessmentRecord],
 ) -> Result<String, String> {
     validate_bindings(records, assessments)?;
+    let computed = if records.is_empty() {
+        Vec::new()
+    } else {
+        super::assessment::assess(records, &[super::assessment::AssessmentKind::Deterministic])?
+    };
     let mut ids = BTreeSet::new();
     for stored in records {
         validate_record(&stored.record)?;
@@ -74,19 +81,25 @@ pub fn render_html(
         artifact_id: crate::manifest::hash(&identity),
         record_hash_policy: super::types::RECORD_HASH_POLICY,
         assessor_version: super::assessment::ASSESSOR_VERSION,
+        task_metrics_version: super::task_metrics::TASK_METRICS_VERSION,
         shared_preparations: shared
             .into_iter()
             .map(|((batch_id, _), summary)| BatchPreparation { batch_id, summary })
             .collect(),
         rows: records
             .iter()
-            .map(|stored| ReportRow {
+            .zip(&computed)
+            .map(|(stored, computed)| ReportRow {
                 record: &stored.record,
                 record_sha256: &stored.record_sha256,
                 assessments: assessments
                     .iter()
                     .filter(|assessment| assessment.run_id == stored.record.run_id)
                     .collect(),
+                task_metrics: super::task_metrics::derive(
+                    &stored.record,
+                    computed.deterministic.as_ref().unwrap(),
+                ),
             })
             .collect(),
     };
@@ -171,6 +184,50 @@ mod tests {
         let mut stale = assessments;
         stale[0].retrieval_sha256 = "a".repeat(64);
         assert!(render_html(&[input], &stale).is_err());
+    }
+
+    fn report_data_for(case_id: &str) -> serde_json::Value {
+        let record = crate::retrieval_lab::records::fixture_record_for(case_id);
+        let stored = StoredRecord {
+            record_sha256: crate::manifest::hash(&serde_json::to_vec(&record).unwrap()),
+            record,
+        };
+        // Derived task measurements must also be available without imported assessments.
+        let html = render_html(&[stored], &[]).unwrap();
+        serde_json::from_str(
+            html.split("id=\"report-data\" type=\"application/json\">")
+                .nth(1)
+                .unwrap()
+                .split("</script>")
+                .next()
+                .unwrap(),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn missing_evidence_is_zero_but_targetless_unknowns_are_pending_not_passed() {
+        let missing = report_data_for("T02");
+        let metrics = &missing["rows"][0]["task_metrics"];
+        assert_eq!(metrics["complete_goal_set"], false);
+        assert_eq!(metrics["covered_goals"], 0);
+        assert_eq!(metrics["target_goals"], 2);
+        let unknown = report_data_for("P05");
+        let metrics = &unknown["rows"][0]["task_metrics"];
+        assert!(metrics["complete_goal_set"].is_null());
+        assert_eq!(metrics["target_goals"], 0);
+        assert_eq!(metrics["answer_review"], "not_generated");
+        assert_eq!(metrics["unknown_obligations"], 1);
+        assert_eq!(unknown["task_metrics_version"], "retrieval-task-metrics-v1");
+    }
+
+    #[test]
+    fn evidence_capacity_exposes_an_impossible_three_section_baseline() {
+        let data = report_data_for("T05");
+        let metrics = &data["rows"][0]["task_metrics"];
+        assert_eq!(metrics["minimum_required_sections"], 4);
+        assert_eq!(metrics["section_capacity_limit"], 3);
+        assert_eq!(metrics["goal_set_exceeds_capacity"], true);
     }
 
     #[test]
