@@ -24,11 +24,14 @@ assert((await content("#expected-action")).includes("geen van de vijf activiteit
 await page.selectOption("#question-select", "CLARIFY");
 assert((await content("#expected-action")).includes("Eerst vragen"), "Clarification cases must remain visible without a retrieval score");
 await page.selectOption("#dataset-select", "independent-20261103");
-assert((await page.locator("#question-select option").count()) === 1, "Questions must be scoped to their dataset");
+assert((await page.locator("#question-select option").count()) === 2, "Questions must be scoped to their dataset");
 assert((await content("#dataset-note")).includes("geen bewijs voor nieuwe documenten"), "Show the known-corpus limitation");
 await page.selectOption("#scenario-select", "activity_expansion");
 assert((await content("#selection-count")).includes("1 opgeslagen"), "A scenario must not silently combine several configurations");
 assert(await page.locator("#capacity-notice").isVisible() && (await content("#capacity-notice")).includes("niet vastgesteld"), "Activity expansion must not turn an unknown capacity bound into an assurance of feasibility");
+await page.selectOption("#question-select", "N02");
+assert((await content("#capacity-notice")).includes("5 activiteiten") && (await content("#capacity-notice")).includes("3 startactiviteiten"), "Expansion needs five source activities but top-k admits at most three seed activities");
+await page.selectOption("#question-select", "N01");
 await page.selectOption("#scenario-select", "filtered_expansion");
 assert((await content("#filter-notice")).includes("Geen vraagfilters"), "No requested filters must not be presented as an effective filter improvement");
 assert((await page.locator(".no-cell").count()) === 15, "Unscheduled combinations stay neutral and visible");

@@ -435,9 +435,13 @@
     byId("answer-status").textContent = "Antwoordkwaliteit: niet beoordeeld · geen antwoord gegenereerd. AI-beoordelaar gepauzeerd.";
     const expansionCapacityUnknown = goals && goals.section_capacity_limit === null;
     byId("capacity-notice").hidden = goals?.goal_set_exceeds_capacity !== true && !expansionCapacityUnknown;
-    byId("capacity-notice").textContent = goals?.goal_set_exceeds_capacity === true ?
-      "Te weinig ruimte: deze gelabelde bewijsdoelen vragen minimaal " + goals.minimum_required_sections + " passages; deze instelling kiest maximaal " + goals.section_capacity_limit + ". Compleet vinden is hiermee onmogelijk. Dit is geen fout in het zoekspoor." :
-      "Activiteituitbreiding: top-k begrenst startpassages, niet alle uiteindelijke passages. Of alle bewijsdoelen binnen dit budget haalbaar zijn, is hiermee niet vastgesteld.";
+    let capacityText = "Activiteituitbreiding: top-k begrenst startpassages, niet alle uiteindelijke passages. Of alle bewijsdoelen binnen dit budget haalbaar zijn, is hiermee niet vastgesteld.";
+    if (goals?.goal_set_exceeds_capacity === true) {
+      capacityText = goals.section_capacity_limit !== null ?
+        "Te weinig ruimte: deze gelabelde bewijsdoelen vragen minimaal " + goals.minimum_required_sections + " passages; deze instelling kiest maximaal " + goals.section_capacity_limit + ". Compleet vinden is hiermee onmogelijk. Dit is geen fout in het zoekspoor." :
+        "Te weinig startactiviteiten: minimaal " + goals.minimum_required_activities + " activiteiten nodig; top-k laat maximaal " + goals.seed_activity_capacity_limit + " startactiviteiten toe. Compleet vinden is hiermee onmogelijk, ook als alle passages van een activiteit worden toegevoegd.";
+    }
+    byId("capacity-notice").textContent = capacityText;
     const filterEffect = row.scenario?.filter_effect;
     byId("filter-notice").hidden = !["no_filters_requested", "requested_no_effect", "reduced_candidates"].includes(filterEffect);
     byId("filter-notice").textContent = filterEffect === "no_filters_requested" ? "Geen vraagfilters opgegeven: ‘filters aan’ heeft hier geen filtereffect." : filterEffect === "requested_no_effect" ? "Vraagfilters opgegeven, maar geen kandidaten uitgesloten." : "Vraagfilters hebben kandidaten uitgesloten. Dit bewijst geen algemene tijdwinst.";

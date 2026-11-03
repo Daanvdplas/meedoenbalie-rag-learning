@@ -33,6 +33,7 @@ def row(
     top_k=3,
     minimum=2,
     action="answer_with_sources",
+    minimum_activities=None,
 ):
     config = dict(
         method="dense",
@@ -119,9 +120,15 @@ def row(
             first_goal_support_reciprocal_rank=None if not target else 0.5,
             minimum_required_sections=minimum,
             section_capacity_limit=top_k if scenario == "baseline" else None,
-            goal_set_exceeds_capacity=minimum > top_k
-            if scenario == "baseline"
-            else None,
+            minimum_required_activities=minimum_activities,
+            seed_activity_capacity_limit=top_k if scenario != "baseline" else None,
+            goal_set_exceeds_capacity=(
+                minimum > top_k
+                if scenario == "baseline"
+                else minimum_activities > top_k
+                if minimum_activities is not None
+                else None
+            ),
             unknown_obligations=1 if not target else 0,
             answer_review="not_generated",
             not_applicable_reason="No labelled source target" if not target else None,
@@ -162,6 +169,15 @@ rows = [
     row("N01", 2, 2, dataset="independent-20261103"),
     row("N01", 2, 2, dataset="independent-20261103", scenario="activity_expansion"),
     row("N01", 2, 2, dataset="independent-20261103", scenario="filtered_expansion"),
+    row(
+        "N02",
+        1,
+        5,
+        dataset="independent-20261103",
+        scenario="activity_expansion",
+        minimum=5,
+        minimum_activities=5,
+    ),
 ]
 data = dict(
     schema_version=1,
