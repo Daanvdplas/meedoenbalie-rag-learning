@@ -1,0 +1,77 @@
+// Synthetic contract fixtures only; do not count these browser actions as human review.
+// Build tests/report_ui_fixture.py first; serve its output on 127.0.0.1:8794.
+const page = await browser.getPage("rag-quality-ui-qa");
+await page.setViewportSize({ width: 1280, height: 900 });
+await page.goto("http://127.0.0.1:8794/fixture.html");
+await page.evaluate(() => localStorage.removeItem("coa-retrieval-reviews-v1:qa-report-ui-only-v1"));
+await page.reload();
+function assert(value, message) { if (!value) throw new Error(message); }
+const content = (selector) => page.locator(selector).textContent();
+assert(await page.locator("#dataset-select").count() === 1, "A dataset must be selected before comparing runs");
+assert((await content("#all-questions-summary")).includes("1/4 compleet"), "Summary must count complete labelled goal sets, not average partial coverage");
+assert((await content("#all-questions-summary")).includes("2 zonder bewijsdoelen"), "Empty-target questions must remain in the denominator explanation");
+await page.selectOption("#question-select", "T02");
+assert((await content("#detail-status")).includes("0/2"), "Zero of two expected goals must be visible");
+assert((await content("#measurements")).includes("0,5"), "Support-only reciprocal rank must remain separate from completion");
+await page.selectOption("#question-select", "T05");
+assert((await content("#capacity-notice")).includes("4") && (await content("#capacity-notice")).includes("3"), "Explain that four required sections cannot fit a three-section selection");
+await page.selectOption("#question-select", "P05");
+assert((await content("#detail-status")).includes("Geen bewijsdoelen"), "An unknown-only question must not be graded zero or perfect");
+assert((await content("#expected-action")).includes("Onbekend"), "Unknown-only question keeps its expected action");
+assert((await content("#answer-status")).includes("niet"), "Answer quality stays explicitly unassessed");
+await page.selectOption("#question-select", "NO_MATCH");
+assert((await content("#expected-action")).includes("geen van de vijf activiteiten"), "No-match cases must keep their expected action and exclusion targets");
+await page.selectOption("#question-select", "CLARIFY");
+assert((await content("#expected-action")).includes("Eerst vragen"), "Clarification cases must remain visible without a retrieval score");
+await page.selectOption("#dataset-select", "independent-20261103");
+assert((await page.locator("#question-select option").count()) === 1, "Questions must be scoped to their dataset");
+assert((await content("#dataset-note")).includes("geen bewijs voor nieuwe documenten"), "Show the known-corpus limitation");
+await page.selectOption("#scenario-select", "activity_expansion");
+assert((await content("#selection-count")).includes("1 opgeslagen"), "A scenario must not silently combine several configurations");
+await page.selectOption("#scenario-select", "filtered_expansion");
+assert((await content("#filter-notice")).includes("Geen vraagfilters"), "No requested filters must not be presented as an effective filter improvement");
+assert((await page.locator(".no-cell").count()) === 15, "Unscheduled combinations stay neutral and visible");
+assert(await page.evaluate(() => performance.getEntriesByType("resource").every((entry) => new URL(entry.name).origin === location.origin)), "Offline report assets must never call external services");
+assert(await page.evaluate(() => !window.reportInjected), "Unsafe question/source text must never run as HTML");
+assert((await content("#retrieved-passages")).includes("</script>"), "Exact unsafe source text must remain readable");
+await page.selectOption("#assessment-select", "manual");
+assert((await content("#review-status")).includes("Nog niet beoordeeld"), "Human fields must start blank");
+await page.getByRole("button", { name: "Goed", exact: true }).click();
+await page.fill("#review-notes", "QA only </script>");
+await page.evaluate(() => {
+ URL.createObjectURL = (blob) => { window.qaExport = blob.text(); return "blob:qa-export"; };
+ URL.revokeObjectURL = () => {};
+ HTMLAnchorElement.prototype.click = function () {};
+});
+await page.getByRole("button", { name: /Exporteer beoordelingen/ }).click();
+const exported = JSON.parse((await page.evaluate(async () => await window.qaExport)).trim());
+assert(exported.retrieval_sha256 === "3333333333333333333333333333333333333333333333333333333333333333", "Export binds the review to the exact raw record hash");
+assert(exported.assessor_version === "retrieval-deterministic-v2" && exported.expectations_sha256 === null && exported.deterministic === null, "Export keeps human review separate from deterministic or gold labels");
+await page.reload();
+await page.selectOption("#dataset-select", "independent-20261103");
+await page.selectOption("#scenario-select", "filtered_expansion");
+await page.selectOption("#assessment-select", "manual");
+assert((await content("#review-status")).includes("Opgeslagen"), "A review survives reload with exact bindings");
+assert(await page.locator("#review-notes").inputValue() === "QA only </script>", "Review notes must persist as text");
+await page.evaluate(() => {
+ const key = "coa-retrieval-reviews-v1:qa-report-ui-only-v1";
+ const saved = JSON.parse(localStorage.getItem(key));
+ saved.reviews[0].retrieval_sha256 = "foreign-hash";
+ localStorage.setItem(key, JSON.stringify(saved));
+});
+await page.reload();
+await page.selectOption("#dataset-select", "independent-20261103");
+await page.selectOption("#scenario-select", "filtered_expansion");
+await page.selectOption("#assessment-select", "manual");
+assert((await content("#review-status")).includes("Nog niet beoordeeld"), "A review bound to a foreign raw hash must be ignored");
+// Remove ONLY this fixture's test entry, not other origin-local data.
+await page.evaluate(() => localStorage.removeItem("coa-retrieval-reviews-v1:qa-report-ui-only-v1"));
+await page.reload();
+await page.setViewportSize({ width: 320, height: 800 });
+assert(await page.evaluate(() => document.documentElement.scrollWidth <= 320), "Mobile page must not overflow outside its scrollable comparison table");
+await page.locator("#question-select").focus();
+await page.keyboard.press("Tab");
+assert(await page.evaluate(() => document.activeElement.id === "method-select"), "Keyboard order must reach the three primary comparison axes");
+await page.goto("http://127.0.0.1:8794/empty.html");
+assert(await page.locator("#empty-state").isVisible(), "Empty result state must be readable");
+console.log("PASS: complete goals, unknowns, capacity, dataset/scenario separation, filters, source escaping, manual binding, mobile, keyboard and empty state");

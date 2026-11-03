@@ -177,3 +177,10 @@ footer p { margin-bottom: var(--space-xs); }
 @media (prefers-reduced-motion: no-preference) {
   .result-choice { transition: border-color 100ms ease, background-color 100ms ease; }
 }
+
+.dataset-controls { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-bottom: var(--space-md); }
+.expected-action { font-weight: 650; }
+.measurement-help { flex-basis: 100%; margin: var(--space-sm) 0 0; }
+.fact-role { margin-bottom: var(--space-sm); font-weight: 650; }
+#dataset-note { margin-bottom: var(--space-lg); }
+@media (max-width: 760px) { .dataset-controls { grid-template-columns: 1fr; } }

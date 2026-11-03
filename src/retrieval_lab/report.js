@@ -27,7 +27,7 @@
   };
   const verdicts = { good: "Goed", bad: "Onvoldoende", review_needed: "Nader bekijken" };
   const metricLabels = {
-    evidence_coverage: "Volledige verwachte feiten", section_precision: "Relevante passages / opgehaalde passages",
+    evidence_coverage: "Gedeeltelijke bewijsdekking · historisch v2", section_precision: "Relevante passages / opgehaalde passages",
     section_recall: "Gevonden / alle relevante passages", first_relevant_reciprocal_rank: "Eerste relevante zoekresultaat",
     retrieval_ms: "Alleen lokaal zoeken", estimated_context_tokens: "Geschatte contextgrootte",
     local_search_calls: "Lokale zoekacties", answer_correctness: "Antwoordjuistheid",
@@ -68,6 +68,33 @@
   function manual(row) { return state.localReviews.get(row.record.run_id) || row.assessments.find((assessment) => assessment.kind === "manual"); }
   function metric(row, id) { return deterministic(row)?.metrics.find((value) => value.id === id); }
   function badge(text, style) { return element("span", "badge " + style, text); }
+  function datasetId(row) { return row.dataset_info?.id || "legacy"; }
+  function scenarioId(row) { return row.scenario?.id || "custom"; }
+  function selectedDatasetRows() { return rows.filter((row) => datasetId(row) === byId("dataset-select").value); }
+  function task(row) { return row.task_metrics; }
+  function expectedAction(row) {
+    const action = row.reference_metadata?.expected_action;
+    const labels = {
+      answer_with_sources: "Antwoorden met brononderbouwing", answer: "Antwoorden met brononderbouwing",
+      answer_all_matches: "Alle passende activiteiten met brononderbouwing noemen",
+      answer_match_with_unmet_soft_preference: "Een passende activiteit noemen en de onvervulde voorkeur uitleggen",
+      no_match_in_known_corpus: "Uitleggen waarom geen van de vijf activiteiten aan de voorwaarden voldoet",
+      answer_source_facts: "De gevraagde feiten met bronnen beantwoorden",
+      verify_unknown_hard_condition_before_suggesting: "Eerst de onbekende voorwaarde laten controleren",
+      answer_known_facts_and_mark_unknowns: "Bekende feiten noemen en ontbrekende informatie onbekend laten",
+      answer_historical_counts_and_require_capacity_check: "Historische aantallen noemen; actuele plekken laten controleren",
+      compare_match_and_exclusion: "De passende activiteit en de uitsluitingsreden vergelijken",
+      ask_which_activity: "Eerst vragen om welke activiteit het gaat",
+      state_unknown: "Onbekend aangeven", abstain: "Onbekend aangeven",
+      no_match: "Uitleggen dat geen activiteit aan de voorwaarden voldoet",
+      no_matching_activity: "Uitleggen dat geen activiteit aan de voorwaarden voldoet",
+      clarify: "Eerst een verduidelijkende vraag stellen", ask_clarification: "Eerst een verduidelijkende vraag stellen"
+    };
+    if (labels[action]) return labels[action];
+    if (action) return action;
+    if (row.record.kind === "no_matching_activity") return "Uitleggen of er een passende activiteit is";
+    return task(row)?.target_goals ? "Antwoorden met brononderbouwing; ontbrekende feiten onbekend laten" : "Onbekende informatie of ontbrekende voorwaarden benoemen";
+  }
   function settingsKey(row) {
     const { method, ...settings } = row.record.config.retrieval;
     return JSON.stringify(settings);
@@ -85,7 +112,8 @@
     select.append(option);
   }
   function currentRows(includeAllQuestions = false) {
-    return rows.filter((row) =>
+    return selectedDatasetRows().filter((row) =>
+      scenarioId(row) === byId("scenario-select").value &&
       (includeAllQuestions || row.record.case_id === byId("question-select").value) &&
       (byId("method-select").value === "all" || row.record.config.retrieval.method === byId("method-select").value) &&
       (byId("profile-select").value === "all" || row.record.config.profile === byId("profile-select").value) &&
@@ -99,11 +127,12 @@
       if (!review?.manual || review.status !== "completed") return { text: "Onbeoordeeld", style: "unavailable" };
       return { text: verdicts[review.manual.verdict], style: review.manual.verdict === "good" ? "covered" : review.manual.verdict === "bad" ? "failed" : "partial" };
     }
-    const coverage = metric(row, "evidence_coverage");
-    if (coverage?.value === null || coverage?.value === undefined) return { text: "N.v.t.", style: "unavailable" };
-    const text = coverage.numerator !== null && coverage.denominator !== null ?
-      coverage.numerator + "/" + coverage.denominator + " feiten" : number(coverage.value, 2);
-    return { text, style: coverage.value === 1 ? "covered" : "partial" };
+    const goals = task(row);
+    if (!goals) return { text: "Metingen ontbreken", style: "unavailable" };
+    if (!goals.target_goals) return { text: "Geen bewijsdoelen", style: "unavailable" };
+    if (goals.complete_goal_set === null) return { text: "Niet te beoordelen", style: "unavailable" };
+    return { text: (goals.complete_goal_set ? "Compleet · " : "Onvolledig · ") + goals.covered_goals + "/" + goals.target_goals,
+      style: goals.complete_goal_set ? "covered" : "partial" };
   }
   function validLocalReview(review) {
     const row = rowById.get(review?.run_id);
@@ -156,7 +185,7 @@
   function renderGrid(visible) {
     const host = byId("comparison-grid");
     host.replaceChildren();
-    const question = rows.find((row) => row.record.case_id === byId("question-select").value)?.record;
+    const question = selectedDatasetRows().find((row) => row.record.case_id === byId("question-select").value)?.record;
     byId("comparison-heading").textContent = question?.question || "Geen vraag geselecteerd";
     byId("question-kind").textContent = question ? question.case_id + " · " + (kinds[question.kind] || question.kind) : "";
     byId("selection-count").textContent = visible.length + " opgeslagen uitvoeringen";
@@ -234,10 +263,12 @@
       host.append(element("p", "notice", "Er is nog geen deterministische beoordeling opgeslagen. Bereken die op deze uitvoeringen om de verwachtingen te bekijken."));
       return;
     }
-    if (!assessment.expected_facts.length) host.append(element("p", "help", "Er zijn geen positieve bronfeiten vastgelegd voor deze vraag."));
+    if (!assessment.expected_facts.length) host.append(element("p", "help", "Geen gelabelde bronbewijsdoelen. De verwachte antwoordactie blijft staan; antwoordkwaliteit is nog niet beoordeeld."));
     const hits = row.record.outcome?.hits || [];
     assessment.expected_facts.forEach((fact) => {
       const card = element("article", "fact");
+      const role = row.reference_metadata?.fact_roles?.[fact.criterion.id];
+      if (role) card.append(element("small", "fact-role", ({ support: "Onderbouwing", exclusion: "Uitsluitingsreden", unknown: "Onbekend of verouderd", clarification: "Verduidelijking nodig" })[role] || role));
       card.append(badge(fact.covered === true ? "Ondersteund" : fact.covered === false ? "Nog niet compleet" : "N.v.t.",
         fact.covered === true ? "covered" : fact.covered === false ? "partial" : "unavailable"));
       card.append(element("p", "", fact.criterion.description));
@@ -256,7 +287,7 @@
           refs.append(link);
         });
       } else refs.append(element("span", "", !fact.criterion.evidence_alternatives.length ?
-        "Geen positief bronfeit om te vinden. Of een antwoord terecht ‘onbekend’ zegt, vraagt een aparte beoordeling." :
+        "Geen bronbewijsdoel om te vinden. Of een antwoord terecht ‘onbekend’ zegt, vraagt een aparte beoordeling." :
         "Niet te beoordelen: de zoekactie of de controles op de brongegevens zijn niet geldig."));
       card.append(refs); host.append(card);
     });
@@ -328,7 +359,14 @@
         element("p", "help", "Deze voorbereiding kan door meerdere combinaties worden gebruikt. Vergelijk lokale zoektijd apart en tel gedeeld model- of embeddingwerk niet opnieuw per combinatie."),
         element("pre", "", JSON.stringify(record.shared_preparation, null, 2)));
     }
+    if (task(row)) {
+      host.append(element("h3", "", "Versie van de bewijsdoelmeting"), element("p", "help", data.task_metrics_version || "Onbekend"));
+    }
+    if (row.dataset_info || row.scenario || row.reference_metadata) {
+      host.append(element("h3", "", "Herkomst en scenario"), element("pre", "", JSON.stringify({ dataset: row.dataset_info, scenario: row.scenario, reference: row.reference_metadata }, null, 2)));
+    }
     if (assessment) {
+      host.append(element("p", "help", "Intacte bronnen en geldige verwijzingen bewijzen geen inhoudelijk juist antwoord."));
       host.append(element("h3", "", "Deterministische controles"));
       const checks = element("ul", "checks");
       assessment.hard_checks.forEach((check) => {
@@ -392,14 +430,30 @@
       " · dezelfde opgeslagen resultaten bij elke beoordeling";
     byId("result-error").hidden = !row.record.error;
     byId("result-error").textContent = row.record.error || "";
+    const goals = task(row);
+    byId("expected-action").textContent = "Verwachte actie: " + expectedAction(row);
+    byId("answer-status").textContent = "Antwoordkwaliteit: niet beoordeeld · geen antwoord gegenereerd. AI-beoordelaar gepauzeerd.";
+    byId("capacity-notice").hidden = goals?.goal_set_exceeds_capacity !== true;
+    byId("capacity-notice").textContent = "Te weinig ruimte: deze gelabelde bewijsdoelen vragen minimaal " + goals?.minimum_required_sections + " passages; deze instelling kiest maximaal " + goals?.section_capacity_limit + ". Compleet vinden is hiermee onmogelijk. Dit is geen fout in het zoekspoor.";
+    const filterEffect = row.scenario?.filter_effect;
+    byId("filter-notice").hidden = !["no_filters_requested", "requested_no_effect", "reduced_candidates"].includes(filterEffect);
+    byId("filter-notice").textContent = filterEffect === "no_filters_requested" ? "Geen vraagfilters opgegeven: ‘filters aan’ heeft hier geen filtereffect." : filterEffect === "requested_no_effect" ? "Vraagfilters opgegeven, maar geen kandidaten uitgesloten." : "Vraagfilters hebben kandidaten uitgesloten. Dit bewijst geen algemene tijdwinst.";
     const measurements = byId("measurements");
     measurements.replaceChildren();
+    const goalMeasurements = goals ? [["Alle verwachte bewijsdoelen", goals.complete_goal_set === null ? "N.v.t." : goals.complete_goal_set ? "Compleet" : "Onvolledig"],
+      ["Gedeeltelijke dekking", goals.partial_goal_coverage === null ? "N.v.t." : number(goals.partial_goal_coverage * 100, 1) + "% · " + goals.covered_goals + "/" + goals.target_goals],
+      ["Eerste bewijsdoelsteun · 1/rang", goals.first_goal_support_reciprocal_rank === null ? "N.v.t." : number(goals.first_goal_support_reciprocal_rank, 3)]] : [];
+    goalMeasurements.forEach(([label, value]) => {
+      const item = element("div", "measurement");
+      item.append(element("span", "", label), element("strong", "", value)); measurements.append(item);
+    });
     [["Lokaal zoeken", timing(row)], ["Opgehaald", (row.record.outcome?.hits.length || 0) + " passages"],
-      ["Contextschatting", row.record.outcome ? number(row.record.outcome.estimated_context_tokens, 0) + " tokens" : "N.v.t."]]
+      ["Geschatte brontekst", row.record.outcome ? number(row.record.outcome.estimated_context_tokens, 0) + " tokens" : "N.v.t."]]
       .forEach(([label, value]) => {
         const item = element("div", "measurement");
         item.append(element("span", "", label), element("strong", "", value)); measurements.append(item);
       });
+    measurements.append(element("p", "help measurement-help", "1/rang meet alleen hoe vroeg steun voor een bewijsdoel staat. Het zegt niet of alle doelen zijn gevonden. Geschatte brontekst is niet het volledige modelverbruik."));
     renderFacts(row); renderSources(row); renderTechnical(row); renderManual(row);
   }
   function renderOverview() {
@@ -409,7 +463,7 @@
     byId("overview-help").textContent = (type === "manual" ?
       "Jouw expliciete oordelen, met onbeoordeelde uitvoeringen apart. " : type === "ai" ?
       "AI-beoordeling is gepauzeerd; er zijn geen AI-oordelen berekend. " :
-      "Gemiddelde bewijsdekking per beoordeelbare uitvoering, met de noemer erbij. ") +
+      "Volledig gevonden gelabelde bewijsdoelen, met de noemer erbij. Gedeeltelijke dekking staat apart. ") +
       "Zoektijd is de mediaan van alleen lokaal zoeken; voorbereiding staat apart.";
     visible.forEach((row) => {
       const id = row.record.config_id;
@@ -418,19 +472,24 @@
     });
     if (!visible.length) { host.append(element("p", "help", "Geen uitvoeringen voor deze selectie.")); return; }
     const scroll = element("div", "summary-scroll"), table = element("table", "summary-table"), head = element("thead"), tr = element("tr");
-    ["Combinatie", "Uitvoeringen", type === "manual" ? "Jouw beoordelingen" : type === "ai" ? "AI-beoordeling" : "Bewijsdekking", "Zoektijd · mediaan"]
+    ["Combinatie", "Uitvoeringen", type === "manual" ? "Jouw beoordelingen" : type === "ai" ? "AI-beoordeling" : "Alle bewijsdoelen compleet", "Gedeeltelijke dekking", "Zoektijd · mediaan"]
       .forEach((title) => tr.append(element("th", "", title)));
     head.append(tr); table.append(head);
     const body = element("tbody");
     groups.forEach((group) => {
       const row = group[0], tr = element("tr"), th = element("th", "", methodName(row) + " · " + profileName(row));
       th.scope = "row"; tr.append(th, element("td", "", group.length));
-      const coverage = group.map((item) => metric(item, "evidence_coverage")?.value).filter((value) => value !== null && value !== undefined);
+      const coverage = group.map((item) => task(item)?.partial_goal_coverage).filter((value) => value !== null && value !== undefined);
       const times = group.filter((item) => item.record.execution_kind === "local_measured")
         .map((item) => item.record.timings.retrieval_ms).filter((value) => value !== null).sort((a, b) => a - b);
       const middle = Math.floor(times.length / 2);
       const median = !times.length ? null : times.length % 2 ? times[middle] : (times[middle - 1] + times[middle]) / 2;
-      let quality = coverage.length ? number(100 * coverage.reduce((sum, value) => sum + value, 0) / coverage.length, 1) + "% · " + coverage.length + "/" + group.length + " beoordeelbaar" : "N.v.t. · 0/" + group.length;
+      const applicable = group.filter((item) => typeof task(item)?.complete_goal_set === "boolean");
+      const complete = applicable.filter((item) => task(item).complete_goal_set).length;
+      const noTargets = group.filter((item) => task(item)?.target_goals === 0).length;
+      const invalid = group.length - applicable.length - noTargets;
+      let quality = complete + "/" + applicable.length + " compleet · " + noTargets + " zonder bewijsdoelen" + (invalid ? " · " + invalid + " niet beoordeelbaar" : "");
+      const partial = coverage.length ? number(100 * coverage.reduce((sum, value) => sum + value, 0) / coverage.length, 1) + "% · " + coverage.length + " uitvoeringen" : "N.v.t.";
       if (type === "ai") quality = "Gepauzeerd";
       if (type === "manual") {
         const counts = { good: 0, bad: 0, review_needed: 0, unreviewed: 0, unavailable: 0 };
@@ -441,7 +500,7 @@
         quality = counts.good + " goed · " + counts.bad + " onvoldoende · " + counts.review_needed + " nader bekijken · " + counts.unreviewed + " onbeoordeeld" +
           (counts.unavailable ? " · " + counts.unavailable + " n.v.t." : "");
       }
-      tr.append(element("td", "", quality),
+      tr.append(element("td", "", quality), element("td", "", type === "deterministic" ? partial : "N.v.t."),
         element("td", "", milliseconds(median)));
       body.append(tr);
     });
@@ -452,16 +511,41 @@
     if (!visible.some((row) => row.record.run_id === state.selected)) state.selected = visible[0]?.record.run_id || null;
     renderGrid(visible); renderDetail(); renderOverview();
   }
-  const questions = new Map();
-  rows.forEach((row) => questions.set(row.record.case_id, row.record.question));
-  questions.forEach((question, id) => addOption(byId("question-select"), id, id + " · " + question));
+  const questions = new Map(rows.map((row) => [datasetId(row) + "/" + row.record.case_id, row.record.question]));
+  const datasets = new Map();
+  rows.forEach((row) => datasets.set(datasetId(row), row.dataset_info));
+  datasets.forEach((info, id) => addOption(byId("dataset-select"), id, id === "legacy" ? "Bestaande ontwikkelvragen" : id === "independent-20261103" ? "Vooraf vastgelegde agentvragen" : id));
   methodIds.forEach((id) => addOption(byId("method-select"), id, methods[id][0]));
   profileIds.forEach((id) => addOption(byId("profile-select"), id, profiles[id].join(" / ")));
-  const settings = new Map();
-  rows.forEach((row) => { if (!settings.has(settingsKey(row))) settings.set(settingsKey(row), settingsName(row)); });
-  settings.forEach((name, id) => addOption(byId("settings-select"), id, name));
+  function refreshSettings() {
+    const select = byId("settings-select"), previous = select.value;
+    select.replaceChildren();
+    const settings = new Map();
+    selectedDatasetRows().filter((row) => scenarioId(row) === byId("scenario-select").value).forEach((row) => {
+      if (!settings.has(settingsKey(row))) settings.set(settingsKey(row), settingsName(row));
+    });
+    settings.forEach((name, id) => addOption(select, id, name));
+    if (settings.has(previous)) select.value = previous;
+  }
+  function refreshDataset() {
+    const selected = selectedDatasetRows(), info = selected[0]?.dataset_info;
+    byId("dataset-note").textContent = info ? info.provenance + ". " + info.limitation : "Bestaande ontwikkelvragen op vijf bekende documenten; geen menselijke ijking.";
+    byId("question-select").replaceChildren();
+    const availableQuestions = new Map();
+    selected.forEach((row) => availableQuestions.set(row.record.case_id, row.record.question));
+    availableQuestions.forEach((question, id) => addOption(byId("question-select"), id, id + " · " + question));
+    byId("scenario-select").replaceChildren();
+    const scenarios = new Map();
+    selected.forEach((row) => scenarios.set(scenarioId(row), row.scenario?.label || "Opgeslagen instellingen"));
+    scenarios.forEach((label, id) => addOption(byId("scenario-select"), id, label));
+    if (scenarios.has("baseline")) byId("scenario-select").value = "baseline";
+    refreshSettings();
+  }
+  byId("dataset-select").addEventListener("change", () => { refreshDataset(); renderAll(); });
+  byId("scenario-select").addEventListener("change", () => { refreshSettings(); renderAll(); });
   ["question-select", "method-select", "profile-select", "assessment-select", "settings-select"]
     .forEach((id) => byId(id).addEventListener("change", renderAll));
+  refreshDataset();
   document.querySelectorAll("[data-verdict]").forEach((button) => button.addEventListener("click", () => {
     const row = rowById.get(state.selected);
     if (!row || row.record.execution_status !== "completed") return;
