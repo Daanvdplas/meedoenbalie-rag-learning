@@ -37,6 +37,7 @@ fn protocol(profile: StorageProfile) {
     let base = temporary();
     let session = SessionConfig {
         schema_version: 1,
+        transport: None,
         config: RunConfig {
             profile,
             retrieval: RetrievalConfig {
@@ -92,7 +93,7 @@ fn protocol(profile: StorageProfile) {
         json!([3])
     );
     assert_eq!(replies[2]["error"]["code"], -32602);
-    for reply in &replies[3..7] {
+    for reply in &replies[3..6] {
         assert_eq!(reply["result"]["isError"], false);
         let evidence: Value =
             serde_json::from_str(reply["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
@@ -108,6 +109,7 @@ fn protocol(profile: StorageProfile) {
         );
         assert!(!evidence["hits"].as_array().unwrap().is_empty());
     }
+    assert_eq!(replies[6]["result"]["isError"], true);
     assert_eq!(replies[7]["result"]["isError"], true);
     assert!(
         replies[7]["result"]["content"][0]["text"]
@@ -415,4 +417,105 @@ fn stalled_version_probe_is_inside_the_global_deadline() {
 #[test]
 fn cancelling_during_version_probe_preserves_failure_and_stops_probe_group() {
     verify_stalled_version_probe(true);
+}
+
+#[test]
+fn compact_mcp_sends_one_source_copy_and_flushes_full_audit_before_response() {
+    let base = temporary();
+    let trace_path = base.0.join("audit.jsonl");
+    std::fs::write(&trace_path, b"").unwrap();
+    let session = json!({
+        "schema_version":2,
+        "config":{"profile":"documents_activities","retrieval":RetrievalConfig { method: SearchMethod::Bm25, ..Default::default() }},
+        "filters":{},"model_cache":base.0.join("NO_MODEL"),"sqlite_dir":base.0.join("NO_SQLITE"),
+        "transport":{"payload_mode":"compact","session_id":"wire-session","trace_path":trace_path}
+    });
+    let mut child = Command::new(env!("CARGO_BIN_EXE_meedoen-retrieval"))
+        .args(["lab", "mcp", "--session", &session.to_string()])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut input = child.stdin.take().unwrap();
+    writeln!(input,"{}",json!({"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search_document","arguments":{"query":"dinsdag binnen","top_k":3}}})).unwrap();
+    input.flush().unwrap();
+    use std::io::BufRead;
+    let mut reader = std::io::BufReader::new(child.stdout.take().unwrap());
+    let mut line = String::new();
+    reader.read_line(&mut line).unwrap();
+    assert!(
+        !line.is_empty(),
+        "A compact session must serve its response"
+    );
+    let reply: Value = serde_json::from_str(&line).unwrap();
+    assert_eq!(reply["result"]["isError"], false);
+    let payload: Value =
+        serde_json::from_str(reply["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+    let trace_text = std::fs::read_to_string(&trace_path).unwrap();
+    assert!(
+        trace_text.ends_with('\n'),
+        "The audit must be flushed before the model response"
+    );
+    let trace: Value = serde_json::from_str(trace_text.trim_end()).unwrap();
+    assert!(payload.get("outcome").is_none());
+    assert!(payload["hits"][0].get("scores").is_none());
+    assert_eq!(payload["trace"]["session_id"], "wire-session");
+    assert_eq!(
+        payload["hits"][0]["section"],
+        trace["full_response"]["hits"][0]["section"]
+    );
+    assert_eq!(payload["manifest"], trace["full_response"]["manifest"]);
+    assert!(
+        !trace["full_response"]["outcome"]["candidates"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    assert!(payload.to_string().len() < trace["full_response"].to_string().len());
+    assert!(!base.0.join("NO_MODEL").exists());
+    drop(input);
+    assert!(child.wait().unwrap().success());
+}
+
+#[test]
+fn live_cli_accepts_fixed_payload_mode_and_saves_new_transport_provenance_without_provider() {
+    let base = temporary();
+    let output = base.0.join("answer.jsonl");
+    let result = Command::new(env!("CARGO_BIN_EXE_meedoen-retrieval"))
+        .args([
+            "lab",
+            "ask",
+            "--live",
+            "--methods",
+            "bm25",
+            "--profiles",
+            "documents_sections",
+            "--question",
+            "Wanneer tuinieren?",
+            "--output",
+            output.to_str().unwrap(),
+            "--ledger",
+            base.0.join("budget.json").to_str().unwrap(),
+            "--max-generations",
+            "1",
+            "--max-seconds",
+            "1",
+            "--payload-mode",
+            "compact",
+        ])
+        .env("COA_CODEX_BIN", "/missing/NO-CODEX")
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    let saved: Value = serde_json::from_slice(
+        &std::fs::read(output)
+            .expect("Valid transport flag must reach the bounded runtime reservation"),
+    )
+    .unwrap();
+    assert_eq!(saved["schema_version"], 2);
+    assert_eq!(saved["payload_mode"], "compact");
+    assert_eq!(saved["audit_trace"]["trace_bytes"], 0);
+    assert_eq!(saved["audit_trace"]["payload_bytes"], 0);
+    assert_eq!(saved["ai_judge_calls"], 0);
 }

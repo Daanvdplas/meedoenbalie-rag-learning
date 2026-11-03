@@ -6,6 +6,7 @@ pub mod dataset;
 pub mod lab_mcp;
 pub mod live;
 mod live_budget;
+pub mod mcp_trace;
 pub mod preparation;
 pub mod records;
 pub mod report;

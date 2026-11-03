@@ -134,6 +134,7 @@ where
     F: FnMut(&str, usize) -> Result<Value, String>,
 {
     let mut calls = 0;
+    let mut attempts = 0;
     let mut bounded = |query: &str, top_k: usize| {
         calls += 1;
         if calls > MAX_SEARCH_CALLS {
@@ -155,7 +156,25 @@ where
             return Err("MCP request exceeds 16 KiB".into());
         }
         let response = match serde_json::from_slice(&line) {
-            Ok(request) => handle_request_with_policy(request, &mut bounded, &policy),
+            Ok(request) => {
+                let request: Value = request;
+                if policy.fixed_top_k.is_some() && request["method"] == "tools/call" {
+                    attempts += 1;
+                    if attempts > MAX_SEARCH_CALLS {
+                        if let Some(id) = request.get("id") {
+                            let response = json!({"jsonrpc":"2.0","id":id,"result":{"content":[{"type":"text","text":SEARCH_LIMIT_MESSAGE}],"isError":true}});
+                            serde_json::to_writer(&mut writer, &response)
+                                .map_err(|e| e.to_string())?;
+                            writer
+                                .write_all(b"\n")
+                                .and_then(|_| writer.flush())
+                                .map_err(|e| e.to_string())?;
+                        }
+                        continue;
+                    }
+                }
+                handle_request_with_policy(request, &mut bounded, &policy)
+            }
             Err(_) => Some(rpc_error(Value::Null, -32700, "Invalid JSON")),
         };
         if let Some(response) = response {
@@ -172,6 +191,27 @@ where
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn fixed_policy_counts_invalid_attempts_towards_session_limit() {
+        let requests: Vec<_> = (0..5).map(|id| json!({"jsonrpc":"2.0","id":id,"method":"tools/call","params":{"name":"search_document","arguments":{"query":"Wanneer?","top_k":if id<4 {6} else {3}}}}).to_string()).collect();
+        let mut output = Vec::new();
+        let mut invoked = 0;
+        serve_with_policy(
+            std::io::Cursor::new(requests.join("\n") + "\n"),
+            &mut output,
+            |_, _| {
+                invoked += 1;
+                Ok(json!({"hits":[]}))
+            },
+            SearchPolicy::fixed(3, "fixed".into()).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            invoked, 0,
+            "Invalid attempts must consume the fixed session allowance"
+        );
+    }
 
     #[test]
     fn fixed_search_policy_is_advertised_and_rejects_treatment_changes_before_search() {
