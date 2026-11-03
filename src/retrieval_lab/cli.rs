@@ -356,4 +356,49 @@ mod tests {
         assert!(!rejected.exists());
         std::fs::remove_dir_all(base).unwrap();
     }
+
+    #[test]
+    fn report_rejects_forged_deterministic_grades_before_creating_output() {
+        let base = std::env::temp_dir().join(format!(
+            "coa-lab-forged-grade-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&base).unwrap();
+        let input = base.join("runs.jsonl");
+        let assessment_path = base.join("assessments.jsonl");
+        let output = base.join("report.html");
+        records::write_jsonl_new(&input, &[records::fixture_record_for("P01")]).unwrap();
+        let raw_before = std::fs::read(&input).unwrap();
+        let stored = records::read_records(&input).unwrap();
+        let mut assessed = assessment::assess(&stored, &[AssessmentKind::Deterministic]).unwrap();
+        let metric = assessed[0]
+            .deterministic
+            .as_mut()
+            .unwrap()
+            .metrics
+            .iter_mut()
+            .find(|metric| metric.id == "evidence_coverage")
+            .unwrap();
+        metric.value = Some(0.12345);
+        records::write_jsonl_new(&assessment_path, &assessed).unwrap();
+        let grades_before = std::fs::read(&assessment_path).unwrap();
+        let result = cli(&[
+            "report".into(),
+            "--input".into(),
+            input.display().to_string(),
+            "--assessments".into(),
+            assessment_path.display().to_string(),
+            "--output".into(),
+            output.display().to_string(),
+        ]);
+        assert!(result.is_err(), "Forged deterministic grade was accepted");
+        assert!(!output.exists());
+        assert_eq!(std::fs::read(&input).unwrap(), raw_before);
+        assert_eq!(std::fs::read(&assessment_path).unwrap(), grades_before);
+        std::fs::remove_dir_all(base).unwrap();
+    }
 }
