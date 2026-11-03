@@ -84,32 +84,6 @@ pub struct AssessmentRecord {
     pub note: Option<String>,
 }
 
-fn expectations() -> Result<
-    (
-        std::collections::BTreeMap<String, crate::experiment::dataset::CaseCriteria>,
-        String,
-    ),
-    String,
-> {
-    let texts = [
-        include_str!("../../fixtures/experiments/expectations.json"),
-        include_str!("../../fixtures/experiments/heldout-expectations.json"),
-    ];
-    let mut cases = std::collections::BTreeMap::new();
-    for (questions, labels) in super::dataset::QUESTION_INPUTS.iter().zip(texts) {
-        let (_, labels) = crate::experiment::dataset::parse(questions, labels)?;
-        for case in labels.cases {
-            if cases.insert(case.case_id.clone(), case).is_some() {
-                return Err("Duplicate expectation case".into());
-            }
-        }
-    }
-    Ok((
-        cases,
-        crate::manifest::hash(&serde_json::to_vec(&texts).map_err(|error| error.to_string())?),
-    ))
-}
-
 fn ratio(id: &str, numerator: usize, denominator: usize, definition: &str) -> Metric {
     Metric {
         id: id.into(),
@@ -266,11 +240,12 @@ fn canonical_trace(record: &super::types::RetrievalRecord, corpus: &[crate::Sect
 fn deterministic(
     record: &super::types::RetrievalRecord,
     criteria: &crate::experiment::dataset::CaseCriteria,
+    context: &super::reference::ExpectationsContext,
 ) -> Result<DeterministicAssessment, String> {
     use super::types::{ExecutionKind, ExecutionStatus};
     use crate::retrieval::estimate_section_tokens;
     use std::collections::BTreeSet;
-    let catalog = super::dataset::bundled_questions()?;
+    let catalog = &context.dataset.catalog;
     let corpus = crate::source::parse_sources(crate::DOCUMENTS)?
         .into_iter()
         .flat_map(|source| source.sections)
@@ -548,6 +523,18 @@ pub fn assess(
     records: &[StoredRecord],
     kinds: &[AssessmentKind],
 ) -> Result<Vec<AssessmentRecord>, String> {
+    assess_with_context(
+        records,
+        kinds,
+        &super::reference::ExpectationsContext::load("legacy")?,
+    )
+}
+
+pub fn assess_with_context(
+    records: &[StoredRecord],
+    kinds: &[AssessmentKind],
+    context: &super::reference::ExpectationsContext,
+) -> Result<Vec<AssessmentRecord>, String> {
     if records.is_empty()
         || kinds.is_empty()
         || kinds
@@ -557,7 +544,8 @@ pub fn assess(
     {
         return Err("Select nonempty distinct assessments for existing stored runs".into());
     }
-    let (criteria, expectations_sha256) = expectations()?;
+    let criteria = &context.criteria;
+    let expectations_sha256 = &context.expectations_sha256;
     let created = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|error| error.to_string())?
@@ -566,6 +554,7 @@ pub fn assess(
     for stored in records {
         super::records::validate_record(&stored.record)?;
         let record = &stored.record;
+        context.validate_record(record)?;
         for kind in kinds {
             let (status, deterministic, note) = match kind {
                 AssessmentKind::Deterministic => (
@@ -575,6 +564,7 @@ pub fn assess(
                         criteria
                             .get(&record.case_id)
                             .ok_or("No expectations for recorded case")?,
+                        context,
                     )?),
                     None,
                 ),
@@ -626,6 +616,21 @@ pub fn validate_bindings(
     records: &[StoredRecord],
     assessments: &[AssessmentRecord],
 ) -> Result<(), String> {
+    validate_bindings_with_context(
+        records,
+        assessments,
+        &super::reference::ExpectationsContext::load("legacy")?,
+    )
+}
+
+pub fn validate_bindings_with_context(
+    records: &[StoredRecord],
+    assessments: &[AssessmentRecord],
+    context: &super::reference::ExpectationsContext,
+) -> Result<(), String> {
+    for stored in records {
+        context.validate_record(&stored.record)?;
+    }
     let mut identities = std::collections::BTreeSet::new();
     for assessment in assessments {
         let stored = records
@@ -674,6 +679,25 @@ pub fn validate_bindings(
         if !valid {
             return Err("Assessment status and payload disagree".into());
         }
+        if let Some(imported) = &assessment.deterministic {
+            let criteria = &context.criteria;
+            let expectations_sha256 = &context.expectations_sha256;
+            if assessment.expectations_sha256.as_ref() != Some(expectations_sha256) {
+                return Err("Deterministic assessment does not match current expectations; use lab assess with a new output file to regrade stored retrieval without new searches".into());
+            }
+            let expected = deterministic(
+                &stored.record,
+                criteria
+                    .get(&stored.record.case_id)
+                    .ok_or("No expectations for recorded case")?,
+                context,
+            )?;
+            if serde_json::to_value(imported).map_err(|error| error.to_string())?
+                != serde_json::to_value(expected).map_err(|error| error.to_string())?
+            {
+                return Err("Deterministic assessment differs from recomputed scores and criteria for the stored retrieval; use lab assess with a new output file to regrade without new searches".into());
+            }
+        }
     }
     Ok(())
 }
@@ -681,6 +705,18 @@ pub fn validate_bindings(
 pub fn read_assessments(
     path: &std::path::Path,
     records: &[StoredRecord],
+) -> Result<Vec<AssessmentRecord>, String> {
+    read_assessments_with_context(
+        path,
+        records,
+        &super::reference::ExpectationsContext::load("legacy")?,
+    )
+}
+
+pub fn read_assessments_with_context(
+    path: &std::path::Path,
+    records: &[StoredRecord],
+    context: &super::reference::ExpectationsContext,
 ) -> Result<Vec<AssessmentRecord>, String> {
     if std::fs::metadata(path)
         .map_err(|error| error.to_string())?
@@ -706,7 +742,7 @@ pub fn read_assessments(
         }
         values
     };
-    validate_bindings(records, &assessments)?;
+    validate_bindings_with_context(records, &assessments, context)?;
     Ok(assessments)
 }
 
@@ -768,6 +804,122 @@ mod tests {
         let mut stale = input;
         stale.record_sha256 = "a".repeat(64);
         assert!(validate_bindings(&[stale], &result).is_err());
+    }
+
+    #[test]
+    fn deterministic_import_rejects_a_foreign_expectations_hash() {
+        let input = stored(records::fixture_record());
+        let mut assessments = assess(
+            std::slice::from_ref(&input),
+            &[AssessmentKind::Deterministic],
+        )
+        .unwrap();
+        assessments[0].expectations_sha256 = Some("0".repeat(64));
+        assert!(validate_bindings(&[input], &assessments).is_err());
+    }
+
+    #[test]
+    fn deterministic_import_rejects_altered_scores_and_criteria_with_valid_hashes() {
+        let input = stored(records::fixture_record());
+        let assessment = assess(
+            std::slice::from_ref(&input),
+            &[AssessmentKind::Deterministic],
+        )
+        .unwrap()
+        .remove(0);
+        let original = serde_json::to_value(&assessment).unwrap();
+        let metrics = original["deterministic"]["metrics"].as_array().unwrap();
+        let coverage = metrics
+            .iter()
+            .position(|value| value["id"] == "evidence_coverage")
+            .unwrap();
+        let rank = metrics
+            .iter()
+            .position(|value| value["id"] == "first_relevant_reciprocal_rank")
+            .unwrap();
+        for (path, value) in [
+            (
+                format!("/deterministic/metrics/{coverage}/value"),
+                serde_json::json!(0.12345),
+            ),
+            (
+                format!("/deterministic/metrics/{coverage}/numerator"),
+                serde_json::json!(999),
+            ),
+            (
+                format!("/deterministic/metrics/{coverage}/denominator"),
+                serde_json::json!(999),
+            ),
+            (
+                format!("/deterministic/metrics/{rank}/value"),
+                serde_json::json!(0.12345),
+            ),
+            (
+                "/deterministic/expected_facts/0/covered".into(),
+                serde_json::json!(
+                    !original["deterministic"]["expected_facts"][0]["covered"]
+                        .as_bool()
+                        .unwrap()
+                ),
+            ),
+            (
+                "/deterministic/expected_facts/0/criterion/description".into(),
+                serde_json::json!("Forged expected fact"),
+            ),
+            (
+                "/deterministic/hard_checks/0/passed".into(),
+                serde_json::json!(false),
+            ),
+            (
+                "/deterministic/hard_checks_passed".into(),
+                serde_json::json!(
+                    !original["deterministic"]["hard_checks_passed"]
+                        .as_bool()
+                        .unwrap()
+                ),
+            ),
+            (
+                "/deterministic/conditions".into(),
+                serde_json::json!(["Forged condition"]),
+            ),
+        ] {
+            let mut altered = original.clone();
+            *altered.pointer_mut(&path).unwrap() = value;
+            assert_ne!(altered, original);
+            let altered: AssessmentRecord = serde_json::from_value(altered).unwrap();
+            assert!(
+                validate_bindings(std::slice::from_ref(&input), &[altered]).is_err(),
+                "Accepted altered {path}"
+            );
+        }
+    }
+
+    #[test]
+    fn imported_manual_decisions_remain_independent_and_bound_to_the_run() {
+        let input = stored(records::fixture_record());
+        let mut assessment = assess(std::slice::from_ref(&input), &[AssessmentKind::Manual])
+            .unwrap()
+            .remove(0);
+        assessment.status = AssessmentStatus::Completed;
+        assessment.manual = Some(ManualReview {
+            verdict: ManualVerdict::Bad,
+            notes: "Test decision, not a human reference label".into(),
+            reviewed_at_unix_ms: 1,
+        });
+        validate_bindings(
+            std::slice::from_ref(&input),
+            std::slice::from_ref(&assessment),
+        )
+        .unwrap();
+        for foreign_case in [false, true] {
+            let mut foreign = assessment.clone();
+            if foreign_case {
+                foreign.case_id = "P01".into();
+            } else {
+                foreign.run_id = "absent-run".into();
+            }
+            assert!(validate_bindings(std::slice::from_ref(&input), &[foreign]).is_err());
+        }
     }
 
     #[test]

@@ -26,15 +26,21 @@ pub struct SessionConfig {
     pub filters: QueryFilters,
     pub model_cache: PathBuf,
     pub sqlite_dir: PathBuf,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transport: Option<super::mcp_trace::TransportConfig>,
 }
 
 impl SessionConfig {
     pub fn validate(&self) -> Result<(), String> {
-        if self.schema_version != 1
+        if !matches!(self.schema_version, 1 | 2)
+            || (self.schema_version == 2) != self.transport.is_some()
             || !self.model_cache.is_absolute()
             || !self.sqlite_dir.is_absolute()
         {
             return Err("Invalid selected retrieval session schema or cache location".into());
+        }
+        if let Some(transport) = &self.transport {
+            transport.validate()?;
         }
         if !self.config.profile.supported() {
             return Err("Selected SQLite profile is unsupported; enable the sqlite feature".into());
@@ -80,12 +86,19 @@ struct SearchResponse {
 pub struct SearchSession {
     settings: SessionConfig,
     retriever: Option<LocalRetriever>,
+    trace: Option<super::mcp_trace::TraceWriter>,
 }
 
 impl SearchSession {
     pub fn new(settings: SessionConfig) -> Result<Self, String> {
         settings.validate()?;
+        let trace = settings
+            .transport
+            .clone()
+            .map(super::mcp_trace::TraceWriter::open)
+            .transpose()?;
         Ok(Self {
+            trace,
             settings,
             retriever: None,
         })
@@ -126,8 +139,12 @@ impl SearchSession {
             preparation: retriever.preparation().clone(),
             timings,
         };
-        serde_json::to_value(response)
-            .map_err(|_| "Cannot encode selected retrieval evidence".into())
+        let full = serde_json::to_value(response)
+            .map_err(|_| "Cannot encode selected retrieval evidence")?;
+        match &mut self.trace {
+            Some(trace) => trace.record(full),
+            None => Ok(full),
+        }
     }
 }
 
@@ -171,6 +188,13 @@ pub fn serve(
 /// Ranking scores remain search signals; this is not an answer-quality judge.
 pub fn validate_run(run: &CodexRun, settings: &SessionConfig) -> Result<(), String> {
     settings.validate()?;
+    let bound;
+    let run = if let Some(transport) = &settings.transport {
+        bound = super::mcp_trace::bind_run(run, transport)?.0;
+        &bound
+    } else {
+        run
+    };
     if run.status != "completed"
         || run.tool_calls.is_empty()
         || run.tool_calls.len() > crate::mcp::MAX_SEARCH_CALLS
@@ -349,7 +373,7 @@ pub fn validate_run(run: &CodexRun, settings: &SessionConfig) -> Result<(), Stri
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::*;
     use crate::{
         codex::{Citation, GroundedAnswer, ToolCall},
@@ -358,9 +382,10 @@ mod tests {
     };
     use serde_json::json;
 
-    pub(super) fn settings() -> SessionConfig {
+    pub(in crate::retrieval_lab) fn settings() -> SessionConfig {
         SessionConfig {
             schema_version: 1,
+            transport: None,
             config: RunConfig {
                 profile: StorageProfile::DocumentsActivities,
                 retrieval: RetrievalConfig {

@@ -33,6 +33,10 @@ pub struct ExperimentPlan {
     pub dataset: DatasetIdentity,
     pub cases: Vec<InputCase>,
     pub configurations: Vec<PlannedConfig>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub query_inputs: std::collections::BTreeMap<String, QueryFilters>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub query_inputs_sha256: Option<String>,
     pub planned_rows: usize,
     pub assessment_types: Vec<String>,
     pub codex_calls: usize,
@@ -109,6 +113,8 @@ pub struct RetrievalRecord {
     pub config_id: String,
     pub config: RunConfig,
     pub request_filters: QueryFilters,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub query_inputs_sha256: Option<String>,
     pub execution_kind: ExecutionKind,
     pub execution_status: ExecutionStatus,
     pub dataset: DatasetIdentity,

@@ -2,6 +2,7 @@
 use super::{
     lab_mcp::{self, SessionConfig},
     live_budget::LiveBudget,
+    mcp_trace::{self, PayloadMode, TraceSummary, TransportConfig},
 };
 use crate::codex::{CodexRun, CodexRunner};
 use serde::{Deserialize, Serialize};
@@ -44,6 +45,14 @@ pub struct LiveRecord {
     pub run: Option<CodexRun>,
     pub error: Option<String>,
     pub elapsed_ms: u64,
+    #[serde(default)]
+    pub payload_mode: PayloadMode,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transport_treatment_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audit_trace: Option<TraceSummary>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace_integrity_status: Option<String>,
 }
 
 pub async fn cli(args: &[String]) -> Result<(), String> {
@@ -78,6 +87,7 @@ pub async fn cli(args: &[String]) -> Result<(), String> {
         "--model-cache",
         "--sqlite-dir",
         "--query-filters",
+        "--payload-mode",
     ];
     let common = [
         "--methods",
@@ -122,10 +132,29 @@ pub async fn cli(args: &[String]) -> Result<(), String> {
         .map(|value| serde_json::from_str(value).map_err(|_| "Invalid typed query filters"))
         .transpose()?
         .unwrap_or_default();
+    let payload_mode = match flags
+        .get("--payload-mode")
+        .map(String::as_str)
+        .unwrap_or("compact")
+    {
+        "full" => PayloadMode::Full,
+        "compact" => PayloadMode::Compact,
+        _ => return Err("--payload-mode must be full or compact".into()),
+    };
+    let transport = TransportConfig {
+        payload_mode,
+        session_id: format!(
+            "lab-mcp-{}-{}",
+            crate::experiment::budget::now_ms()?,
+            std::process::id()
+        ),
+        trace_path: output.with_extension("mcp-trace.jsonl"),
+    };
     let options = LiveOptions {
         question: crate::validate_query(get("--question")?)?,
         session: SessionConfig {
-            schema_version: 1,
+            schema_version: 2,
+            transport: Some(transport),
             config: plan.configurations[0].config.clone(),
             filters,
             model_cache: absolute(Path::new(
@@ -206,6 +235,17 @@ where
                 .into(),
         );
     }
+    if let Some(transport) = &options.session.transport
+        && (transport.trace_path == options.output
+            || transport.trace_path == options.ledger
+            || transport.trace_path.exists()
+            || transport.trace_path.parent() != options.output.parent())
+    {
+        return Err(
+            "Choose a new parent-owned trace beside the live output, separate from its ledger"
+                .into(),
+        );
+    }
     let config_id = super::catalog::config_id(&options.session.config)?;
     let run_id = format!(
         "lab-live-{}-{}-{}",
@@ -228,17 +268,27 @@ where
     let mut output = output_options
         .open(&options.output)
         .map_err(|_| "Cannot create new selected live result")?;
+    if let Some(transport) = &options.session.transport
+        && output_options.open(&transport.trace_path).is_err()
+    {
+        drop(output);
+        let _ = std::fs::remove_file(&options.output);
+        return Err("Cannot create new parent-owned MCP audit trace".into());
+    }
     let timeout = match budget.reserve(&run_id, &config_id) {
         Ok(timeout) => timeout,
         Err(error) => {
             drop(output);
             let _ = std::fs::remove_file(&options.output);
+            if let Some(transport) = &options.session.transport {
+                let _ = std::fs::remove_file(&transport.trace_path);
+            }
             return Err(error);
         }
     };
     let mut record = LiveRecord {
-        schema_version: 1,
-        execution_kind: "codex_selected_mcp_v1".into(),
+        schema_version: if options.session.transport.is_some() { 2 } else { 1 },
+        execution_kind: if options.session.transport.is_some() { "codex_selected_mcp_v2" } else { "codex_selected_mcp_v1" }.into(),
         run_id,
         question: question.clone(),
         config_id: config_id.clone(),
@@ -254,6 +304,13 @@ where
         run: None,
         error: None,
         elapsed_ms: 0,
+        payload_mode: options.session.transport.as_ref().map(|t| t.payload_mode).unwrap_or_default(),
+        transport_treatment_id: options.session.transport.as_ref().map(|t| {
+            serde_json::to_vec(&serde_json::json!({"schema_version":1,"config_id":config_id,"filters":options.session.filters,"payload_mode":t.payload_mode}))
+                .map(|bytes| crate::manifest::hash(&bytes)).map_err(|_| "Cannot encode MCP transport treatment")
+        }).transpose()?,
+        audit_trace: options.session.transport.as_ref().map(mcp_trace::summary).transpose()?,
+        trace_integrity_status: options.session.transport.as_ref().map(|_| "not_checked".into()),
     };
     persist(&mut output, &record)?;
     let execution = tokio::time::timeout(timeout, async {
@@ -301,6 +358,28 @@ where
             record.error = Some(crate::codex::public_error_code(&error).into());
         }
     }
+    if let Some(transport) = &options.session.transport {
+        match mcp_trace::summary(transport) {
+            Ok(summary) => {
+                record.audit_trace = Some(summary);
+                record.trace_integrity_status = Some(
+                    match record.source_guard_passed {
+                        Some(true) => "validated",
+                        Some(false) => "invalid",
+                        None => "partial_not_validated",
+                    }
+                    .into(),
+                );
+            }
+            Err(_) => {
+                record.audit_trace = None;
+                record.status = "failed".into();
+                record.source_guard_passed = Some(false);
+                record.trace_integrity_status = Some("invalid".into());
+                record.error = Some("output".into());
+            }
+        }
+    }
     record.elapsed_ms = started.elapsed().as_millis() as u64;
     persist(&mut output, &record)?;
     Ok(record)
@@ -332,6 +411,7 @@ mod tests {
             question: "dinsdag binnen".into(),
             session: SessionConfig {
                 schema_version: 1,
+                transport: None,
                 config: super::super::types::RunConfig {
                     profile: StorageProfile::DocumentsActivities,
                     retrieval: RetrievalConfig {
@@ -402,6 +482,59 @@ mod tests {
             serde_json::from_slice(&std::fs::read(&options.ledger).unwrap()).unwrap();
         assert_eq!(budget["attempts"].as_array().unwrap().len(), 1);
         std::fs::remove_dir_all(base).unwrap();
+    }
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn compact_and_full_live_sessions_bind_real_local_trace_without_provider_calls() {
+        for mode in [PayloadMode::Full, PayloadMode::Compact] {
+            let base = temporary();
+            std::fs::create_dir(&base).unwrap();
+            let mut options = options(&base);
+            options.session.schema_version = 2;
+            options.session.transport = Some(TransportConfig {
+                payload_mode: mode,
+                session_id: "fixed-live-fixture".into(),
+                trace_path: base.join("answer.mcp-trace.jsonl"),
+            });
+            let session = options.session.clone();
+            let runtime_dir = base.join("runtime");
+            let record = ask_with_runtime(options.clone(), |_| {
+                let events = fake_events(&session);
+                let script = format!(
+                    "#!/bin/sh\ncat >/dev/null\ncat <<'COA_EVENTS'\n{events}\nCOA_EVENTS\n"
+                );
+                let runner = crate::codex::fixture_runner(&runtime_dir, &script);
+                async { Ok(runner) }
+            })
+            .await
+            .unwrap();
+            assert_eq!(record.schema_version, 2);
+            assert_eq!(record.status, "completed");
+            assert_eq!(record.payload_mode, mode);
+            assert_eq!(record.source_guard_passed, Some(true));
+            assert_eq!(record.trace_integrity_status.as_deref(), Some("validated"));
+            let audit = record.audit_trace.as_ref().unwrap();
+            assert_eq!(audit.successful_searches, 1);
+            assert_eq!(audit.trace_bytes, std::fs::read(&audit.path).unwrap().len());
+            assert!(audit.payload_bytes > 0);
+            let visible = record.run.as_ref().unwrap().tool_calls[0]
+                .result
+                .as_ref()
+                .unwrap();
+            assert_eq!(visible.get("outcome").is_some(), mode == PayloadMode::Full);
+            assert_eq!(audit.payload_bytes, visible.to_string().len());
+            assert_eq!(record.ai_judge_calls, 0);
+            assert!(!options.session.model_cache.exists());
+            std::fs::remove_dir_all(base).unwrap();
+        }
+    }
+    #[test]
+    fn historical_live_schema_one_loads_as_full_without_fabricated_audit() {
+        let record = serde_json::json!({"schema_version":1,"execution_kind":"codex_selected_mcp_v1","run_id":"historical","question":"Wanneer?","config_id":"legacy","config":options(std::path::Path::new("/tmp")).session.config,"filters":{},"status":"failed","budget_id":"legacy","generation_session_index":1,"ai_judge_calls":0,"answer_quality_status":"not_assessed","source_guard_passed":null,"runtime_configuration":null,"run":null,"error":"timeout","elapsed_ms":1});
+        let loaded: LiveRecord = serde_json::from_value(record).unwrap();
+        assert_eq!(loaded.payload_mode, PayloadMode::Full);
+        assert!(loaded.audit_trace.is_none());
+        assert!(loaded.transport_treatment_id.is_none());
     }
     #[tokio::test]
     async fn failed_runtime_is_saved_and_reserved_without_inventing_an_answer_or_usage() {

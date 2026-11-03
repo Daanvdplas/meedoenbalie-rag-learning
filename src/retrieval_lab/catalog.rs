@@ -1,7 +1,7 @@
 use crate::{retrieval::SearchMethod, storage::StorageProfile};
 
 use super::{
-    dataset::bundled_questions,
+    dataset::{self, QuestionDataset},
     types::{ExperimentPlan, PlannedConfig, RunConfig},
 };
 
@@ -37,6 +37,22 @@ pub fn plan(
     case_ids: &[String],
     advanced: &crate::retrieval::RetrievalConfig,
 ) -> Result<ExperimentPlan, String> {
+    plan_for(
+        &dataset::load("legacy")?,
+        methods,
+        profiles,
+        case_ids,
+        advanced,
+    )
+}
+
+pub fn plan_for(
+    dataset: &QuestionDataset,
+    methods: &[SearchMethod],
+    profiles: &[StorageProfile],
+    case_ids: &[String],
+    advanced: &crate::retrieval::RetrievalConfig,
+) -> Result<ExperimentPlan, String> {
     if methods.is_empty()
         || profiles.is_empty()
         || methods
@@ -51,7 +67,7 @@ pub fn plan(
         return Err("Select distinct nonempty search methods and profiles".into());
     }
     crate::retrieval::validate_config(advanced, &Default::default())?;
-    let catalog = bundled_questions()?;
+    let catalog = dataset.catalog.clone();
     if case_ids.iter().enumerate().any(|(index, id)| {
         case_ids[..index].contains(id) || !catalog.cases.iter().any(|case| case.id == *id)
     }) {
@@ -85,12 +101,55 @@ pub fn plan(
         schema_version: 1,
         dataset: catalog.identity,
         planned_rows: cases.len() * configurations.len(),
+        query_inputs: dataset.query_inputs.clone(),
+        query_inputs_sha256: dataset.query_inputs_sha256.clone(),
         cases,
         configurations,
         assessment_types: vec!["deterministic".into(), "manual".into(), "ai_paused".into()],
         codex_calls: 0,
         ai_judge_calls: 0,
     })
+}
+
+/// The preregistered comparison keeps advanced settings separate from the 16 baseline cells.
+pub fn quality_plan(dataset: &QuestionDataset) -> Result<ExperimentPlan, String> {
+    use crate::retrieval::{RetrievalConfig, SelectionMode};
+    let mut result = plan_for(
+        dataset,
+        &METHODS,
+        &PROFILES,
+        &[],
+        &RetrievalConfig::default(),
+    )?;
+    let mut scenarios = vec![
+        RetrievalConfig {
+            selection: SelectionMode::ActivityExpansion,
+            ..Default::default()
+        },
+        RetrievalConfig {
+            top_k: 6,
+            ..Default::default()
+        },
+    ];
+    if dataset.id == "independent-20261103" {
+        scenarios.push(RetrievalConfig {
+            selection: SelectionMode::ActivityExpansion,
+            apply_filters: true,
+            ..Default::default()
+        });
+    }
+    for config in scenarios {
+        let scenario = plan_for(
+            dataset,
+            &METHODS,
+            &[StorageProfile::DocumentsSections],
+            &[],
+            &config,
+        )?;
+        result.configurations.extend(scenario.configurations);
+    }
+    result.planned_rows = result.cases.len() * result.configurations.len();
+    Ok(result)
 }
 
 #[cfg(test)]
@@ -166,5 +225,61 @@ mod tests {
                 "A valid configuration changed identity after persistence"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod preregistration_tests {
+    use super::*;
+    #[test]
+    fn quality_plan_matches_every_frozen_configuration_and_preserves_old_baseline() {
+        let dataset = dataset::load("independent-20261103").unwrap();
+        let plan = quality_plan(&dataset).unwrap();
+        let frozen: serde_json::Value = serde_json::from_str(dataset::FROZEN).unwrap();
+        let expected = frozen["first_measurement_preregistration"]["configurations"]
+            .as_array()
+            .unwrap();
+        assert_eq!(plan.configurations.len(), expected.len());
+        for config in &plan.configurations {
+            let encoded = serde_json::to_value(&config.config).unwrap();
+            assert_eq!(
+                expected
+                    .iter()
+                    .filter(|item| {
+                        item["profile"] == encoded["profile"]
+                            && encoded["retrieval"]
+                                .as_object()
+                                .unwrap()
+                                .iter()
+                                .all(|(key, value)| item[key] == *value)
+                    })
+                    .count(),
+                1,
+                "configuration must appear exactly once in the frozen catalog"
+            );
+        }
+        let legacy = dataset::load("legacy").unwrap();
+        let baseline = super::plan(&METHODS, &PROFILES, &[], &Default::default()).unwrap();
+        let quality = quality_plan(&legacy).unwrap();
+        assert_eq!(quality.planned_rows, 432);
+        assert_eq!(quality.configurations.len(), 24);
+        assert!(
+            quality
+                .configurations
+                .iter()
+                .all(|config| !config.config.retrieval.apply_filters)
+        );
+        for (before, after) in baseline.configurations.iter().zip(&quality.configurations) {
+            assert_eq!(before.config_id, after.config_id);
+        }
+        assert_eq!(
+            quality
+                .configurations
+                .iter()
+                .map(|config| &config.config_id)
+                .collect::<std::collections::BTreeSet<_>>()
+                .len(),
+            24
+        );
     }
 }

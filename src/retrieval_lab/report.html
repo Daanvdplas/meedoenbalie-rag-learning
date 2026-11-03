@@ -22,6 +22,8 @@
 
     <div id="lab" hidden>
       <section class="controls" aria-label="Kies je vergelijking">
+        <div class="dataset-controls"><label for="dataset-select">Vragenset<select id="dataset-select"></select></label><label for="scenario-select">Zoekinstelling<select id="scenario-select"></select></label></div>
+        <p id="dataset-note" class="help"></p>
         <label class="question-control" for="question-select">Welke vraag wil je bekijken?<select id="question-select"></select></label>
         <div class="primary-controls">
           <label for="method-select"><span class="control-number">1</span> Zoekmethode<select id="method-select"><option value="all">Alle zoekmethoden</option></select></label>
@@ -36,18 +38,22 @@
         <p id="comparison-help" class="help">Klik op een resultaat om de verwachte informatie en de gevonden passages te vergelijken.</p>
         <p id="assessment-notice" class="notice" hidden></p>
         <div id="comparison-grid"></div>
-        <div class="legend"><span><i class="legend-dot covered"></i> Feiten ondersteund of goed beoordeeld</span><span><i class="legend-dot partial"></i> Niet compleet of nader bekijken</span><span><i class="legend-dot unavailable"></i> Niet beoordeeld of n.v.t.</span><span><i class="legend-dot failed"></i> Uitvoering mislukt of onvoldoende beoordeeld</span></div>
-        <p class="help">Dekking meet of de benodigde bronpassages zijn gevonden. Het is geen oordeel over een antwoord. Er is hier geen antwoord gegenereerd.</p>
+        <div class="legend"><span><i class="legend-dot covered"></i> Verwachte bewijsdoelen compleet of goed beoordeeld</span><span><i class="legend-dot partial"></i> Niet compleet of nader bekijken</span><span><i class="legend-dot unavailable"></i> Niet beoordeeld of n.v.t.</span><span><i class="legend-dot failed"></i> Uitvoering mislukt of onvoldoende beoordeeld</span></div>
+        <p class="help">Compleet betekent: alle gelabelde bewijsdoelen gevonden. De labels kunnen onvolledig zijn. Dit meet geen antwoordjuistheid; er is geen antwoord gegenereerd.</p>
         <p class="help">Zoektijden horen bij deze lokale uitvoering en sluiten voorbereiding uit. Het buildprofiel is hier niet vastgelegd; dit is geen algemene snelheidsbenchmark.</p>
       </section>
 
       <section id="result-detail" class="detail-section" aria-labelledby="detail-heading" hidden>
         <div class="section-heading"><div><p class="eyebrow">Deze uitvoering</p><h2 id="detail-heading" tabindex="-1"></h2></div><span id="detail-status" class="badge"></span></div>
         <p id="detail-caption" class="subtle"></p>
+        <p id="expected-action" class="expected-action"></p>
+        <p id="answer-status" class="help"></p>
+        <p id="capacity-notice" class="notice" hidden></p>
+        <p id="filter-notice" class="help" hidden></p>
         <div id="result-error" class="notice error" hidden></div>
         <div id="measurements" class="measurements"></div>
         <div class="evidence-layout">
-          <section class="expected-column" aria-labelledby="expected-heading"><h3 id="expected-heading">Dit verwachten we</h3><p class="help">Een feit kan meerdere passages nodig hebben. Alle delen moeten samen gevonden zijn.</p><div id="expected-facts"></div></section>
+          <section class="expected-column" aria-labelledby="expected-heading"><h3 id="expected-heading">Dit verwachten we</h3><p class="help">Een bewijsdoel kan meerdere passages nodig hebben, ook om iets uit te sluiten of als onbekend aan te merken.</p><div id="expected-facts"></div></section>
           <section class="sources-column" aria-labelledby="sources-heading"><h3 id="sources-heading">Dit is opgehaald</h3><p id="passage-count" class="help"></p><div id="retrieved-passages"></div></section>
         </div>
         <section id="manual-review" class="manual-review" aria-labelledby="manual-heading" hidden>
@@ -63,7 +69,7 @@
 
       <details class="overview"><summary>Vergelijk over alle vragen</summary><p id="overview-help" class="help"></p><div id="all-questions-summary"></div></details>
       <details id="shared-preparation-details" class="overview" hidden><summary>Gedeelde voorbereiding · eenmaal per batch</summary><p class="help">Deze kosten zijn gedeeld door meerdere combinaties en zijn uitgesloten van de lokale zoektijden. Iedere voorbereiding staat hier één keer, ook als zij in alle uitvoeringen is vastgelegd.</p><div id="shared-preparation-summary"></div></details>
-      <footer><p>Vijf fictieve activiteiten · regressie- en ontwikkelvragen · lokale retrieval zonder Codex- of AI-beoordelaaraanroepen.</p><p>Brondata, verwachtingen en beoordelingen blijven gescheiden. Ontbrekende informatie blijft onbekend.</p></footer>
+      <footer><p>Vijf fictieve activiteiten · brongegevens en agentreferenties · geen menselijke ijking. Deze pagina doet geen modelaanroepen.</p><p>Brondata, verwachtingen en beoordelingen blijven gescheiden. Ontbrekende informatie blijft onbekend.</p></footer>
     </div>
   </main>
   <script id="report-data" type="application/json">__REPORT_DATA__</script>

@@ -39,7 +39,48 @@ pub fn run(plan: &ExperimentPlan, options: &RunOptions) -> Result<RunSummary, St
     {
         return Err("Invalid local retrieval plan or row budget".into());
     }
+    if !plan.query_inputs.is_empty() && options.filters != QueryFilters::default() {
+        return Err(
+            "Dataset already has per-question user inputs; a global filter override is not allowed"
+                .into(),
+        );
+    }
+    let dataset = ["legacy", "independent-20261103"]
+        .into_iter()
+        .map(super::dataset::load)
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .find(|dataset| dataset.catalog.identity == plan.dataset)
+        .ok_or("Plan dataset identity is unknown or changed")?;
+    if plan.query_inputs != dataset.query_inputs
+        || plan.query_inputs_sha256 != dataset.query_inputs_sha256
+        || plan.cases.iter().any(|case| {
+            !dataset.catalog.cases.iter().any(|original| {
+                original.id == case.id
+                    && original.question == case.question
+                    && original.family == case.family
+                    && original.split == case.split
+                    && original.kind == case.kind
+            })
+        })
+        || plan
+            .cases
+            .iter()
+            .map(|case| &case.id)
+            .collect::<std::collections::BTreeSet<_>>()
+            .len()
+            != plan.cases.len()
+    {
+        return Err("Plan cases or typed user inputs differ from the selected dataset".into());
+    }
+    let mut configurations = std::collections::BTreeSet::new();
     for config in &plan.configurations {
+        if config.config_id != super::catalog::config_id(&config.config)?
+            || !configurations.insert(&config.config_id)
+            || config.supported != config.config.profile.supported()
+        {
+            return Err("Plan configurations are changed or duplicated".into());
+        }
         crate::retrieval::validate_config(&config.config.retrieval, &options.filters)?;
     }
     let created = std::time::SystemTime::now()
@@ -84,6 +125,7 @@ pub fn run(plan: &ExperimentPlan, options: &RunOptions) -> Result<RunSummary, St
         };
         for config in configs {
             for case in &plan.cases {
+                let filters = plan.query_inputs.get(&case.id).unwrap_or(&options.filters);
                 let mut record = RetrievalRecord {
                     schema_version: 1,
                     batch_id: batch_id.clone(),
@@ -96,7 +138,8 @@ pub fn run(plan: &ExperimentPlan, options: &RunOptions) -> Result<RunSummary, St
                     question: case.question.clone(),
                     config_id: config.config_id.clone(),
                     config: config.config.clone(),
-                    request_filters: options.filters.clone(),
+                    request_filters: filters.clone(),
+                    query_inputs_sha256: plan.query_inputs_sha256.clone(),
                     execution_kind: ExecutionKind::LocalMeasured,
                     execution_status: ExecutionStatus::Failed,
                     dataset: plan.dataset.clone(),
@@ -130,7 +173,7 @@ pub fn run(plan: &ExperimentPlan, options: &RunOptions) -> Result<RunSummary, St
                             prepared,
                             &crate::retrieval::RetrievalRequest {
                                 query: case.question.clone(),
-                                filters: options.filters.clone(),
+                                filters: filters.clone(),
                             },
                             &config.config,
                         );
@@ -362,5 +405,46 @@ mod tests {
         );
         assert!(stored[0].record.outcome.is_none());
         std::fs::remove_file(output).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod plan_integrity_tests {
+    #[test]
+    fn changed_dataset_or_case_is_rejected_before_preparation_or_output() {
+        use crate::retrieval_lab::{catalog, preparation::PreparationOptions, runner::*};
+        use crate::{retrieval::RetrievalConfig, retrieval::SearchMethod, storage::StorageProfile};
+        let plan = catalog::plan(
+            &[SearchMethod::Bm25],
+            &[StorageProfile::DocumentsSections],
+            &["T02".into()],
+            &RetrievalConfig::default(),
+        )
+        .unwrap();
+        for change_question in [false, true] {
+            let mut forged = plan.clone();
+            if change_question {
+                forged.cases[0].question.push_str(" injected");
+            } else {
+                forged.dataset.questions_sha256 = "0".repeat(64);
+            }
+            let output = std::env::temp_dir().join(format!(
+                "coa-forged-plan-{}-{change_question}.jsonl",
+                std::process::id()
+            ));
+            let options = RunOptions {
+                output: output.clone(),
+                preparation: PreparationOptions {
+                    model_cache: output.with_extension("NO_MODEL"),
+                    sqlite_dir: output.with_extension("NO_SQLITE"),
+                },
+                filters: Default::default(),
+            };
+            assert!(
+                run(&forged, &options).is_err(),
+                "A changed input identity must not execute"
+            );
+            assert!(!output.exists());
+        }
     }
 }
