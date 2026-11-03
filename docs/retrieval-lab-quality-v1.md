@@ -55,6 +55,12 @@ buiten wordt geen harde filter. Een eis zoals “rolstoeltoegankelijk”, betaal
 of een exacte starttijd wordt niet verzonnen als een ondersteund veld. De huidige
 roosters werken op minuten: “vóór 11:00” is daarom uiterlijk 10:59.
 
+De onafhankelijk beoordeelde invoerbytes zijn afzonderlijk vastgelegd in
+`INPUTS_FROZEN.json`. De runtime controleert dit goedgekeurde bestand, de exacte
+invoerhash, de oorspronkelijke freeze en de vraaghashes vóór planning, zoeken of
+beoordelen. Een geldig invoerschema met gewijzigde filterwaarden kan daardoor
+niet dezelfde frozen dataset blijven heten.
+
 Vijf vragen hebben ten minste één ondersteunde filter; zeven niet. Het rapport
 onderscheidt filters uit, geen filters gevraagd, geen aangetoond effect en een
 werkelijk kleinere kandidatenverzameling. Dat laatste betekent minder geschikte
