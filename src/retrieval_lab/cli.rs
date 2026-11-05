@@ -188,6 +188,7 @@ fn report_assessments(
 
 pub fn cli(args: &[String]) -> Result<serde_json::Value, String> {
     match args.first().map(String::as_str) {
+        Some("agent-plan") => super::agent_run::plan_cli(&args[1..]),
         Some("plan" | "catalog") => {
             let flags = flags(&args[1..], COMMON)?;
             serde_json::to_value(selected_plan(&flags)?).map_err(|error| error.to_string())
@@ -227,6 +228,47 @@ pub fn cli(args: &[String]) -> Result<serde_json::Value, String> {
                 "output_sha256":crate::manifest::hash(html.as_bytes()),"retrieval_calls":0,"codex_calls":0,"ai_judge_calls":0}))
         }
         _ => Err("Usage: lab plan | run --output <new.jsonl> | assess --input <run.jsonl> --output <new.jsonl> | report --input <run.jsonl> [--assessments <reviews.jsonl>] --output <new.html>; use --dataset legacy|independent-20261103 consistently; plan/run accept --protocol baseline|quality-v1".into()),
+    }
+}
+
+#[cfg(test)]
+mod agentic_plan_tests {
+    #[test]
+    fn agentic_plan_binds_ten_questions_to_forty_fixed_treatments_without_gold() {
+        let plan = super::cli(&["agent-plan".into()])
+            .expect("the agentic comparison must be plannable without a model runtime");
+        assert_eq!(plan["planned_sessions"], 40);
+        assert_eq!(plan["case_count"], 10);
+        assert_eq!(plan["max_search_calls_per_session"], 4);
+        assert_eq!(plan["max_session_seconds"], 120);
+        let runs = plan["runs"].as_array().unwrap();
+        let keys: std::collections::BTreeSet<_> = runs
+            .iter()
+            .map(|run| run["run_key"].as_str().unwrap())
+            .collect();
+        assert_eq!(keys.len(), 40);
+        assert_eq!(runs[0]["config"]["profile"], "documents_sections");
+        let encoded = plan.to_string();
+        for protected in [
+            "expected_action",
+            "target_groups",
+            "evidence_alternatives",
+            "forbidden_claims",
+        ] {
+            assert!(!encoded.contains(protected));
+        }
+    }
+
+    #[test]
+    fn agentic_pilot_selection_uses_the_same_comparison_protocol() {
+        let full = super::cli(&["agent-plan".into()]).unwrap();
+        let pilot = super::cli(&["agent-plan".into(), "--cases".into(), "T02,P06".into()]).unwrap();
+        assert_eq!(pilot["case_count"], 2);
+        assert_eq!(pilot["planned_sessions"], 8);
+        assert_eq!(full["protocol_id"], pilot["protocol_id"]);
+        for run in pilot["runs"].as_array().unwrap() {
+            assert!(full["runs"].as_array().unwrap().contains(run));
+        }
     }
 }
 
