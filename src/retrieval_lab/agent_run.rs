@@ -144,7 +144,12 @@ where
             methods.push(run.config.retrieval.method);
         }
     }
-    let expected = plan(&cases, &methods, &options.plan.requested_model)?;
+    let expected = plan_for_dataset(
+        plan_dataset(&options.plan.runs)?,
+        &cases,
+        &methods,
+        &options.plan.requested_model,
+    )?;
     if serde_json::to_value(&expected).map_err(|e| e.to_string())?
         != serde_json::to_value(&options.plan).map_err(|e| e.to_string())?
     {
@@ -213,6 +218,7 @@ where
         let live_options = super::live::LiveOptions {
             question: planned.question.clone(),
             session: super::lab_mcp::SessionConfig {
+                corpus: dataset::load(&planned.dataset_id)?.corpus(),
                 schema_version: 2,
                 config: planned.config.clone(),
                 filters: Default::default(),
@@ -437,12 +443,49 @@ pub fn selection_sha256() -> String {
 }
 
 pub fn protocol_id(model: &str) -> Result<String, String> {
-    let datasets: Vec<_> = ["legacy", "independent-20261103"]
+    protocol_for_dataset(None, model)
+}
+
+fn selection_text(dataset_id: Option<&str>) -> Result<&'static str, String> {
+    match dataset_id {
+        None => Ok(SELECTION),
+        Some(dataset::EXPANDED_ID) => {
+            dataset::verify_expanded_artifact("presentation-selection.json", dataset::EXPANDED_SELECTION)?;
+            Ok(dataset::EXPANDED_SELECTION)
+        }
+        _ => Err("Agentic dataset must be expanded-10-20261105; omit --dataset for the historical five-source presentation".into()),
+    }
+}
+
+fn plan_dataset(runs: &[PlannedRun]) -> Result<Option<&'static str>, String> {
+    if runs
+        .iter()
+        .any(|run| run.dataset_id == dataset::EXPANDED_ID)
+    {
+        if runs
+            .iter()
+            .any(|run| run.dataset_id != dataset::EXPANDED_ID)
+        {
+            return Err("Agentic plan mixes source corpus versions".into());
+        }
+        Ok(Some(dataset::EXPANDED_ID))
+    } else {
+        Ok(None)
+    }
+}
+
+fn protocol_for_dataset(dataset_id: Option<&str>, model: &str) -> Result<String, String> {
+    let ids = if dataset_id.is_some() {
+        vec![dataset::EXPANDED_ID]
+    } else {
+        vec!["legacy", "independent-20261103"]
+    };
+    let datasets: Vec<_> = ids
         .into_iter()
         .map(dataset::load)
         .collect::<Result<_, _>>()?;
     let bytes = serde_json::to_vec(&serde_json::json!({
-        "schema_version":1, "selection_sha256":selection_sha256(), "requested_model":model,
+        "schema_version":1, "selection_sha256":crate::manifest::hash(selection_text(dataset_id)?.as_bytes()), "requested_model":model,
         "configurations":catalog::METHODS.map(fixed_config),
         "datasets":datasets.iter().map(|value| &value.catalog.identity).collect::<Vec<_>>(),
         "max_search_calls":crate::mcp::MAX_SEARCH_CALLS, "session_seconds":120,
@@ -457,8 +500,18 @@ pub fn plan(
     methods: &[SearchMethod],
     model: &str,
 ) -> Result<AgentPlan, String> {
-    let selection: Selection =
-        serde_json::from_str(SELECTION).map_err(|_| "Invalid input-only presentation selection")?;
+    plan_for_dataset(None, case_ids, methods, model)
+}
+
+pub fn plan_for_dataset(
+    dataset_id: Option<&str>,
+    case_ids: &[String],
+    methods: &[SearchMethod],
+    model: &str,
+) -> Result<AgentPlan, String> {
+    let selection_text = selection_text(dataset_id)?;
+    let selection: Selection = serde_json::from_str(selection_text)
+        .map_err(|_| "Invalid input-only presentation selection")?;
     if selection.schema_version != 1
         || selection.cases.len() != 10
         || methods.is_empty()
@@ -477,6 +530,9 @@ pub fn plan(
     let mut runs = Vec::new();
     let mut cases = BTreeSet::new();
     for (index, selected) in selection.cases.iter().enumerate() {
+        if dataset_id.is_some_and(|id| selected.dataset_id != id) {
+            return Err("Expanded presentation selection contains a different dataset".into());
+        }
         let dataset = dataset::load(&selected.dataset_id)?;
         let case = dataset
             .catalog
@@ -518,8 +574,8 @@ pub fn plan(
     Ok(AgentPlan {
         schema_version: 1,
         selection_id: selection.selection_id,
-        selection_sha256: selection_sha256(),
-        protocol_id: protocol_id(model)?,
+        selection_sha256: crate::manifest::hash(selection_text.as_bytes()),
+        protocol_id: protocol_for_dataset(dataset_id, model)?,
         requested_model: model.into(),
         case_count: cases.len(),
         planned_sessions: runs.len(),
@@ -569,12 +625,20 @@ fn selected_plan(flags: &BTreeMap<String, String>) -> Result<AgentPlan, String> 
         })
         .transpose()?
         .unwrap_or_else(|| catalog::METHODS.to_vec());
-    plan(&cases, &methods, &crate::codex::configured_model()?)
+    plan_for_dataset(
+        flags.get("--dataset").map(String::as_str),
+        &cases,
+        &methods,
+        &crate::codex::configured_model()?,
+    )
 }
 
 pub fn plan_cli(args: &[String]) -> Result<serde_json::Value, String> {
-    serde_json::to_value(selected_plan(&flags(args, &["--cases", "--methods"])?)?)
-        .map_err(|e| e.to_string())
+    serde_json::to_value(selected_plan(&flags(
+        args,
+        &["--dataset", "--cases", "--methods"],
+    )?)?)
+    .map_err(|e| e.to_string())
 }
 
 /// Explicit live opt-in is required even when every question is already bundled.
@@ -592,6 +656,7 @@ pub async fn cli(args: &[String]) -> Result<(), String> {
     let flags = flags(
         &values,
         &[
+            "--dataset",
             "--cases",
             "--methods",
             "--output",
@@ -645,7 +710,12 @@ pub fn write_jsonl_new<T: Serialize>(path: &Path, values: &[T]) -> Result<(), St
 }
 
 pub fn validate_record_identity(record: &AgentRunRecord) -> Result<(), String> {
-    let selected = plan(
+    let selected = plan_for_dataset(
+        if record.dataset_id == dataset::EXPANDED_ID {
+            Some(dataset::EXPANDED_ID)
+        } else {
+            None
+        },
         std::slice::from_ref(&record.case_id),
         &[record.live.config.retrieval.method],
         &record.requested_model,
@@ -794,6 +864,37 @@ pub fn read_records(path: &Path) -> Result<Vec<StoredAgentRecord>, String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn expanded_plan_is_forty_bound_sessions_and_preserves_historical_protocol() {
+        let expanded = super::plan_for_dataset(
+            Some(super::dataset::EXPANDED_ID),
+            &[],
+            &super::catalog::METHODS,
+            "test-model",
+        )
+        .unwrap();
+        let baseline = super::plan(&[], &super::catalog::METHODS, "test-model").unwrap();
+        assert_eq!(expanded.case_count, 10);
+        assert_eq!(expanded.planned_sessions, 40);
+        assert_eq!(expanded.max_search_calls_per_session, 4);
+        assert_eq!(expanded.max_session_seconds, 120);
+        assert!(
+            expanded
+                .runs
+                .iter()
+                .all(|run| run.dataset_id == super::dataset::EXPANDED_ID
+                    && run.dataset.corpus_sha256 == crate::corpus::CorpusId::ExpandedTen.sha256())
+        );
+        assert_ne!(expanded.protocol_id, baseline.protocol_id);
+        assert_ne!(expanded.selection_sha256, baseline.selection_sha256);
+        assert!(
+            super::plan_for_dataset(Some("legacy"), &[], &super::catalog::METHODS, "test-model")
+                .is_err()
+        );
+        let mut mixed = expanded.runs;
+        mixed.push(baseline.runs[0].clone());
+        assert!(super::plan_dataset(&mixed).is_err());
+    }
     use super::super::mcp_trace::{PayloadMode, TraceSummary};
     use super::*;
 

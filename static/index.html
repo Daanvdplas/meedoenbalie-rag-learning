@@ -34,21 +34,16 @@
       .examples { border:0; padding:0; margin:10px 0; font-size:14px; }
       #status { margin:12px 0; }
       #status:empty { display:none; }
-      .answer-panel { background:oklch(95% .035 85); border-left:4px solid oklch(66% .09 85); padding:16px 18px; margin:12px 0 18px; }
+      .answer-panel { background:white; border:1px solid var(--line); padding:16px 18px; margin:12px 0 18px; }
       .answer { white-space:pre-wrap; overflow-wrap:anywhere; font-size:18px; margin:0; }
       #unknowns:not(:empty) { margin-top:12px; }
-      .garden { background:oklch(94% .034 145); border-color:oklch(77% .065 145); }
-      .workshop { background:oklch(94% .027 240); border-color:oklch(77% .055 240); }
       .hit small,.source-document>small { display:block; }
       blockquote { margin:6px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
-      .language { background:oklch(95% .03 300); border-color:oklch(77% .05 300); }
-      .cooking { background:oklch(95% .04 80); border-color:oklch(77% .065 80); }
-      .walking { background:oklch(94% .03 30); border-color:oklch(77% .05 30); }
       #source-sections { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; }
       #source-heading { margin-top:0; }
-      .source-document { flex:1 1 140px; min-width:0; border:1px solid; border-radius:5px; padding:4px 10px; margin:0; }
-      .source-document summary { min-height:44px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
-      .source-document summary::after { content:"+"; }
+      .source-document { flex:1 1 140px; min-width:0; background:white; border:1px solid var(--line); border-radius:5px; padding:4px 10px; margin:0; }
+      .source-document summary { min-height:44px; display:flex; align-items:center; justify-content:space-between; gap:8px; overflow-wrap:anywhere; }
+      .source-document summary::after { content:"+"; flex-shrink:0; }
       .source-document[open]>summary::after { content:"−"; }
       .source-document[open] { flex-basis:100%; order:1; }
       .source-document>small { display:none; }
@@ -57,9 +52,9 @@
       .source-document>small { margin-top:6px; }
       .source-section { border-top:1px solid color-mix(in oklch,var(--ink) 15%,transparent); margin-top:10px; padding-top:4px; }
       .source-section p { white-space:pre-wrap; font-size:15px; }
-      #tool-details { background:oklch(95% .008 245); padding:12px 14px; border:1px solid var(--line); border-radius:5px; }
+      #tool-details { padding:12px 14px; border:1px solid var(--line); border-radius:5px; }
       .hit { margin-top:14px; }
-      .retrieved { padding:8px 12px; margin-top:8px; border-left:3px solid; font-size:14px; }
+      .retrieved { padding:8px 12px; margin-top:8px; border-left:3px solid var(--line); font-size:14px; }
       .retrieved h3 { font-size:15px; margin-top:0; }
       .error { color:#913520; }
       #metadata { font-size:13px; overflow-wrap:anywhere; }
@@ -172,7 +167,6 @@
         return item;
       }
       function sourceTitle(id) { return source.sources.find(doc => doc.id === id)?.title || id; }
-      function sourceClass(id) { return ["garden", "workshop", "language", "cooking", "walking"][source.sources.findIndex(doc => doc.id === id)] || ""; }
       function markQuestion() {
         document
           .querySelectorAll("[data-question]")
@@ -245,7 +239,7 @@
             ),
           );
           (call.result?.hits || []).forEach((hit) => {
-            const evidence = node("section", undefined, "retrieved " + sourceClass(hit.section.source_id));
+            const evidence = node("section", undefined, "retrieved");
             evidence.append(
               node("h3", sourceTitle(hit.section.source_id) + " · " + hit.section.id + " · " + hit.section.heading),
               quotedPassage(hit.section.text, citations.filter(c => c.source_id === hit.section.source_id && c.source_date === hit.section.source_date && c.section_id === hit.section.id).map(c => c.quote)),
@@ -407,7 +401,7 @@
             api("/api/questions"),
           ]);
           source.sources.forEach(doc => {
-            const document = node("details", undefined, "source-document " + sourceClass(doc.id));
+            const document = node("details", undefined, "source-document");
             document.name = "activity";
             document.append(node("summary", doc.title), node("small", "Brondatum " + doc.date + " · referentie " + source.as_of));
             doc.sections.forEach(section => {

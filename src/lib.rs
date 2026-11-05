@@ -1,4 +1,5 @@
 pub mod codex;
+pub mod corpus;
 pub mod experiment;
 pub mod manifest;
 pub mod mcp;
@@ -93,6 +94,7 @@ pub struct SearchResult {
 pub const AS_OF: &str = "2026-10-20";
 pub const DEFAULT_TOP_K: usize = 3;
 pub struct Index {
+    corpus: corpus::CorpusId,
     model: fastembed::TextEmbedding,
     sources: Vec<source::Source>,
     sections: Vec<Section>,
@@ -101,7 +103,13 @@ pub struct Index {
 }
 impl Index {
     pub fn load() -> Result<Self, String> {
-        let sources = source::parse_sources(DOCUMENTS)?;
+        Self::load_for_corpus(corpus::CorpusId::BaselineFive)
+    }
+
+    pub fn load_for_corpus(corpus: corpus::CorpusId) -> Result<Self, String> {
+        let documents = corpus.documents();
+        let as_of = corpus.as_of();
+        let sources = corpus.sources()?;
         let sections: Vec<_> = sources.iter().flat_map(|s| s.sections.clone()).collect();
         eprintln!("Loading local multilingual model (first run downloads model files)...");
         let mut model = fastembed::TextEmbedding::try_new(
@@ -134,17 +142,18 @@ impl Index {
             .flat_map(|v| v.to_le_bytes())
             .collect();
         let manifest = manifest::Manifest {
-            source_sha256: manifest::hash(DOCUMENTS.join("\n---document---\n").as_bytes()),
-            sources: sources.iter().zip(DOCUMENTS).map(|(s, text)| manifest::SourceFingerprint { id:s.id.clone(), title:s.title.clone(), date:s.date.clone(), sha256:manifest::hash(text.as_bytes()) }).collect(),
+            source_sha256: corpus.sha256(),
+            sources: sources.iter().zip(documents).map(|(s, text)| manifest::SourceFingerprint { id:s.id.clone(), title:s.title.clone(), date:s.date.clone(), sha256:manifest::hash(text.as_bytes()) }).collect(),
             embedding_inputs_sha256,
             document_vectors_sha256: manifest::hash(&vector_bytes),
             model: MODEL, dimensions:384, sdk:"fastembed 7.1.2",
-            settings_sha256: manifest::hash(format!("{MODEL}|384|512|fastembed7.1.2|sections-v2|unprefixed-title-heading-text|cosine|five-documents|{AS_OF}").as_bytes()),
+            settings_sha256: manifest::hash(format!("{MODEL}|384|512|fastembed7.1.2|sections-v2|unprefixed-title-heading-text|cosine|{}|{as_of}", if corpus.is_baseline() {"five-documents"} else {"ten-documents"}).as_bytes()),
             chunking:"document-title-section-headings-v2",encoding:"unprefixed sentence transformer; document title + newline + heading + newline + exact text",max_tokens:512,
-            filter:"five fictional activity documents; no eligibility inference",as_of:AS_OF,
+            filter:if corpus.is_baseline() {"five fictional activity documents; no eligibility inference"} else {"ten fictional activity documents; no eligibility inference"},as_of,
             platform:format!("{}-{}",std::env::consts::OS,std::env::consts::ARCH),
         };
         Ok(Self {
+            corpus,
             model,
             sources,
             sections,
@@ -154,6 +163,9 @@ impl Index {
     }
     pub fn sources(&self) -> &[source::Source] {
         &self.sources
+    }
+    pub fn corpus(&self) -> corpus::CorpusId {
+        self.corpus
     }
     pub fn manifest(&self) -> &manifest::Manifest {
         &self.manifest
@@ -186,7 +198,7 @@ impl Index {
             question,
             model: MODEL,
             sources: self.manifest.sources.clone(),
-            as_of: AS_OF,
+            as_of: self.manifest.as_of,
             hits,
             manifest: self.manifest.clone(),
             top_k,

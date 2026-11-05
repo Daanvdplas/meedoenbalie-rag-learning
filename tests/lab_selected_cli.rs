@@ -33,9 +33,61 @@ fn temporary() -> Temporary {
     }
 }
 
+#[test]
+fn expanded_dataset_cli_plans_ten_questions_without_model_or_protected_labels() {
+    for args in [
+        vec!["lab", "agent-plan", "--dataset", "expanded-10-20261105"],
+        vec![
+            "lab",
+            "plan",
+            "--dataset",
+            "expanded-10-20261105",
+            "--methods",
+            "bm25",
+            "--profiles",
+            "documents_sections,documents_activities,sqlite_sections,sqlite_activities",
+        ],
+    ] {
+        let result = Command::new(env!("CARGO_BIN_EXE_meedoen-retrieval"))
+            .args(&args)
+            .env("COA_CODEX_BIN", "/missing/NO-CODEX")
+            .output()
+            .unwrap();
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        let plan: Value = serde_json::from_slice(&result.stdout).unwrap();
+        assert_eq!(
+            plan["dataset"]["as_of"]
+                .as_str()
+                .or_else(|| plan["runs"][0]["dataset"]["as_of"].as_str()),
+            Some("2026-11-05")
+        );
+        if args[1] == "agent-plan" {
+            assert_eq!(plan["planned_sessions"], 40);
+            assert_eq!(plan["case_count"], 10);
+        } else {
+            assert_eq!(plan["planned_rows"], 40);
+            assert_eq!(plan["cases"].as_array().unwrap().len(), 10);
+        }
+        let text = String::from_utf8(result.stdout).unwrap();
+        for protected in [
+            "evidence_alternatives",
+            "evaluation_only_canary",
+            "forbidden_claims",
+            "fact_roles",
+        ] {
+            assert!(!text.contains(protected));
+        }
+    }
+}
+
 fn protocol(profile: StorageProfile) {
     let base = temporary();
     let session = SessionConfig {
+        corpus: meedoen_retrieval::corpus::CorpusId::BaselineFive,
         schema_version: 1,
         transport: None,
         config: RunConfig {

@@ -12,6 +12,19 @@ pub struct SearchPolicy {
 }
 
 impl SearchPolicy {
+    pub fn for_corpus(corpus: crate::corpus::CorpusId) -> Self {
+        if corpus.is_baseline() {
+            return Self::default();
+        }
+        Self {
+            fixed_top_k: None,
+            description: Some(format!(
+                "Search {} fictional Dutch voluntary-activity documents. Returned exact sections preserve source_id, source_date and source_title. Section IDs repeat across documents. Search again with a focused query when information is missing, at most four calls. Never infer current availability or transport from unrelated evidence.",
+                corpus.documents().len()
+            )),
+        }
+    }
+
     pub fn fixed(top_k: usize, description: String) -> Result<Self, String> {
         if !(1..=6).contains(&top_k) || description.is_empty() || description.len() > 4000 {
             return Err("Invalid fixed retrieval tool policy".into());

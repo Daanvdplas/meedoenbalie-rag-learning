@@ -1,6 +1,6 @@
 # Retrievalvarianten lokaal vergelijken
 
-Het lab gebruikt dezelfde vijf fictieve activiteiten, dertig oorspronkelijke passages en achttien bestaande ontwikkel-/regressievragen. De drie hoofdkeuzes zijn **zoekmethode, opslag/structuur en beoordelingstype**.
+Deze oorspronkelijke baseline gebruikt vijf fictieve activiteiten, dertig oorspronkelijke passages en achttien bestaande ontwikkel-/regressievragen. De nieuwe tienbronnenversie is apart te kiezen met `--dataset expanded-10-20261105`; zie [README](../README.md#nieuwe-testversie-met-tien-activiteiten). De drie hoofdkeuzes zijn **zoekmethode, opslag/structuur en beoordelingstype**.
 
 | Keuze | Varianten |
 | --- | --- |

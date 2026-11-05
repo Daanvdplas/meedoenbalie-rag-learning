@@ -1,0 +1,653 @@
+{
+  "schema_version": "1",
+  "dataset_version": "expanded-10-20261105-v1",
+  "questions_sha256": "761a86cb44318dd819e30a341a4b121dadff54ecabd5c0419698290829457765",
+  "evaluation_only_canary": "expanded-ten-reference-20261105-v1-evaluation-only",
+  "review_note": "Agent-authored source expectations independently agent-reviewed before the first ten-document search/model measurement; pending immutable freeze. Minimal sufficient source plans only; relevance_labels_complete is false for every question, so these labels do not support precision claims or treating other retrieved pieces as irrelevant. Alternatives are complete same-activity routes. Generated answers are not assessed by source coverage. No human calibration or question-level holdout is claimed.",
+  "cases": [
+    {
+      "case_id": "P01",
+      "facts": [
+        {
+          "id": "garden-time",
+          "description": "Het rooster voor Tuinieren staat in S2.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "garden-location",
+          "description": "De precieze tuinlocatie staat in S3.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S3"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Actuele vrije plaatsen bevestigen op basis van bron- of historische datums."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S3"
+        }
+      ]
+    },
+    {
+      "case_id": "T02",
+      "facts": [
+        {
+          "id": "one-tuesday-indoor-option",
+          "description": "Eén passende activiteit met dag, tijd en binnenlocatie: volledige fietscombinatie OF volledige ateliercombinatie.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S3"
+              }
+            ],
+            [
+              {
+                "source_id": "ACT-MAAK-006",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-MAAK-006",
+                "section_id": "S3"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [
+        "dinsdag",
+        "binnen"
+      ],
+      "forbidden_claims": [
+        "Actuele vrije plaatsen bevestigen op basis van bron- of historische datums.",
+        "Tijd van de ene activiteit en locatie van een andere combineren als volledig bewijs."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S3"
+        },
+        {
+          "source_id": "ACT-MAAK-006",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-MAAK-006",
+          "section_id": "S3"
+        }
+      ]
+    },
+    {
+      "case_id": "P07",
+      "facts": [
+        {
+          "id": "garden-tuesday-time",
+          "description": "Tuinieren: dinsdag 10.00–12.00 uur.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "bike-tuesday-time",
+          "description": "Fietsen opknappen: dinsdag 14.00–16.00 uur.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "atelier-tuesday-time",
+          "description": "Creatief atelier: dinsdag 13.00–15.00 uur.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-MAAK-006",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [
+        "alle beschreven dinsdagactiviteiten met tijd"
+      ],
+      "forbidden_claims": [
+        "Actuele vrije plaatsen bevestigen op basis van bron- of historische datums.",
+        "Een van de drie passende dinsdagactiviteiten weglaten."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-MAAK-006",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2"
+        }
+      ]
+    },
+    {
+      "case_id": "P06",
+      "facts": [
+        {
+          "id": "one-nature-option-with-day",
+          "description": "Eén activiteit die buiten/in de natuur plaatsvindt op donderdag of vrijdag; combineer binnen hetzelfde document rooster en passend omgevingsbewijs.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S1"
+              },
+              {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S2"
+              }
+            ],
+            [
+              {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S3"
+              }
+            ],
+            [
+              {
+                "source_id": "ACT-PARK-007",
+                "section_id": "S1"
+              },
+              {
+                "source_id": "ACT-PARK-007",
+                "section_id": "S2"
+              }
+            ],
+            [
+              {
+                "source_id": "ACT-PARK-007",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-PARK-007",
+                "section_id": "S3"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [
+        "buiten/in de natuur",
+        "donderdag of vrijdag"
+      ],
+      "forbidden_claims": [
+        "Actuele vrije plaatsen bevestigen op basis van bron- of historische datums.",
+        "Tijd en natuur/buitenbewijs van verschillende activiteiten samen als één geldige optie rekenen."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-PARK-007",
+          "section_id": "S1"
+        },
+        {
+          "source_id": "ACT-PARK-007",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-PARK-007",
+          "section_id": "S3"
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S1"
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S3"
+        }
+      ]
+    },
+    {
+      "case_id": "P09",
+      "facts": [
+        {
+          "id": "language-practice-beginner",
+          "description": "Taalcafé: Nederlands oefenen; weinig Nederlands is toegestaan.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TAAL-003",
+                "section_id": "S1"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "language-help",
+          "description": "Een taalvrijwilliger begeleidt en legt woorden eenvoudig uit.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TAAL-003",
+                "section_id": "S4"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "language-time",
+          "description": "Het rooster van het Taalcafé staat in S2.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TAAL-003",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Actuele vrije plaatsen bevestigen op basis van bron- of historische datums."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S1"
+        },
+        {
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S4"
+        }
+      ]
+    },
+    {
+      "case_id": "T01",
+      "facts": [
+        {
+          "id": "garden-materials-clothes",
+          "description": "Tuinieren: stevige schoenen; handschoenen en tuingereedschap aanwezig.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S5"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "bike-tools",
+          "description": "Fietsen opknappen: gereedschap en reparatiemateriaal aanwezig.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S5"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "cooking-materials",
+          "description": "Samen koken: ingrediënten, schorten en keukengerei aanwezig.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S5"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Actuele vrije plaatsen bevestigen op basis van bron- of historische datums."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S5"
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S5"
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S5"
+        }
+      ]
+    },
+    {
+      "case_id": "IND26-05",
+      "facts": [
+        {
+          "id": "bike-experience",
+          "description": "No repair experience is required.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S1"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "bike-language-guidance",
+          "description": "Simple Dutch is enough; an instructor demonstrates repairs and helps.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S4"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "bike-tools-clothes",
+          "description": "Tools are available; wear clothes that may get dirty.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S5"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Actuele vrije plaatsen bevestigen op basis van bron- of historische datums."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S1"
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S4"
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S5"
+        }
+      ]
+    },
+    {
+      "case_id": "IND26-03",
+      "facts": [
+        {
+          "id": "all-ten-schedules",
+          "description": "Alle tien beschreven weekroosters noemen een andere dag dan zondag.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-TAAL-003",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-MAAK-006",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-PARK-007",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-BIEB-008",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-MUZIEK-009",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-DIGI-010",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [
+        "zondag volgens het beschreven rooster"
+      ],
+      "forbidden_claims": [
+        "Actuele vrije plaatsen bevestigen op basis van bron- of historische datums.",
+        "Beweren dat er buiten deze tien fictieve bronnen nergens zondagactiviteiten bestaan."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-BIEB-008",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-DIGI-010",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-MAAK-006",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-MUZIEK-009",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-PARK-007",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S2"
+        }
+      ]
+    },
+    {
+      "case_id": "IND26-07",
+      "facts": [
+        {
+          "id": "cooking-allergen-materials",
+          "description": "De bron meldt expliciet ontbrekende allergeneninformatie en aanwezig schort/keukengerei.",
+          "kind": "unknown",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S5"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [
+        "bevestiging dat sesam vermeden kan worden"
+      ],
+      "forbidden_claims": [
+        "Actuele vrije plaatsen bevestigen op basis van bron- of historische datums.",
+        "Sesamvrij of veilig kunnen deelnemen bevestigen zonder informatie."
+      ],
+      "required_unknowns": [
+        "De bron bevestigt niet dat sesam vermeden kan worden; allergeneninformatie ontbreekt."
+      ],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S5"
+        }
+      ]
+    },
+    {
+      "case_id": "IND26-09",
+      "facts": [
+        {
+          "id": "garden-historical-capacity",
+          "description": "Tuinieren: twee vrije plekken op 2026-09-01; daarna niet opnieuw gecontroleerd.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S6"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "bike-historical-capacity",
+          "description": "Fietsen: drie vrije plekken op 2026-10-18; geen recentere controle vastgelegd.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S6"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Actuele vrije plaatsen bevestigen op basis van bron- of historische datums.",
+        "De bron-/referentiedatum verwarren met de datum van de historische telling."
+      ],
+      "required_unknowns": [
+        "Historische aantallen bevestigen geen beschikbaarheid op referentiedatum 2026-11-05."
+      ],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S6"
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S6"
+        }
+      ]
+    }
+  ]
+}

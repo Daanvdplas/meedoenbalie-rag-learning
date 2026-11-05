@@ -87,8 +87,9 @@ fn json_hash(value: &impl Serialize) -> Result<String, String> {
         .map_err(|_| "Cannot encode agent measurement identity".into())
 }
 
-fn canonical_sections() -> Result<Vec<crate::Section>, String> {
-    Ok(crate::source::parse_sources(crate::DOCUMENTS)?
+fn canonical_sections(corpus: crate::corpus::CorpusId) -> Result<Vec<crate::Section>, String> {
+    Ok(corpus
+        .sources()?
         .into_iter()
         .flat_map(|source| source.sections)
         .collect())
@@ -150,7 +151,15 @@ pub fn assess(records: &[StoredAgentRecord]) -> Result<Vec<AgentAssessment>, Str
         }
     }
     let expected_runtime_hash = expected_runtime.as_ref().map(json_hash).transpose()?;
-    let sections = canonical_sections()?;
+    let selected_corpus = super::dataset::load(&records[0].record.dataset_id)?.corpus();
+    if records.iter().any(|record| {
+        super::dataset::load(&record.record.dataset_id)
+            .map(|dataset| dataset.corpus() != selected_corpus)
+            .unwrap_or(true)
+    }) {
+        return Err("Agent source measurements mix source corpus versions".into());
+    }
+    let sections = canonical_sections(selected_corpus)?;
     let corpus = crate::retrieval::PreparedCorpus::new(sections, None, None)?;
     records
         .iter()
@@ -191,6 +200,7 @@ pub fn assess(records: &[StoredAgentRecord]) -> Result<Vec<AgentAssessment>, Str
                 // The full-response guard does not load a model. Paths are validation-only
                 // absolute locations; the original transport has already been bound above.
                 let settings = super::lab_mcp::SessionConfig {
+                    corpus: context.dataset.corpus(),
                     schema_version: 1,
                     config: live.config.clone(),
                     filters: live.filters.clone(),
@@ -347,7 +357,16 @@ pub fn report(
         return Err("Agent report requires freshly recomputed bound assessments".into());
     }
     let first = &records[0].record;
-    let plan = agent_run::plan(&[], &super::catalog::METHODS, &first.requested_model)?;
+    let plan = agent_run::plan_for_dataset(
+        if first.dataset_id == super::dataset::EXPANDED_ID {
+            Some(super::dataset::EXPANDED_ID)
+        } else {
+            None
+        },
+        &[],
+        &super::catalog::METHODS,
+        &first.requested_model,
+    )?;
     let mut questions = Vec::new();
     let mut seen = BTreeSet::new();
     for input in &plan.runs {
@@ -359,7 +378,7 @@ pub fn report(
         let source_plans = source_coverage(criteria, &[]).expected_source_options;
         questions.push(json!({"key":format!("{}/{}",input.dataset_id,input.case_id),"dataset":input.dataset_id,"case_id":input.case_id,"question":input.question,"kind":context.dataset.catalog.cases.iter().find(|case|case.id==input.case_id).ok_or("Missing agent question metadata")?.kind,"criteria":criteria.facts,"required_unknowns":criteria.required_unknowns,"expected_source_plans":source_plans.iter().map(|plan|plan.iter().map(key).collect::<Vec<_>>()).collect::<Vec<_>>() }));
     }
-    let sources:BTreeMap<_,_> = canonical_sections()?.into_iter().map(|section| {
+    let sources:BTreeMap<_,_> = canonical_sections(super::dataset::load(&first.dataset_id)?.corpus())?.into_iter().map(|section| {
         let id=format!("{}:{}",section.source_id,section.id);
         (id,json!({"source_id":section.source_id,"source_title":section.source_title,"source_date":section.source_date,"id":section.id,"heading":section.heading,"text":section.text}))
     }).collect();
@@ -659,6 +678,7 @@ mod tests {
             trace_path,
         };
         let settings = SessionConfig {
+            corpus: crate::corpus::CorpusId::BaselineFive,
             schema_version: 2,
             config: selected.config.clone(),
             filters: Default::default(),

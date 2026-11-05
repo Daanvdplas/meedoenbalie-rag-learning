@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "selection_id": "expanded-ten-presentation-20261105-v1",
+  "cases": [
+    {
+      "dataset_id": "expanded-10-20261105",
+      "case_id": "P01"
+    },
+    {
+      "dataset_id": "expanded-10-20261105",
+      "case_id": "T02"
+    },
+    {
+      "dataset_id": "expanded-10-20261105",
+      "case_id": "P07"
+    },
+    {
+      "dataset_id": "expanded-10-20261105",
+      "case_id": "P06"
+    },
+    {
+      "dataset_id": "expanded-10-20261105",
+      "case_id": "P09"
+    },
+    {
+      "dataset_id": "expanded-10-20261105",
+      "case_id": "T01"
+    },
+    {
+      "dataset_id": "expanded-10-20261105",
+      "case_id": "IND26-05"
+    },
+    {
+      "dataset_id": "expanded-10-20261105",
+      "case_id": "IND26-03"
+    },
+    {
+      "dataset_id": "expanded-10-20261105",
+      "case_id": "IND26-07"
+    },
+    {
+      "dataset_id": "expanded-10-20261105",
+      "case_id": "IND26-09"
+    }
+  ]
+}

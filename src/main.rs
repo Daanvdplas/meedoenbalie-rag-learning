@@ -36,34 +36,46 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .map_err(std::io::Error::other)?;
             return Ok(());
         }
-        "mcp" if args.is_empty() => {
+        "mcp" if args.is_empty() || (args.len() == 2 && args[0] == "--corpus") => {
+            let corpus = if args.is_empty() {
+                meedoen_retrieval::corpus::CorpusId::BaselineFive
+            } else {
+                serde_json::from_value(serde_json::Value::String(args[1].clone()))?
+            };
             let mut index: Option<Index> = None;
-            meedoen_retrieval::mcp::serve(
+            meedoen_retrieval::mcp::serve_with_policy(
                 std::io::stdin().lock(),
                 std::io::stdout().lock(),
                 |query, top_k| {
                     if index.is_none() {
-                        index = Some(Index::load()?);
+                        index = Some(Index::load_for_corpus(corpus)?);
                     }
                     let result = index.as_mut().unwrap().search_with_top_k(query, top_k)?;
                     serde_json::to_value(result).map_err(|error| error.to_string())
                 },
+                meedoen_retrieval::mcp::SearchPolicy::for_corpus(corpus),
             )
             .map_err(std::io::Error::other)?;
             return Ok(());
         }
         "ask" => {
+            let corpus = parse_corpus(&mut args).map_err(std::io::Error::other)?;
             let top_k = parse_top_k(&mut args).map_err(std::io::Error::other)?;
             let runner =
                 meedoen_retrieval::codex::CodexRunner::new().map_err(std::io::Error::other)?;
             let result = runner
-                .run(&args.join(" "), top_k)
+                .run_for_corpus(&args.join(" "), top_k, corpus)
                 .await
                 .map_err(std::io::Error::other)?;
             println!("{}", serde_json::to_string_pretty(&result)?);
             return Ok(());
         }
         "search" | "eval" => {
+            let corpus = if command == "search" {
+                parse_corpus(&mut args).map_err(std::io::Error::other)?
+            } else {
+                meedoen_retrieval::corpus::CorpusId::BaselineFive
+            };
             let top_k = parse_top_k(&mut args).map_err(std::io::Error::other)?;
             if command == "eval" && !args.is_empty() {
                 return Err("Usage: eval [--top-k 1..6]".into());
@@ -76,7 +88,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 None
             };
-            let mut index = Index::load().map_err(std::io::Error::other)?;
+            let mut index = Index::load_for_corpus(corpus).map_err(std::io::Error::other)?;
             let output = if let Some(question) = question {
                 json!(
                     index
@@ -96,8 +108,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
     }
-    let index = Index::load().map_err(std::io::Error::other)?;
+    let index = Index::load_for_corpus(meedoen_retrieval::corpus::CorpusId::ExpandedTen)
+        .map_err(std::io::Error::other)?;
     web::serve(index).await
+}
+
+fn parse_corpus(args: &mut Vec<String>) -> Result<meedoen_retrieval::corpus::CorpusId, String> {
+    if args.iter().filter(|arg| arg.as_str() == "--corpus").count() > 1 {
+        return Err("Duplicate --corpus option".into());
+    }
+    let Some(position) = args.iter().position(|arg| arg == "--corpus") else {
+        return Ok(meedoen_retrieval::corpus::CorpusId::BaselineFive);
+    };
+    let id = args.get(position + 1).ok_or("Missing --corpus value")?;
+    let corpus = serde_json::from_value(serde_json::Value::String(id.clone()))
+        .map_err(|_| "Select --corpus baseline-five or expanded-ten")?;
+    args.drain(position..=position + 1);
+    Ok(corpus)
 }
 
 fn parse_top_k(args: &mut Vec<String>) -> Result<usize, String> {
@@ -119,6 +146,30 @@ fn parse_top_k(args: &mut Vec<String>) -> Result<usize, String> {
 #[cfg(test)]
 mod cli_tests {
     use super::*;
+    #[test]
+    fn explicit_corpus_selection_preserves_question_and_legacy_default() {
+        let mut args = vec!["--corpus".into(), "expanded-ten".into(), "Wanneer?".into()];
+        assert_eq!(
+            parse_corpus(&mut args).unwrap(),
+            meedoen_retrieval::corpus::CorpusId::ExpandedTen
+        );
+        assert_eq!(args, ["Wanneer?"]);
+        assert_eq!(
+            parse_corpus(&mut args).unwrap(),
+            meedoen_retrieval::corpus::CorpusId::BaselineFive
+        );
+        assert!(parse_corpus(&mut vec!["--corpus".into(), "other".into()]).is_err());
+        assert!(parse_corpus(&mut vec!["--corpus".into()]).is_err());
+        assert!(
+            parse_corpus(&mut vec![
+                "--corpus".into(),
+                "expanded-ten".into(),
+                "--corpus".into(),
+                "baseline-five".into()
+            ])
+            .is_err()
+        );
+    }
     #[test]
     fn parses_bounded_k_without_losing_question_text() {
         let mut args = vec!["--top-k".into(), "2".into(), "Where?".into()];

@@ -92,12 +92,26 @@ pub fn load(questions_path: &Path, labels_path: &Path) -> Result<(QuestionSet, L
 }
 
 pub fn parse(questions: &str, labels: &str) -> Result<(QuestionSet, LabelSet), String> {
+    parse_for_corpus(questions, labels, crate::corpus::CorpusId::BaselineFive)
+}
+
+pub fn parse_for_corpus(
+    questions: &str,
+    labels: &str,
+    corpus: crate::corpus::CorpusId,
+) -> Result<(QuestionSet, LabelSet), String> {
     let questions: QuestionSet = serde_json::from_str(questions)
         .map_err(|_| "Evaluation questions do not match the schema")?;
     let labels: LabelSet = serde_json::from_str(labels)
         .map_err(|_| "Evaluation expectations do not match the schema")?;
-    let sources = crate::source::parse_sources(crate::DOCUMENTS)?;
-    validate(&questions, &labels, &sources, crate::DOCUMENTS)?;
+    let sources = corpus.sources()?;
+    validate_for_date(
+        &questions,
+        &labels,
+        &sources,
+        corpus.documents(),
+        corpus.as_of(),
+    )?;
     Ok((questions, labels))
 }
 
@@ -114,6 +128,16 @@ pub fn validate(
     sources: &[Source],
     documents: &[&str],
 ) -> Result<(), String> {
+    validate_for_date(questions, labels, sources, documents, crate::AS_OF)
+}
+
+fn validate_for_date(
+    questions: &QuestionSet,
+    labels: &LabelSet,
+    sources: &[Source],
+    documents: &[&str],
+    as_of: &str,
+) -> Result<(), String> {
     if questions.schema_version != "1" || labels.schema_version != "1" {
         return Err("Unsupported evaluation dataset schema".into());
     }
@@ -124,7 +148,7 @@ pub fn validate(
         return Err("Question and expectation versions or fingerprints differ".into());
     }
     crate::source::validate_date(&questions.as_of)?;
-    if questions.as_of != crate::AS_OF
+    if questions.as_of != as_of
         || sources.len() != documents.len()
         || questions.sources.len() != sources.len()
         || questions.corpus_sha256 != hash(documents.join("\n---document---\n").as_bytes())

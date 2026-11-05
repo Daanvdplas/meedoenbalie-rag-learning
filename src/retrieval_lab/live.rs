@@ -167,6 +167,7 @@ pub async fn cli(args: &[String]) -> Result<(), String> {
     let options = LiveOptions {
         question: crate::validate_query(get("--question")?)?,
         session: SessionConfig {
+            corpus: crate::corpus::CorpusId::BaselineFive,
             schema_version: 2,
             transport: Some(transport),
             config: plan.configurations[0].config.clone(),
@@ -341,7 +342,8 @@ where
     persist(&mut output, &record)?;
     let execution = tokio::time::timeout(timeout, async {
         let runner = runtime(budget.remaining()?).await?;
-        record.runtime_configuration = Some(runner.configuration());
+        record.runtime_configuration =
+            Some(runner.configuration_for_corpus(options.session.corpus));
         if let Some((model, expected)) = &pin
             && (record.runtime_configuration.as_ref().unwrap()["model"] != *model
                 || expected.as_ref().is_some_and(|configuration| {
@@ -353,6 +355,7 @@ where
             );
         }
         let launch = crate::codex::SelectedMcpLaunch {
+            corpus: options.session.corpus,
             arguments: vec![
                 "lab".into(),
                 "mcp".into(),
@@ -446,6 +449,7 @@ mod tests {
         LiveOptions {
             question: "dinsdag binnen".into(),
             session: SessionConfig {
+                corpus: crate::corpus::CorpusId::BaselineFive,
                 schema_version: 1,
                 transport: None,
                 config: super::super::types::RunConfig {

@@ -45,8 +45,15 @@ pub fn run(plan: &ExperimentPlan, options: &RunOptions) -> Result<RunSummary, St
                 .into(),
         );
     }
-    let dataset = ["legacy", "independent-20261103"]
-        .into_iter()
+    let dataset_ids: &[&str] =
+        if plan.dataset.corpus_sha256 == crate::corpus::CorpusId::ExpandedTen.sha256() {
+            &[super::dataset::EXPANDED_ID]
+        } else {
+            &["legacy", "independent-20261103"]
+        };
+    let dataset = dataset_ids
+        .iter()
+        .copied()
         .map(super::dataset::load)
         .collect::<Result<Vec<_>, _>>()?
         .into_iter()
@@ -92,7 +99,7 @@ pub fn run(plan: &ExperimentPlan, options: &RunOptions) -> Result<RunSummary, St
         std::process::id(),
         NEXT.fetch_add(1, Ordering::Relaxed)
     );
-    let mut session = PreparationSession::new(&options.preparation)?;
+    let mut session = PreparationSession::for_corpus(&options.preparation, dataset.corpus())?;
     let mut profiles = Vec::new();
     for config in &plan.configurations {
         if !profiles.contains(&config.config.profile) {

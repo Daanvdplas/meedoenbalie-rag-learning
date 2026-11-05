@@ -1,6 +1,6 @@
 # Meedoenbalie: activiteiten verkennen
 
-Een kleine Rust-leerproef met vijf verzonnen activiteiten, echte lokale embeddings en Codex. Je stelt een vraag en kunt de gebruikte bronpassages controleren. Dit is een eigen prototype, geen intern COA-plan.
+Een kleine Rust-leerproef met tien verzonnen activiteiten, echte lokale embeddings en Codex. Je stelt een vraag en kunt de gebruikte bronpassages controleren. Dit is een eigen prototype, geen intern COA-plan.
 
 Bekijk de [interactieve codegids](docs/code-tour.html) voor het systeemoverzicht, de route van één vraag en verwijzingen naar de echte functies. De HTML werkt ook lokaal zonder CDN.
 
@@ -22,7 +22,7 @@ Een andere lokale poort kan met `COA_PORT=8767 cargo run --locked`. `COA_CODEX_M
 
 ## Zelf testen
 
-1. Bovenaan staan vijf compacte activiteiten: **Tuinieren**, **Fietsen opknappen**, **Taalcafé**, **Samen koken** en **Wandelen**. Klik een titel om het volledige fictieve document met bron en datum te lezen. Er staat steeds maximaal één activiteit open.
+1. Bovenaan staan tien compacte activiteiten, waaronder **Tuinieren**, **Fietsen opknappen**, **Creatief atelier** en **Parkonderhoud**. Klik een titel om het volledige fictieve document met bron en datum te lezen. Er staat steeds maximaal één activiteit open.
 2. Schrijf één eigen vraag, of kies een optioneel voorbeeld. Alle documenten beschrijven vrijwillige activiteiten, geen betaalde banen.
 3. Codex maakt één antwoord. Onder **Bekijk de resultaten** staan de echte zoekacties van Codex. Codex kan meerdere keren zoeken om ontbrekende informatie voor dat ene antwoord te verzamelen; dit zijn geen extra gebruikersvragen.
 4. Exact geciteerde tekst is gemarkeerd in de werkelijk gevonden passages. Bron en datum staan erbij; de volledige activiteiten blijven bovenaan leesbaar. Er is geen afzonderlijk bewijsblok of beoordelingsflow.
@@ -39,7 +39,15 @@ cargo run --locked -- eval > /tmp/meedoen-eval.json
 cargo test --locked
 ```
 
-Vijf documenten met elk zes secties zijn daadwerkelijk geïndexeerd:
+De interactieve demo gebruikt tien documenten met elk zes secties: 60 bronstukken. De oorspronkelijke vijf documenten zijn byte voor byte behouden. De nieuwe corpusversie heeft referentiedatum 5 november 2026; iedere bron behoudt ook zijn eigen publicatiedatum.
+
+De oudere CLI-regressie (`eval` en `search`/`ask` zonder corpusoptie), datasets `legacy` en `independent-20261103`, en opgeslagen rapporten blijven de oorspronkelijke vijf documenten gebruiken. Kies de nieuwe versie expliciet bij losse CLI-zoekacties:
+
+```sh
+cargo run --locked -- search --corpus expanded-ten 'Wat kan ik op dinsdag binnen doen?'
+```
+
+De tien activiteitendocumenten:
 
 | Bestand | Activiteit | Brondatum | Moment |
 | --- | --- | --- | --- |
@@ -48,14 +56,39 @@ Vijf documenten met elk zes secties zijn daadwerkelijk geïndexeerd:
 | `fixtures/language-cafe.md` | Taalcafé | 2026-10-19 | woensdag 14–15.30 |
 | `fixtures/community-cooking.md` | Samen koken | 2026-10-17 | vrijdag 11–13 |
 | `fixtures/walking.md` | Wandelen | 2026-10-20 | donderdag 9.30–10.30 |
+| `fixtures/expanded-10-20261105/activity-006.md` | Creatief atelier | 2026-11-05 | dinsdag 13–15 |
+| `fixtures/expanded-10-20261105/activity-007.md` | Parkonderhoud | 2026-11-05 | vrijdag 10–12 |
+| `fixtures/expanded-10-20261105/activity-008.md` | Buurtbibliotheek | 2026-11-05 | woensdag 10–12 |
+| `fixtures/expanded-10-20261105/activity-009.md` | Muziekgroep | 2026-11-05 | zaterdag 10–11.30 |
+| `fixtures/expanded-10-20261105/activity-010.md` | Digitale hulp | 2026-11-05 | maandag 15–16 |
 
-De parser accepteert maximaal vijf documenten. De dertig secties krijgen lokale meertalige MiniLM-embeddings via fastembed 7.1.2: documenttitel, sectiekop en exacte tekst. CLI en MCP delen dezelfde Rust-zoekfunctie. Iedere hit en ieder citaat behouden document-ID, sectie-ID en eigen brondatum. De manifest bevat per-documenthashes, corpus- en embeddinginvoerhashes. Standaard top-k is 3, instelbaar van 1 tot 6 per zoekactie; Codex kan maximaal vier gerichte zoekacties doen. Dit garandeert geen volledige lijst of volledig antwoord. Cosinusovereenkomst is geen zekerheid; een grens voor “geen match” is niet gekalibreerd.
+De parser accepteert maximaal tien documenten. De secties van de gekozen corpusversie krijgen lokale meertalige MiniLM-embeddings via fastembed 7.1.2: documenttitel, sectiekop en exacte tekst. CLI en MCP delen dezelfde Rust-zoekfunctie. Iedere hit en ieder citaat behouden document-ID, sectie-ID en eigen brondatum. De manifest bevat per-documenthashes, corpus- en embeddinginvoerhashes. Standaard top-k is 3, instelbaar van 1 tot 6 per zoekactie; Codex kan maximaal vier gerichte zoekacties doen. Dit garandeert geen volledige lijst of volledig antwoord. Cosinusovereenkomst is geen zekerheid; een grens voor “geen match” is niet gekalibreerd.
 
 De oudere [zoekevaluatie met vijf activiteiten](reports/five-activity-eval.json) vergelijkt echte embeddings met woordoverlap op dezelfde titel/kop/tekst. De vijf vaste tuinvragen en beschermde verwachtingen blijven uitsluitend intern beschikbaar voor regressie en menselijke evaluatie via `fixtures/questions.json`, `fixtures/expectations.json` en de bestaande server-API. De demo toont deze reeks niet. Gold wordt nooit geïndexeerd of naar Codex/zoekresultaten gestuurd. Gemiddelde bronsectiedekking op de vier gelabelde tuinvragen is in dit snapshot 0,625 voor beide methoden. Dit is geen antwoordnauwkeurigheid; actuele plekken en ontbrekend vervoer blijven onbekend.
 
 De rapporten voor [één document](reports/one-document-eval.json) en [twee documenten](reports/two-document-eval.json), inclusief de [oude titelcontextvergelijking](reports/two-document-context-comparison.json), zijn historische snapshots. Documenttitels en corpus zijn nu gewijzigd; vergelijk die scores niet alsof alleen één zoekinstelling veranderde. De [vijf verkennende zoekvragen](reports/five-activity-searches.json) tonen ook echte missers: bij “waar en wanneer tuinieren” ontbreken tijd en locatie in de eerste zes hits. Codex kan gericht verderzoeken, maar een volledig antwoord is niet gegarandeerd. Er wordt geen rangschikking op vaste vragen afgedwongen.
 
 CI controleert formattering, clippy, deterministische tests en build zonder modelaanroepen. Live checks: `cargo test --locked live_report_retains -- --ignored` en `cargo test --locked live_five_activity -- --ignored --nocapture`. De laatste schrijft een kleine titelcontextvergelijking naar de tijdelijke systeemmap, geen grotere benchmark. Zie [besluiten](decisions.md) voor instellingen en beperkingen.
+
+## Nieuwe testversie met tien activiteiten
+
+`expanded-10-20261105` bevat precies tien vooraf vastgelegde vragen over de zestig bronstukken. De verwachte bronnen zijn afzonderlijk opgesteld en gereviewd voordat de methoden worden vergeleken. Bestaande vijfbronnenresultaten worden niet als meting op tien bronnen gepresenteerd. De bronverwachtingen komen nooit in de zoekindex, modelprompt of stopbeslissing.
+
+Bekijk eerst het plan, zonder zoekacties of modelcalls:
+
+```sh
+cargo run --locked -- lab agent-plan --dataset expanded-10-20261105
+cargo run --locked -- lab plan --dataset expanded-10-20261105 --methods bm25 --profiles documents_sections
+```
+
+Een lokale zoektest zonder antwoordmodel of AI-beoordelaar:
+
+```sh
+cargo run --locked -- lab run --dataset expanded-10-20261105 --methods bm25 --profiles documents_sections --output /tmp/expanded-ten-bm25.jsonl
+cargo run --locked -- lab assess --dataset expanded-10-20261105 --input /tmp/expanded-ten-bm25.jsonl --types deterministic --output /tmp/expanded-ten-assessed.jsonl
+```
+
+Alle vier zoekmethoden en de bestaande document-/SQLite-structuren kunnen dezelfde versie kiezen via `--dataset expanded-10-20261105`. SQLite vereist `--features sqlite`. Nieuwe SQLite-caches krijgen een eigen map op basis van de corpus-hash, zodat oude en nieuwe metingen gescheiden blijven. Een agentvergelijking vereist bovendien expliciet `lab agent-run --live` en een nieuw begrensd ledger; de limiet blijft vier zoekacties en 120 seconden per sessie. Een volledige bronset vinden beoordeelt bronretrieval, niet automatisch de inhoud van het uiteindelijke antwoord.
 
 ## Grenzen en werkwijze
 
@@ -65,7 +98,7 @@ Alle gegevens zijn verzonnen. Suggesties behouden bron en datum; ontbrekende of 
 
 Alle codewijzigingen gaan via branches en pull requests, met onafhankelijke beoordeling. Niet rechtstreeks naar `main` committen; alleen mergen met toestemming van de gebruiker.
 
-Bron: [fastembed 7.1.2](https://github.com/anush008/fastembed-rs/releases/tag/v7.1.2), gepubliceerd **19 oktober 2026**. Zie verder [projectinstructies](AGENTS.md), [use case](user_journey.md) en [2026-oriëntatie](agent-harness-landscape.md). Het langetermijndoel blijft een kleine, uitlegbare agent harness; deze proef houdt bewust vijf activiteiten en vrije vragen, met vijf interne tuinvragen als regressieset.
+Bron: [fastembed 7.1.2](https://github.com/anush008/fastembed-rs/releases/tag/v7.1.2), gepubliceerd **19 oktober 2026**. Zie verder [projectinstructies](AGENTS.md), [use case](user_journey.md) en [2026-oriëntatie](agent-harness-landscape.md). Het langetermijndoel blijft een kleine, uitlegbare agent harness; de interactieve demo gebruikt tien activiteiten en vrije vragen. De oorspronkelijke vijf activiteiten en interne tuinvragen blijven een afzonderlijke regressieset.
 
 ## Reproduceerbare experimenten
 
