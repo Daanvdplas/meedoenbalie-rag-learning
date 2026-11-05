@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "selection_id": "presentation-ten-20261105",
+  "cases": [
+    {"dataset_id": "legacy", "case_id": "P01"},
+    {"dataset_id": "legacy", "case_id": "T02"},
+    {"dataset_id": "legacy", "case_id": "P07"},
+    {"dataset_id": "legacy", "case_id": "P06"},
+    {"dataset_id": "legacy", "case_id": "P09"},
+    {"dataset_id": "legacy", "case_id": "T01"},
+    {"dataset_id": "independent-20261103", "case_id": "IND26-05"},
+    {"dataset_id": "independent-20261103", "case_id": "IND26-03"},
+    {"dataset_id": "independent-20261103", "case_id": "IND26-07"},
+    {"dataset_id": "independent-20261103", "case_id": "IND26-09"}
+  ]
+}

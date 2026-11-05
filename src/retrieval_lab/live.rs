@@ -25,7 +25,7 @@ pub struct LiveOptions {
     pub max_seconds: u64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LiveRecord {
     pub schema_version: u32,
@@ -53,6 +53,20 @@ pub struct LiveRecord {
     pub audit_trace: Option<TraceSummary>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub trace_integrity_status: Option<String>,
+}
+
+/// Execute a bounded session only after its actual runtime matches the comparison.
+pub async fn ask_pinned(
+    options: LiveOptions,
+    model: &str,
+    expected: Option<&Value>,
+) -> Result<LiveRecord, String> {
+    ask_with_runtime_pin(
+        options,
+        CodexRunner::new_selected,
+        Some((model.into(), expected.cloned())),
+    )
+    .await
 }
 
 pub async fn cli(args: &[String]) -> Result<(), String> {
@@ -217,6 +231,18 @@ where
     F: FnOnce(std::time::Duration) -> R,
     R: std::future::Future<Output = Result<CodexRunner, String>>,
 {
+    ask_with_runtime_pin(options, runtime, None).await
+}
+
+async fn ask_with_runtime_pin<F, R>(
+    options: LiveOptions,
+    runtime: F,
+    pin: Option<(String, Option<Value>)>,
+) -> Result<LiveRecord, String>
+where
+    F: FnOnce(std::time::Duration) -> R,
+    R: std::future::Future<Output = Result<CodexRunner, String>>,
+{
     use std::sync::atomic::{AtomicU64, Ordering};
     static NEXT: AtomicU64 = AtomicU64::new(0);
     let started = Instant::now();
@@ -316,6 +342,16 @@ where
     let execution = tokio::time::timeout(timeout, async {
         let runner = runtime(budget.remaining()?).await?;
         record.runtime_configuration = Some(runner.configuration());
+        if let Some((model, expected)) = &pin
+            && (record.runtime_configuration.as_ref().unwrap()["model"] != *model
+                || expected.as_ref().is_some_and(|configuration| {
+                    record.runtime_configuration.as_ref() != Some(configuration)
+                }))
+        {
+            return Err(
+                "runtime: Agentic comparison runtime/model changed before generation".into(),
+            );
+        }
         let launch = crate::codex::SelectedMcpLaunch {
             arguments: vec![
                 "lab".into(),
@@ -325,7 +361,7 @@ where
                     .map_err(|_| "Cannot encode fixed retrieval session")?,
             ],
             instructions: format!(
-                "Fixed retrieval experiment {config_id}. The selected method, profile and typed filters are fixed for this session. Every search_document call MUST use top_k={}. Scores are method-specific ranking signals, never confidence. Retrieved evidence includes the actual execution configuration and source dates. Do not claim these hard checks judge answer correctness.",
+                "Fixed retrieval experiment {config_id}. The selected method, profile and typed filters are fixed for this session. Every search_document call MUST use top_k={}. Before searching, derive a checklist only from the user's question (for example day, setting, time and location). Check the retrieved sources against every part of that checklist. If information is missing, search again with a different targeted query, up to four allowed search attempts. Stop when the question is supported, or when the available sources cannot establish the missing information; clearly state remaining unknowns. Never infer current places from a schedule. Scores are method-specific ranking signals, never confidence. Retrieved evidence includes the actual execution configuration and source dates. Do not claim these hard checks judge answer correctness.",
                 options.session.config.retrieval.top_k
             ),
         };
@@ -446,6 +482,38 @@ mod tests {
             unknowns: vec![],
         };
         [serde_json::json!({"type":"item.completed","item":{"type":"mcp_tool_call","server":"coa","tool":"search_document","arguments":{"query":"dinsdag binnen","top_k":3},"status":"completed","result":{"content":[{"type":"text","text":response.to_string()}]}}}),serde_json::json!({"type":"item.completed","item":{"type":"agent_message","text":serde_json::to_string(&answer).unwrap()}}),serde_json::json!({"type":"turn.completed"})].iter().map(Value::to_string).collect::<Vec<_>>().join("\n")
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn a_changed_model_is_rejected_before_a_generation_starts() {
+        let base = temporary();
+        std::fs::create_dir(&base).unwrap();
+        let options = options(&base);
+        let events = fake_events(&options.session);
+        let marker = base.join("generation-started");
+        let script = format!(
+            "#!/bin/sh\ncat >/dev/null\ntouch '{}'\ncat <<'COA_EVENTS'\n{events}\nCOA_EVENTS\n",
+            marker.display()
+        );
+        let runner = crate::codex::fixture_runner(&base.join("runtime"), &script);
+        let record = ask_with_runtime_pin(
+            options,
+            |_| async { Ok(runner) },
+            Some(("different-model".into(), None)),
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            record.status, "failed",
+            "runtime model mismatch must fail before generation"
+        );
+        assert!(
+            !marker.exists(),
+            "the changed runtime must never receive the question"
+        );
+        assert_eq!(record.generation_session_index, 1);
+        std::fs::remove_dir_all(base).unwrap();
     }
     #[cfg(unix)]
     #[tokio::test]

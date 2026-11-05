@@ -1,4 +1,6 @@
 //! Local retrieval experiments and assessments of immutable stored runs.
+pub mod agent_assessment;
+pub mod agent_run;
 pub mod assessment;
 pub mod catalog;
 pub mod cli;

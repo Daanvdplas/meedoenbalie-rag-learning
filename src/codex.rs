@@ -552,7 +552,7 @@ fn validated_version(bytes: &[u8]) -> Result<String, String> {
     Ok(version.to_owned())
 }
 
-fn configured_model() -> Result<String, String> {
+pub(crate) fn configured_model() -> Result<String, String> {
     let model = std::env::var("COA_CODEX_MODEL").unwrap_or_else(|_| "gpt-6.1-sol".into());
     if model.is_empty() || model.len() > 100 {
         return Err("runtime: Invalid model setting".into());

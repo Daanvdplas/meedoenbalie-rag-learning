@@ -13,6 +13,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     match command.as_str() {
         "lab" => {
+            if args.first().map(String::as_str) == Some("agent-run") {
+                meedoen_retrieval::retrieval_lab::agent_run::cli(&args)
+                    .await
+                    .map_err(std::io::Error::other)?;
+                return Ok(());
+            }
             if matches!(args.first().map(String::as_str), Some("ask" | "mcp")) {
                 meedoen_retrieval::retrieval_lab::live::cli(&args)
                     .await
