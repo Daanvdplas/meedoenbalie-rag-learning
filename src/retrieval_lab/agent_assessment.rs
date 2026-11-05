@@ -100,11 +100,19 @@ pub fn assess(records: &[StoredAgentRecord]) -> Result<Vec<AgentAssessment>, Str
         return Err("No agent records to assess".into());
     }
     let mut sessions = BTreeSet::new();
+    let mut generations = BTreeSet::new();
     let mut treatments = BTreeSet::new();
     let mut expected_runtime: Option<Value> = None;
     for stored in records {
         let record = &stored.record;
         agent_run::validate_record_identity(record)?;
+        if record.live.budget_id != records[0].record.live.budget_id
+            || !generations.insert(record.live.generation_session_index)
+        {
+            return Err(
+                "Agent source measurements mix budget ledgers or repeat generation indices".into(),
+            );
+        }
         if stored.record_sha256.len() != 64
             || !stored
                 .record_sha256
@@ -854,6 +862,8 @@ mod tests {
     fn rows_from_a_different_runtime_binary_cannot_be_mixed_into_one_report() {
         let first = fixture_for("T02");
         let mut second = fixture_for("P06");
+        second.stored.record.live.generation_session_index = 2;
+        rewrite_fixture_live(&mut second);
         assert!(assess(&[first.stored.clone(), second.stored.clone()]).is_ok());
         second
             .stored
@@ -872,6 +882,7 @@ mod tests {
     fn a_failed_model_pin_is_visible_audit_evidence_without_a_success_score() {
         let first = fixture_for("T02");
         let mut failed = fixture_for("P06");
+        failed.stored.record.live.generation_session_index = 2;
         failed.stored.record.live.status = "failed".into();
         failed.stored.record.live.error = Some("runtime".into());
         failed.stored.record.live.run = None;
@@ -900,5 +911,100 @@ mod tests {
             rows[1].runtime_configuration_sha256,
             rows[1].expected_runtime_configuration_sha256
         );
+    }
+
+    #[test]
+    fn records_from_different_budget_ledgers_cannot_form_one_comparison() {
+        let first = fixture_for("T02");
+        let mut second = fixture_for("P06");
+        second.stored.record.live.generation_session_index = 2;
+        rewrite_fixture_live(&mut second);
+        assert!(assess(&[first.stored.clone(), second.stored.clone()]).is_ok());
+        second.stored.record.live.budget_id = "foreign-budget".into();
+        rewrite_fixture_live(&mut second);
+        assert!(assess(&[first.stored.clone(), second.stored.clone()]).is_err());
+    }
+
+    #[test]
+    fn repeated_generation_indices_cannot_hide_a_restarted_budget() {
+        let first = fixture_for("T02");
+        let mut second = fixture_for("P06");
+        second.stored.record.live.generation_session_index = 2;
+        rewrite_fixture_live(&mut second);
+        assert!(assess(&[first.stored.clone(), second.stored.clone()]).is_ok());
+        second.stored.record.live.generation_session_index = 1;
+        rewrite_fixture_live(&mut second);
+        assert!(assess(&[first.stored.clone(), second.stored.clone()]).is_err());
+    }
+
+    #[test]
+    fn cli_assess_and_report_replay_saved_agent_runs_without_a_runtime() {
+        let mut fixture = fixture();
+        fixture.stored.record.live.elapsed_ms = 0;
+        fixture.stored.record.live.run.as_mut().unwrap().elapsed_ms = 0;
+        rewrite_fixture_live(&mut fixture);
+        let input = fixture.directory.join("batch.jsonl");
+        let mut original = serde_json::to_vec(&fixture.stored.record).unwrap();
+        original.push(b'\n');
+        std::fs::write(&input, &original).unwrap();
+        let grades = fixture.directory.join("grades.jsonl");
+        let output = fixture.directory.join("report.json");
+        let paths = |value: &std::path::Path| value.to_string_lossy().into_owned();
+        let assessed = crate::retrieval_lab::cli::cli(&[
+            "agent-assess".into(),
+            "--input".into(),
+            paths(&input),
+            "--output".into(),
+            paths(&grades),
+        ])
+        .unwrap();
+        assert_eq!(assessed["codex_calls"], 0);
+        assert_eq!(assessed["ai_judge_calls"], 0);
+        let reported = crate::retrieval_lab::cli::cli(&[
+            "agent-report".into(),
+            "--input".into(),
+            paths(&input),
+            "--assessments".into(),
+            paths(&grades),
+            "--output".into(),
+            paths(&output),
+        ])
+        .unwrap();
+        assert_eq!(reported["codex_calls"], 0);
+        let result: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&output).unwrap()).unwrap();
+        assert_eq!(result["runs"][0]["search_actions"], 3);
+        assert_eq!(result["runs"][0]["total_wait_ms"], 0);
+        assert_eq!(std::fs::read(&input).unwrap(), original);
+        let duplicate = fixture.directory.join("duplicate.json");
+        assert!(
+            crate::retrieval_lab::cli::cli(&[
+                "agent-report".into(),
+                "--input".into(),
+                format!("{},{}", paths(&input), paths(&input)),
+                "--output".into(),
+                paths(&duplicate),
+            ])
+            .is_err()
+        );
+        assert!(!duplicate.exists());
+        let mut forged: AgentAssessment =
+            serde_json::from_slice(&std::fs::read(&grades).unwrap()).unwrap();
+        forged.actual_search_calls = Some(1);
+        std::fs::write(&grades, serde_json::to_vec(&forged).unwrap()).unwrap();
+        let forged_output = fixture.directory.join("forged-report.json");
+        assert!(
+            crate::retrieval_lab::cli::cli(&[
+                "agent-report".into(),
+                "--input".into(),
+                paths(&input),
+                "--assessments".into(),
+                paths(&grades),
+                "--output".into(),
+                paths(&forged_output),
+            ])
+            .is_err()
+        );
+        assert!(!forged_output.exists());
     }
 }
