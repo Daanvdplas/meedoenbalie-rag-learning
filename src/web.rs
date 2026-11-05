@@ -6,7 +6,7 @@ use axum::{
     routing::{get, post},
 };
 use meedoen_retrieval::{
-    AS_OF, Index,
+    Index,
     codex::CodexRunner,
     runs::{RunStore, Verdict},
 };
@@ -16,6 +16,7 @@ use std::sync::{Arc, Mutex};
 type App = Arc<WebState>;
 type ApiError = (StatusCode, Json<Value>);
 struct WebState {
+    corpus: meedoen_retrieval::corpus::CorpusId,
     store: Mutex<RunStore>,
     runner: Option<CodexRunner>,
     runner_error: Option<String>,
@@ -43,7 +44,7 @@ fn locked(app: &App) -> Result<std::sync::MutexGuard<'_, RunStore>, ApiError> {
         .map_err(|_| error("Lokale opslag niet beschikbaar; herstart de demo."))
 }
 fn context(app: &App, top_k: usize) -> Value {
-    json!({"web_version":"activity-demo-v3","sources":app.manifest["sources"],"as_of":AS_OF,"retrieval_manifest":app.manifest,"codex_configuration":app.configuration,"top_k":top_k})
+    json!({"web_version":"activity-demo-v4","sources":app.manifest["sources"],"as_of":app.manifest["as_of"],"retrieval_manifest":app.manifest,"codex_configuration":app.configuration,"top_k":top_k})
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -88,7 +89,7 @@ fn start(
     let id = run.id.clone();
     tokio::spawn(async move {
         let result = if let Some(runner) = &app.runner {
-            runner.run(&question,top_k).await.and_then(|result|{
+            runner.run_for_corpus(&question,top_k,app.corpus).await.and_then(|result|{
     let result=serde_json::to_value(result).map_err(|e|e.to_string())?;
     for key in ["sources","as_of"] {if result[key]!=snapshot[key]{return Err("tool: Broncontext verschilt van de vastgelegde bron.".into());}}
     if result["manifest"]!=snapshot["retrieval_manifest"]{return Err("tool: Zoekindex is veranderd; deze run kan niet als dezelfde context worden opgeslagen.".into());}
@@ -195,7 +196,7 @@ async fn report(State(app): State<App>, headers: HeaderMap) -> Result<impl IntoR
     let mut text = format!(
         "VIJF VRAGEN — LOKAAL TESTVERSLAG\nBronnen: {} · referentiedatum {}\n\n{} van 5 vragen beoordeeld. Goed: {} · aandacht nodig: {} · onzeker: {} · met voorkennis: {}.\nEerste oordelen blijven behouden. Dit is geen automatische kwaliteitsmeting.\n\n",
         app.manifest["sources"],
-        AS_OF,
+        app.manifest["as_of"],
         summary["judged"],
         summary["correct"],
         summary["attention"],
@@ -218,7 +219,7 @@ async fn report(State(app): State<App>, headers: HeaderMap) -> Result<impl IntoR
 }
 fn router(app: App) -> Router {
     Router::new().route("/",get(||async{Html(include_str!("../static/index.html"))}))
- .route("/api/source",get({let app=app.clone();move||{let app=app.clone();async move{Json(json!({"sources":app.sources,"as_of":AS_OF,"runtime_ready":app.runner.is_some(),"runtime_error":app.runner_error}))}}}))
+ .route("/api/source",get({let app=app.clone();move||{let app=app.clone();async move{Json(json!({"sources":app.sources,"as_of":app.manifest["as_of"],"runtime_ready":app.runner.is_some(),"runtime_error":app.runner_error}))}}}))
  .route("/api/questions",get(||async{Json(serde_json::from_str::<Value>(include_str!("../fixtures/questions.json")).unwrap())}))
  .route("/api/session",post(new_session).get(summary)).route("/api/runs",post(run))
  .route("/api/runs/{id}",get(get_run)).route("/api/runs/{id}/replay",post(replay))
@@ -227,14 +228,16 @@ fn router(app: App) -> Router {
  .layer(DefaultBodyLimit::max(8192)).with_state(app)
 }
 pub async fn serve(index: Index) -> Result<(), Box<dyn std::error::Error>> {
+    let corpus = index.corpus();
     let (runner, runner_error, configuration) = match CodexRunner::new() {
         Ok(runner) => {
-            let configuration = runner.configuration();
+            let configuration = runner.configuration_for_corpus(corpus);
             (Some(runner), None, configuration)
         }
         Err(error) => (None, Some(error), json!({"status":"unavailable"})),
     };
     let app = Arc::new(WebState {
+        corpus,
         store: Mutex::new(RunStore::new()),
         runner,
         runner_error,
@@ -253,12 +256,54 @@ pub async fn serve(index: Index) -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use meedoen_retrieval::AS_OF;
+    #[tokio::test]
+    async fn expanded_source_reader_exposes_ten_sources_and_its_reference_date() {
+        use tower::ServiceExt;
+        let corpus = meedoen_retrieval::corpus::CorpusId::ExpandedTen;
+        let app = Arc::new(WebState {
+            corpus,
+            store: Mutex::new(RunStore::new()),
+            runner: None,
+            runner_error: None,
+            manifest: json!({"as_of": corpus.as_of(), "source_sha256": corpus.sha256()}),
+            sources: serde_json::to_value(corpus.sources().unwrap()).unwrap(),
+            configuration: json!({}),
+        });
+        let response = router(app)
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/api/source")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let value: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(value["as_of"], "2026-11-05");
+        let sources = value["sources"].as_array().unwrap();
+        assert_eq!(sources.len(), 10);
+        assert_eq!(
+            sources
+                .iter()
+                .map(|source| source["sections"].as_array().unwrap().len())
+                .sum::<usize>(),
+            60
+        );
+        assert_eq!(sources[0]["date"], "2026-10-20");
+        assert_eq!(sources[9]["date"], "2026-11-05");
+        assert!(!String::from_utf8_lossy(&bytes).contains("evidence_alternatives"));
+    }
     #[tokio::test]
     async fn source_reader_returns_five_activity_documents_without_gold() {
         use tower::ServiceExt;
         let sources =
             meedoen_retrieval::source::parse_sources(meedoen_retrieval::DOCUMENTS).unwrap();
         let app = Arc::new(WebState {
+            corpus: meedoen_retrieval::corpus::CorpusId::BaselineFive,
             store: Mutex::new(RunStore::new()),
             runner: None,
             runner_error: None,
@@ -290,6 +335,7 @@ mod tests {
         use meedoen_retrieval::codex::CodexRun;
         use tower::ServiceExt;
         let app = Arc::new(WebState {
+            corpus: meedoen_retrieval::corpus::CorpusId::BaselineFive,
             store: Mutex::new(RunStore::new()),
             runner: None,
             runner_error: None,

@@ -24,9 +24,16 @@ pub struct QuestionCatalog {
 }
 
 fn questions_from_inputs(inputs: &[&str], independent: bool) -> Result<QuestionCatalog, String> {
-    let sources = crate::source::parse_sources(crate::DOCUMENTS)?;
-    let corpus_sha256 =
-        crate::manifest::hash(crate::DOCUMENTS.join("\n---document---\n").as_bytes());
+    questions_for_corpus(inputs, independent, crate::corpus::CorpusId::BaselineFive)
+}
+
+fn questions_for_corpus(
+    inputs: &[&str],
+    independent: bool,
+    corpus: crate::corpus::CorpusId,
+) -> Result<QuestionCatalog, String> {
+    let sources = corpus.sources()?;
+    let corpus_sha256 = corpus.sha256();
     let mut cases = Vec::new();
     let mut ids = BTreeSet::new();
     let mut versions = Vec::new();
@@ -35,13 +42,13 @@ fn questions_from_inputs(inputs: &[&str], independent: bool) -> Result<QuestionC
         let set: QuestionSet = serde_json::from_str(input)
             .map_err(|error| format!("Invalid question input: {error}"))?;
         if set.schema_version != "1"
-            || set.as_of != crate::AS_OF
+            || set.as_of != corpus.as_of()
             || set.corpus_sha256 != corpus_sha256
             || set.sources.len() != sources.len()
         {
             return Err("Question input does not identify the current source corpus".into());
         }
-        for (source, text) in sources.iter().zip(crate::DOCUMENTS) {
+        for (source, text) in sources.iter().zip(corpus.documents()) {
             let matches = set
                 .sources
                 .iter()
@@ -72,9 +79,9 @@ fn questions_from_inputs(inputs: &[&str], independent: bool) -> Result<QuestionC
         identity: DatasetIdentity {
             questions_sha256: if independent { crate::experiment::dataset::questions_hash(&sets[0])? } else { crate::manifest::hash(&serde_json::to_vec(&sets).map_err(|error| error.to_string())?) },
             corpus_sha256,
-            as_of: crate::AS_OF.into(),
+            as_of: corpus.as_of().into(),
             dataset_versions: versions,
-            limitation: if independent { "Prospectively frozen AI-authored and AI-reviewed questions on the same five known documents; not human calibration or unseen-corpus/intent generalization" } else { "Existing development/regression cases; previously seen comparison questions are not a new held-out benchmark" }.into(),
+            limitation: if !corpus.is_baseline() { "Prospectively frozen AI-authored and independently AI-reviewed source expectations for ten fictional documents; adapted known questions, not human calibration or unseen-intent generalization" } else if independent { "Prospectively frozen AI-authored and AI-reviewed questions on the same five known documents; not human calibration or unseen-corpus/intent generalization" } else { "Existing development/regression cases; previously seen comparison questions are not a new held-out benchmark" }.into(),
         },
     })
 }
@@ -90,6 +97,49 @@ pub const INDEPENDENT_EXPECTATIONS: &str =
 pub const FROZEN: &str =
     include_str!("../../fixtures/experiments/independent-20261103/FROZEN.json");
 pub const FROZEN_SHA256: &str = "351a7df4d85e5295e36d3fbbb31c62948619425158b038bd8370a11c982e2fe6";
+pub const EXPANDED_ID: &str = "expanded-10-20261105";
+pub const EXPANDED_QUESTIONS: &str =
+    include_str!("../../fixtures/experiments/expanded-10-20261105/questions.json");
+pub const EXPANDED_EXPECTATIONS: &str =
+    include_str!("../../fixtures/experiments/expanded-10-20261105/expectations.json");
+pub const EXPANDED_DETAILS: &str =
+    include_str!("../../fixtures/experiments/expanded-10-20261105/reference-details.json");
+pub const EXPANDED_SELECTION: &str =
+    include_str!("../../fixtures/experiments/expanded-10-20261105/presentation-selection.json");
+const EXPANDED_FROZEN: &str =
+    include_str!("../../fixtures/experiments/expanded-10-20261105/FROZEN.json");
+// Independently approved exact source-reference freeze, before measurement.
+const EXPANDED_FROZEN_SHA256: &str =
+    "48d09a54102b9cbb75d9bbe4c6436e746cfb8290b323d284a26a4b900436e394";
+
+pub(super) fn verify_expanded_artifact(name: &str, text: &str) -> Result<(), String> {
+    let freeze: serde_json::Value =
+        serde_json::from_str(EXPANDED_FROZEN).map_err(|error| error.to_string())?;
+    if crate::manifest::hash(EXPANDED_FROZEN.as_bytes()) != EXPANDED_FROZEN_SHA256
+        || freeze["review"]["approved"] != true
+        || freeze["reference_date"] != crate::corpus::CorpusId::ExpandedTen.as_of()
+        || freeze["integrity"]["corpus_sha256"] != crate::corpus::CorpusId::ExpandedTen.sha256()
+    {
+        return Err(
+            "Expanded source/reference freeze is not independently approved or has changed".into(),
+        );
+    }
+    let path = format!("fixtures/experiments/{EXPANDED_ID}/{name}");
+    let expected = crate::manifest::hash(text.as_bytes());
+    let matches = freeze["integrity"]["artifacts"]
+        .as_array()
+        .ok_or("Missing expanded freeze artifacts")?
+        .iter()
+        .filter(|artifact| artifact["path"] == path && artifact["sha256_bytes"] == expected)
+        .count();
+    if matches != 1 {
+        return Err(
+            "Expanded frozen artifact changed; create a new independently reviewed dataset version"
+                .into(),
+        );
+    }
+    Ok(())
+}
 const APPROVED_INPUTS: &str =
     include_str!("../../fixtures/experiments/independent-20261103/INPUTS_FROZEN.json");
 const APPROVED_INPUTS_SHA256: &str =
@@ -103,6 +153,16 @@ pub struct QuestionDataset {
     pub catalog: QuestionCatalog,
     pub query_inputs: std::collections::BTreeMap<String, crate::retrieval::QueryFilters>,
     pub query_inputs_sha256: Option<String>,
+}
+
+impl QuestionDataset {
+    pub fn corpus(&self) -> crate::corpus::CorpusId {
+        if self.id == EXPANDED_ID {
+            crate::corpus::CorpusId::ExpandedTen
+        } else {
+            crate::corpus::CorpusId::BaselineFive
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -153,7 +213,15 @@ pub fn load(id: &str) -> Result<QuestionDataset, String> {
                 query_inputs_sha256: Some(crate::manifest::hash(USER_INPUTS.as_bytes())),
             })
         }
-        _ => Err("Unknown dataset; select legacy or independent-20261103 explicitly".into()),
+        EXPANDED_ID => {
+            verify_expanded_artifact("questions.json", EXPANDED_QUESTIONS)?;
+            let catalog = questions_for_corpus(&[EXPANDED_QUESTIONS], true, crate::corpus::CorpusId::ExpandedTen)?;
+            if catalog.cases.len() != 10 {
+                return Err("Expanded presentation requires exactly ten frozen questions".into());
+            }
+            Ok(QuestionDataset { id: id.into(), catalog, query_inputs: Default::default(), query_inputs_sha256: None })
+        }
+        _ => Err("Unknown dataset; select legacy, independent-20261103 or expanded-10-20261105 explicitly".into()),
     }
 }
 
@@ -212,6 +280,88 @@ fn load_user_inputs(
 mod tests {
     use super::*;
     use std::collections::BTreeSet;
+
+    #[test]
+    fn expanded_freeze_rejects_mutated_artifact_bytes_and_wrong_names() {
+        for (name, canonical) in [
+            ("questions.json", EXPANDED_QUESTIONS),
+            ("expectations.json", EXPANDED_EXPECTATIONS),
+            ("reference-details.json", EXPANDED_DETAILS),
+            ("presentation-selection.json", EXPANDED_SELECTION),
+        ] {
+            verify_expanded_artifact(name, canonical).unwrap();
+            assert!(verify_expanded_artifact(name, &format!("{canonical}\n")).is_err());
+            assert!(verify_expanded_artifact("other.json", canonical).is_err());
+        }
+    }
+
+    #[test]
+    fn expanded_dataset_has_ten_input_only_questions_on_sixty_sections() {
+        let dataset = load(EXPANDED_ID).unwrap();
+        assert_eq!(dataset.catalog.cases.len(), 10);
+        assert_eq!(
+            dataset
+                .corpus()
+                .sources()
+                .unwrap()
+                .iter()
+                .map(|source| source.sections.len())
+                .sum::<usize>(),
+            60
+        );
+        assert_eq!(dataset.catalog.identity.as_of, "2026-11-05");
+        assert_eq!(
+            dataset.catalog.identity.corpus_sha256,
+            dataset.corpus().sha256()
+        );
+        assert!(dataset.query_inputs.is_empty());
+        assert!(dataset.query_inputs_sha256.is_none());
+        let inputs = serde_json::to_string(&dataset.catalog.cases).unwrap();
+        for protected in [
+            "evidence_alternatives",
+            "evaluation_only_canary",
+            "forbidden_claims",
+            "fact_roles",
+        ] {
+            assert!(!inputs.contains(protected));
+        }
+        assert_ne!(
+            dataset.catalog.identity.corpus_sha256,
+            load("legacy").unwrap().catalog.identity.corpus_sha256
+        );
+        assert!(
+            crate::experiment::dataset::parse(EXPANDED_QUESTIONS, EXPANDED_EXPECTATIONS).is_err()
+        );
+    }
+
+    #[test]
+    fn input_identity_cannot_mix_five_and_ten_source_versions() {
+        let expanded = crate::corpus::CorpusId::ExpandedTen;
+        assert!(questions_for_corpus(&[QUESTION_INPUTS[0]], false, expanded).is_err());
+        let mut input: QuestionSet = serde_json::from_str(QUESTION_INPUTS[0]).unwrap();
+        input.as_of = expanded.as_of().into();
+        input.corpus_sha256 = expanded.sha256();
+        input.sources = expanded
+            .sources()
+            .unwrap()
+            .iter()
+            .zip(expanded.documents())
+            .map(
+                |(source, document)| crate::experiment::dataset::CorpusSource {
+                    id: source.id.clone(),
+                    date: source.date.clone(),
+                    sha256: crate::manifest::hash(document.as_bytes()),
+                },
+            )
+            .collect();
+        let json = serde_json::to_string(&input).unwrap();
+        let catalog = questions_for_corpus(&[&json], false, expanded).unwrap();
+        assert_eq!(catalog.identity.corpus_sha256, expanded.sha256());
+        assert!(questions_from_inputs(&[&json], false).is_err());
+        input.sources.pop();
+        let missing_source = serde_json::to_string(&input).unwrap();
+        assert!(questions_for_corpus(&[&missing_source], false, expanded).is_err());
+    }
 
     #[test]
     fn question_catalogue_has_eighteen_distinct_inputs_and_no_gold() {

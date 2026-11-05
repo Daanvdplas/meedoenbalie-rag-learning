@@ -20,12 +20,26 @@ pub struct LocalRetriever {
 
 impl LocalRetriever {
     pub fn new(config: RunConfig, model_cache: &Path, sqlite_dir: &Path) -> Result<Self, String> {
+        Self::for_corpus(
+            config,
+            model_cache,
+            sqlite_dir,
+            crate::corpus::CorpusId::BaselineFive,
+        )
+    }
+
+    pub fn for_corpus(
+        config: RunConfig,
+        model_cache: &Path,
+        sqlite_dir: &Path,
+        corpus: crate::corpus::CorpusId,
+    ) -> Result<Self, String> {
         crate::retrieval::validate_config(&config.retrieval, &Default::default())?;
         let options = PreparationOptions {
             model_cache: model_cache.into(),
             sqlite_dir: sqlite_dir.into(),
         };
-        let mut session = PreparationSession::new(&options)?;
+        let mut session = PreparationSession::for_corpus(&options, corpus)?;
         let prepared = session.prepare(
             config.profile,
             config.retrieval.method != SearchMethod::Bm25,
@@ -87,16 +101,24 @@ pub(crate) struct PreparationSession {
 }
 
 impl PreparationSession {
-    pub fn new(options: &PreparationOptions) -> Result<Self, String> {
+    pub fn for_corpus(
+        options: &PreparationOptions,
+        corpus: crate::corpus::CorpusId,
+    ) -> Result<Self, String> {
         let started = Instant::now();
-        let sections = crate::source::parse_sources(crate::DOCUMENTS)?
+        let sections = corpus
+            .sources()?
             .into_iter()
             .flat_map(|source| source.sections)
             .collect();
         Ok(Self {
             sections,
             #[cfg(feature = "sqlite")]
-            sqlite_dir: options.sqlite_dir.clone(),
+            sqlite_dir: if corpus.is_baseline() {
+                options.sqlite_dir.clone()
+            } else {
+                options.sqlite_dir.join(corpus.sha256())
+            },
             embeddings: LocalEmbeddings::new(&options.model_cache),
             memory_cache: EmbeddingCache::default(),
             source_parse_ms: elapsed_ms(started),
@@ -539,5 +561,65 @@ mod tests {
             })
             .unwrap();
         assert_eq!((hits, misses), (2, 0));
+    }
+    #[test]
+    fn expanded_storage_profiles_preserve_sixty_sections_and_baseline_cache() {
+        let base = std::env::temp_dir().join(format!(
+            "coa-corpus-storage-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let options = PreparationOptions {
+            model_cache: base.join("unused-model"),
+            sqlite_dir: base.join("sqlite"),
+        };
+        let expanded = crate::corpus::CorpusId::ExpandedTen;
+        let mut expected_identity = None;
+        for profile in crate::retrieval_lab::catalog::PROFILES
+            .into_iter()
+            .filter(|profile| profile.supported())
+        {
+            let mut baseline_session =
+                PreparationSession::for_corpus(&options, crate::corpus::CorpusId::BaselineFive)
+                    .unwrap();
+            let baseline = baseline_session.prepare(profile, false, "old").unwrap();
+            assert_eq!(baseline.corpus.sections.len(), 30);
+            let mut expanded_session = PreparationSession::for_corpus(&options, expanded).unwrap();
+            let prepared = expanded_session.prepare(profile, false, "new").unwrap();
+            assert_eq!(prepared.corpus.sections.len(), 60);
+            assert_eq!(prepared.corpus.activities.len(), 10);
+            assert_ne!(prepared.corpus.identity, baseline.corpus.identity);
+            if let Some(identity) = &expected_identity {
+                assert_eq!(&prepared.corpus.identity, identity);
+            } else {
+                expected_identity = Some(prepared.corpus.identity.clone());
+            }
+            drop(prepared);
+            drop(baseline);
+            let unchanged = baseline_session
+                .prepare(profile, false, "old-again")
+                .unwrap();
+            assert_eq!(unchanged.corpus.sections.len(), 30);
+            assert_eq!(
+                unchanged.record.sync.unwrap().sections_unchanged,
+                if profile.is_sqlite() { 30 } else { 0 }
+            );
+        }
+        assert!(!options.model_cache.exists());
+        if cfg!(feature = "sqlite") {
+            assert!(
+                options
+                    .sqlite_dir
+                    .join(expanded.sha256())
+                    .join("sections.sqlite")
+                    .exists()
+            );
+        }
+        if base.exists() {
+            std::fs::remove_dir_all(base).unwrap();
+        }
     }
 }

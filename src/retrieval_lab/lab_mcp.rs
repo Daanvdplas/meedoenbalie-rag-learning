@@ -22,6 +22,8 @@ use std::{
 #[serde(deny_unknown_fields)]
 pub struct SessionConfig {
     pub schema_version: u32,
+    #[serde(default, skip_serializing_if = "crate::corpus::CorpusId::is_baseline")]
+    pub corpus: crate::corpus::CorpusId,
     pub config: RunConfig,
     pub filters: QueryFilters,
     pub model_cache: PathBuf,
@@ -109,10 +111,11 @@ impl SearchSession {
             return Err("The retrieval configuration is fixed for this session".into());
         }
         if self.retriever.is_none() {
-            self.retriever = Some(LocalRetriever::new(
+            self.retriever = Some(LocalRetriever::for_corpus(
                 self.settings.config.clone(),
                 &self.settings.model_cache,
                 &self.settings.sqlite_dir,
+                self.settings.corpus,
             )?);
         }
         let retriever = self.retriever.as_mut().unwrap();
@@ -125,7 +128,7 @@ impl SearchSession {
             question: query,
             top_k,
             sources: source_info(&retriever.corpus().sections),
-            as_of: crate::AS_OF.into(),
+            as_of: self.settings.corpus.as_of().into(),
             manifest: LabManifest {
                 schema_version: 1,
                 config_id: super::catalog::config_id(&self.settings.config)?,
@@ -170,7 +173,12 @@ pub fn serve(
     let policy = crate::mcp::SearchPolicy::fixed(
         settings.config.retrieval.top_k,
         format!(
-            "Search five fictional Dutch activity sources with the fixed selected configuration {}. Use top_k={} for every call. Method/profile/settings and typed filters cannot be changed by this tool. Ranking scores are not confidence. Returned exact sections retain document ownership and source date. Search again only for missing information, at most four calls. No current availability may be inferred from a schedule.",
+            "Search {} fictional Dutch activity sources with the fixed selected configuration {}. Use top_k={} for every call. Method/profile/settings and typed filters cannot be changed by this tool. Ranking scores are not confidence. Returned exact sections retain document ownership and source date. Search again only for missing information, at most four calls. No current availability may be inferred from a schedule.",
+            if settings.corpus.is_baseline() {
+                "five"
+            } else {
+                "ten"
+            },
             super::catalog::config_id(&settings.config)?,
             settings.config.retrieval.top_k
         ),
@@ -201,7 +209,9 @@ pub fn validate_run(run: &CodexRun, settings: &SessionConfig) -> Result<(), Stri
     {
         return Err("output: Invalid selected retrieval completion or tool count".into());
     }
-    let sections: Vec<_> = crate::source::parse_sources(crate::DOCUMENTS)?
+    let sections: Vec<_> = settings
+        .corpus
+        .sources()?
         .into_iter()
         .flat_map(|source| source.sections)
         .collect();
@@ -213,7 +223,7 @@ pub fn validate_run(run: &CodexRun, settings: &SessionConfig) -> Result<(), Stri
             .as_array()
             .unwrap()
             .clone()
-        || run.as_of != crate::AS_OF
+        || run.as_of != settings.corpus.as_of()
     {
         return Err("output: Selected retrieval source metadata changed".into());
     }
@@ -258,7 +268,7 @@ pub fn validate_run(run: &CodexRun, settings: &SessionConfig) -> Result<(), Stri
             || response.outcome.query != call.query
             || response.top_k != call.top_k
             || response.sources != sources
-            || response.as_of != crate::AS_OF
+            || response.as_of != settings.corpus.as_of()
             || response.manifest.config_id != config_id
             || response.manifest.config != settings.config
             || response.manifest.filters != settings.filters
@@ -384,6 +394,7 @@ pub(super) mod tests {
 
     pub(in crate::retrieval_lab) fn settings() -> SessionConfig {
         SessionConfig {
+            corpus: crate::corpus::CorpusId::BaselineFive,
             schema_version: 1,
             transport: None,
             config: RunConfig {
@@ -434,6 +445,33 @@ pub(super) mod tests {
             elapsed_ms: 1,
             usage: None,
         }
+    }
+
+    #[test]
+    fn expanded_keyword_search_uses_ten_sources_and_rejects_baseline_guard() {
+        let mut config = settings();
+        config.corpus = crate::corpus::CorpusId::ExpandedTen;
+        let mut session = SearchSession::new(config.clone()).unwrap();
+        let response = session.search("dinsdag binnen", 3).unwrap();
+        assert_eq!(response["sources"].as_array().unwrap().len(), 10);
+        assert_eq!(response["as_of"], "2026-11-05");
+        let mut run = run_with(response);
+        run.as_of = config.corpus.as_of().into();
+        validate_run(&run, &config).unwrap();
+        assert!(validate_run(&run, &settings()).is_err());
+        assert!(!config.model_cache.exists());
+    }
+
+    #[test]
+    fn historical_session_json_defaults_to_five_and_expanded_is_explicit() {
+        let baseline = settings();
+        let mut json = serde_json::to_value(&baseline).unwrap();
+        assert!(json.get("corpus").is_none());
+        let roundtrip: SessionConfig = serde_json::from_value(json.clone()).unwrap();
+        assert_eq!(roundtrip.corpus, crate::corpus::CorpusId::BaselineFive);
+        json["corpus"] = json!("expanded-ten");
+        let expanded: SessionConfig = serde_json::from_value(json).unwrap();
+        assert_eq!(expanded.corpus, crate::corpus::CorpusId::ExpandedTen);
     }
 
     #[test]

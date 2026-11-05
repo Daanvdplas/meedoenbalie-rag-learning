@@ -31,6 +31,11 @@ impl ExpectationsContext {
                     include_str!("../../fixtures/experiments/heldout-expectations.json"),
                 ],
             )
+        } else if id == dataset::EXPANDED_ID {
+            (
+                vec![dataset::EXPANDED_QUESTIONS],
+                vec![dataset::EXPANDED_EXPECTATIONS],
+            )
         } else {
             (
                 vec![dataset::INDEPENDENT_QUESTIONS],
@@ -39,7 +44,8 @@ impl ExpectationsContext {
         };
         let mut criteria = BTreeMap::new();
         for (questions, labels) in questions.iter().zip(&labels) {
-            let (_, parsed) = crate::experiment::dataset::parse(questions, labels)?;
+            let (_, parsed) =
+                crate::experiment::dataset::parse_for_corpus(questions, labels, dataset.corpus())?;
             for case in parsed.cases {
                 if criteria.insert(case.case_id.clone(), case).is_some() {
                     return Err("Duplicate expectation case".into());
@@ -48,18 +54,30 @@ impl ExpectationsContext {
         }
         let mut metadata = BTreeMap::new();
         if id != "legacy" {
-            let details = include_str!(
-                "../../fixtures/experiments/independent-20261103/reference-details.json"
-            );
-            let frozen: serde_json::Value =
-                serde_json::from_str(dataset::FROZEN).map_err(|e| e.to_string())?;
-            for (index, text) in [(1, dataset::INDEPENDENT_EXPECTATIONS), (2, details)] {
-                if frozen["integrity"]["artifacts"][index]["sha256_bytes"]
-                    != crate::manifest::hash(text.as_bytes())
-                {
-                    return Err(
-                        "Frozen reference bytes changed; create a new dataset version".into(),
-                    );
+            let details = if id == dataset::EXPANDED_ID {
+                dataset::EXPANDED_DETAILS
+            } else {
+                include_str!(
+                    "../../fixtures/experiments/independent-20261103/reference-details.json"
+                )
+            };
+            if id == dataset::EXPANDED_ID {
+                dataset::verify_expanded_artifact(
+                    "expectations.json",
+                    dataset::EXPANDED_EXPECTATIONS,
+                )?;
+                dataset::verify_expanded_artifact("reference-details.json", details)?;
+            } else {
+                let frozen: serde_json::Value =
+                    serde_json::from_str(dataset::FROZEN).map_err(|e| e.to_string())?;
+                for (index, text) in [(1, dataset::INDEPENDENT_EXPECTATIONS), (2, details)] {
+                    if frozen["integrity"]["artifacts"][index]["sha256_bytes"]
+                        != crate::manifest::hash(text.as_bytes())
+                    {
+                        return Err(
+                            "Frozen reference bytes changed; create a new dataset version".into(),
+                        );
+                    }
                 }
             }
             let parsed: serde_json::Value =
@@ -129,7 +147,7 @@ impl ExpectationsContext {
             return Err("Stored run does not match the selected dataset/case/question; select the original --dataset explicitly".into());
         }
         if record.query_inputs_sha256 != self.dataset.query_inputs_sha256
-            || (self.dataset.id != "legacy"
+            || (self.dataset.query_inputs_sha256.is_some()
                 && self.dataset.query_inputs.get(&record.case_id) != Some(&record.request_filters))
         {
             return Err(
@@ -147,6 +165,27 @@ mod tests {
         assessment::{self, AssessmentKind},
         types::StoredRecord,
     };
+
+    #[test]
+    fn expanded_references_are_separate_and_reject_historical_retrieval_records() {
+        let expanded = ExpectationsContext::load(dataset::EXPANDED_ID).unwrap();
+        assert_eq!(expanded.criteria.len(), 10);
+        assert_eq!(expanded.metadata.len(), 10);
+        assert!(
+            expanded
+                .validate_record(&crate::retrieval_lab::records::fixture_record())
+                .is_err()
+        );
+        assert_ne!(
+            expanded.expectations_sha256,
+            ExpectationsContext::load("legacy")
+                .unwrap()
+                .expectations_sha256
+        );
+        for case in expanded.criteria.values() {
+            assert!(!case.relevance_labels_complete);
+        }
+    }
 
     fn input(context: &ExpectationsContext) -> StoredRecord {
         let mut record = crate::retrieval_lab::records::fixture_record();

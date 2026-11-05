@@ -1,0 +1,131 @@
+{
+  "schema_version": "1",
+  "dataset_version": "expanded-10-20261105-v1",
+  "as_of": "2026-11-05",
+  "corpus_sha256": "757595a36d23b2ef73baaccbff37941cf0e956fe7ebcaf55efbe110960e8e00f",
+  "sources": [
+    {
+      "id": "ACT-TUIN-001",
+      "date": "2026-10-20",
+      "sha256": "bca80ca505327a9d8882bc24da8643722c909b4a4a53d5b2dd7ab1affa9d6434"
+    },
+    {
+      "id": "ACT-FIETS-002",
+      "date": "2026-10-18",
+      "sha256": "325779cb17203fe2a8966e405c7e6671837a08a8cd74b12e0401f0492d233024"
+    },
+    {
+      "id": "ACT-TAAL-003",
+      "date": "2026-10-19",
+      "sha256": "18b7b85dec63666b1744c1ba0f1ad549fa6304c68c8ad184a13c2be7347910ef"
+    },
+    {
+      "id": "ACT-KOKEN-004",
+      "date": "2026-10-17",
+      "sha256": "3aacb079e7201f131bfc6e1134e113c4d0003bb4eed8167958e60c6b639fe053"
+    },
+    {
+      "id": "ACT-WANDEL-005",
+      "date": "2026-10-20",
+      "sha256": "f65335bb91b8fc17b68836916619dbaa459837c29c3396e47d658069376bd691"
+    },
+    {
+      "id": "ACT-MAAK-006",
+      "date": "2026-11-05",
+      "sha256": "002c356af337ded8eba62d259cb6665883d6e9c746116ed6a72287ee0f190a59"
+    },
+    {
+      "id": "ACT-PARK-007",
+      "date": "2026-11-05",
+      "sha256": "6c49659f9565ea9dae1dcd3e69f4ec2c0b83e5b6c548e40d461aef679c07bc7e"
+    },
+    {
+      "id": "ACT-BIEB-008",
+      "date": "2026-11-05",
+      "sha256": "4eeaf24cb354eb656aba62f3f742d9f8311bf27292b841dc6004cf6f671da1bc"
+    },
+    {
+      "id": "ACT-MUZIEK-009",
+      "date": "2026-11-05",
+      "sha256": "31579b0f991527fd449e5b42e5b289efb310b50862f34396d826fb202c68bc58"
+    },
+    {
+      "id": "ACT-DIGI-010",
+      "date": "2026-11-05",
+      "sha256": "68164374faa434214843ec59ed7cde6fd01c199c2066f730116b6786829de142"
+    }
+  ],
+  "selection_note": "Agent-authored source expectations for ten fictional documents, with ten previously selected known questions; all are development/presentation cases, not a new question-level holdout. New ten-document retrieval/model outcomes were not inspected or generated during authoring. Inherited discussion disclosed some older five-document outcomes (including T02/P06); existing schemas and reference fixtures were read. Five added documents were authored by another agent. Independent reference review and immutable freeze must precede first ten-document measurement. Two scope/date edits are documented in reference-details.json; original datasets remain unchanged.",
+  "cases": [
+    {
+      "id": "P01",
+      "family": "garden-time-location",
+      "split": "development",
+      "kind": "multiple_facts",
+      "question": "Waar en wanneer kan ik tuinieren?"
+    },
+    {
+      "id": "T02",
+      "family": "indoor-day-intersection",
+      "split": "development",
+      "kind": "combined_conditions",
+      "question": "Welke activiteit kan ik op dinsdag binnen doen, hoe laat is die en waar moet ik zijn?"
+    },
+    {
+      "id": "P07",
+      "family": "all-tuesday-activities",
+      "split": "development",
+      "kind": "all_matches",
+      "question": "Welke activiteiten zijn er allemaal op dinsdag en hoe laat zijn ze?"
+    },
+    {
+      "id": "P06",
+      "family": "nature-thursday-friday",
+      "split": "development",
+      "kind": "combined_conditions",
+      "question": "Ik wil buiten in de natuur bezig zijn en kan alleen donderdag of vrijdag. Welke activiteit past?"
+    },
+    {
+      "id": "P09",
+      "family": "language-beginner-schedule",
+      "split": "development",
+      "kind": "combined_conditions",
+      "question": "Ik spreek nog weinig Nederlands. Kan ik in het taalcafé oefenen, is er hulp en wanneer is het?"
+    },
+    {
+      "id": "T01",
+      "family": "materials-across-activities",
+      "split": "development",
+      "kind": "multiple_facts",
+      "question": "Moet ik eigen gereedschap of ingrediënten meenemen naar tuinieren, fietsen opknappen en samen koken? En welke kleding wordt bij tuinieren gevraagd?"
+    },
+    {
+      "id": "IND26-05",
+      "family": "english-bicycle-guidance",
+      "split": "development",
+      "kind": "multiple_facts",
+      "question": "For the bicycle workshop, do I need repair experience or fluent Dutch? Tell me whether someone helps during the session, whether I must bring tools, and what clothes the source asks me to wear."
+    },
+    {
+      "id": "IND26-03",
+      "family": "closed-corpus-sunday",
+      "split": "development",
+      "kind": "no_matching_activity",
+      "question": "Welke van deze tien activiteiten kan ik op zondag volgen? Ik zoek een activiteit die volgens het rooster echt op zondag plaatsvindt."
+    },
+    {
+      "id": "IND26-07",
+      "family": "cooking-allergen-unknown",
+      "split": "development",
+      "kind": "missing_information",
+      "question": "Bij Samen koken wil ik alleen meedoen als vaststaat dat ik sesam kan vermijden. Bevestigt de bron dat? Moet ik daarnaast zelf een schort en keukengerei meenemen?"
+    },
+    {
+      "id": "IND26-09",
+      "family": "dated-capacity-comparison",
+      "split": "development",
+      "kind": "stale_information",
+      "question": "Zet voor Tuinieren en Fietsen opknappen naast elkaar hoeveel plekken voor het laatst zijn genoemd en op welke datum dat was. Mag ik die aantallen gebruiken als bevestiging dat er op de referentiedatum 5 november 2026 nog plek is?"
+    }
+  ]
+}

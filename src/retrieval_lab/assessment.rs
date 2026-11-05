@@ -246,7 +246,10 @@ fn deterministic(
     use crate::retrieval::estimate_section_tokens;
     use std::collections::BTreeSet;
     let catalog = &context.dataset.catalog;
-    let corpus = crate::source::parse_sources(crate::DOCUMENTS)?
+    let corpus = context
+        .dataset
+        .corpus()
+        .sources()?
         .into_iter()
         .flat_map(|source| source.sections)
         .collect::<Vec<_>>();
