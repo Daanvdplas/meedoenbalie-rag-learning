@@ -12,6 +12,8 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, BTreeSet},
+    fs::{File, OpenOptions},
+    io::{Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
 };
 
@@ -118,14 +120,306 @@ pub async fn run(options: AgentRunOptions) -> Result<AgentRunSummary, String> {
 }
 
 async fn run_with_executor<F, Fut>(
-    _options: AgentRunOptions,
-    _execute: F,
+    mut options: AgentRunOptions,
+    mut execute: F,
 ) -> Result<AgentRunSummary, String>
 where
     F: FnMut(super::live::LiveOptions, String, Option<serde_json::Value>) -> Fut,
     Fut: std::future::Future<Output = Result<LiveRecord, String>>,
 {
-    Err("Agentic batch execution is not implemented yet".into())
+    options.output = absolute(&options.output)?;
+    options.ledger = absolute(&options.ledger)?;
+    options.model_cache = absolute(&options.model_cache)?;
+    let cases = options
+        .plan
+        .runs
+        .iter()
+        .map(|run| run.case_id.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let mut methods = Vec::new();
+    for run in &options.plan.runs {
+        if !methods.contains(&run.config.retrieval.method) {
+            methods.push(run.config.retrieval.method);
+        }
+    }
+    let expected = plan(&cases, &methods, &options.plan.requested_model)?;
+    if serde_json::to_value(&expected).map_err(|e| e.to_string())?
+        != serde_json::to_value(&options.plan).map_err(|e| e.to_string())?
+    {
+        return Err("Agentic execution plan changed after input validation".into());
+    }
+    let plan_path = options.output.with_extension("plan.json");
+    let sessions_path = options.output.with_extension("sessions");
+    let binding_path = options.ledger.with_extension("agent-protocol.json");
+    if options.output == options.ledger
+        || options.output == binding_path
+        || plan_path == options.ledger
+        || [&options.output, &plan_path, &sessions_path]
+            .into_iter()
+            .any(|path| path.exists())
+        || options
+            .output
+            .parent()
+            .is_none_or(|parent| !parent.is_dir())
+        || options
+            .ledger
+            .parent()
+            .is_none_or(|parent| !parent.is_dir())
+    {
+        return Err("Choose new agentic output/plan/session paths in existing directories, separate from the ledger".into());
+    }
+    let budget = super::live_budget::LiveBudget::open(
+        &options.ledger,
+        options.max_generations,
+        options.max_seconds,
+    )?;
+    budget.remaining()?;
+    if budget.used() + options.plan.planned_sessions > options.max_generations {
+        return Err("The shared generation budget cannot cover this selected batch".into());
+    }
+    let batch_id = format!("agentic-{}", budget.id());
+    drop(budget);
+    let mut protocol = ProtocolGuard::open(&binding_path, &options.plan)?;
+    let mut directory = std::fs::DirBuilder::new();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::DirBuilderExt;
+        directory.mode(0o700);
+    }
+    directory
+        .create(&sessions_path)
+        .map_err(|_| "Cannot create new private agentic session directory")?;
+    let mut plan_file =
+        new_private_file(&plan_path).map_err(|_| "Cannot create new agentic plan")?;
+    write_json_line(&mut plan_file, &options.plan)?;
+    let mut output =
+        new_private_file(&options.output).map_err(|_| "Cannot create new agentic result")?;
+    let mut completed = 0;
+    let mut failed = 0;
+    let mut saved = 0;
+    for (index, planned) in options.plan.runs.iter().enumerate() {
+        let live_path = sessions_path.join(format!("{:02}-{}.jsonl", index + 1, planned.run_key));
+        let transport = super::mcp_trace::TransportConfig {
+            payload_mode: super::mcp_trace::PayloadMode::Compact,
+            session_id: format!(
+                "agent-mcp-{}-{}-{index}",
+                crate::experiment::budget::now_ms()?,
+                std::process::id()
+            ),
+            trace_path: live_path.with_extension("mcp-trace.jsonl"),
+        };
+        let live_options = super::live::LiveOptions {
+            question: planned.question.clone(),
+            session: super::lab_mcp::SessionConfig {
+                schema_version: 2,
+                config: planned.config.clone(),
+                filters: Default::default(),
+                model_cache: options.model_cache.clone(),
+                sqlite_dir: options.ledger.with_extension("retrieval-cache"),
+                transport: Some(transport),
+            },
+            output: live_path.clone(),
+            ledger: options.ledger.clone(),
+            max_generations: options.max_generations,
+            max_seconds: options.max_seconds,
+        };
+        let live = execute(
+            live_options,
+            options.plan.requested_model.clone(),
+            protocol.state.runtime_configuration.clone(),
+        )
+        .await?;
+        let raw = read_bounded(&live_path)?;
+        let record = AgentRunRecord {
+            schema_version: 1,
+            execution_kind: EXECUTION_KIND.into(),
+            batch_id: batch_id.clone(),
+            dataset_id: planned.dataset_id.clone(),
+            dataset: planned.dataset.clone(),
+            query_inputs_sha256: planned.query_inputs_sha256.clone(),
+            case_id: planned.case_id.clone(),
+            question: planned.question.clone(),
+            selection_sha256: options.plan.selection_sha256.clone(),
+            protocol_id: options.plan.protocol_id.clone(),
+            requested_model: options.plan.requested_model.clone(),
+            live_output_path: live_path,
+            live_output_sha256: crate::manifest::hash(&raw),
+            live,
+        };
+        validate_record_identity(&record)?;
+        if record.live.budget_id != batch_id.strip_prefix("agentic-").unwrap() {
+            return Err("Live execution used a different generation budget".into());
+        }
+        write_json_line(&mut output, &record)?;
+        saved += 1;
+        if record.live.status == "completed" {
+            protocol.observe(&record.live)?;
+            completed += 1;
+        } else {
+            failed += 1;
+            break;
+        }
+    }
+    Ok(AgentRunSummary {
+        schema_version: 1,
+        batch_id,
+        protocol_id: options.plan.protocol_id,
+        planned_sessions: options.plan.planned_sessions,
+        saved_sessions: saved,
+        completed,
+        failed,
+        stopped_after_failure: failed > 0,
+        ai_judge_calls: 0,
+        output_sha256: crate::manifest::hash(&read_bounded(&options.output)?),
+    })
+}
+
+fn absolute(path: &Path) -> Result<PathBuf, String> {
+    if path.is_absolute() {
+        Ok(path.into())
+    } else {
+        std::env::current_dir()
+            .map(|cwd| cwd.join(path))
+            .map_err(|_| "Cannot resolve agentic artifact location".into())
+    }
+}
+
+fn new_private_file(path: &Path) -> std::io::Result<File> {
+    let mut options = OpenOptions::new();
+    options.read(true).write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    options.open(path)
+}
+
+fn write_json_line(file: &mut File, value: &impl Serialize) -> Result<(), String> {
+    let mut bytes = serde_json::to_vec(value).map_err(|_| "Cannot encode agentic result")?;
+    bytes.push(b'\n');
+    file.write_all(&bytes)
+        .and_then(|_| file.sync_all())
+        .map_err(|_| "Cannot persist agentic result".into())
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ProtocolBinding {
+    schema_version: u32,
+    protocol_id: String,
+    selection_sha256: String,
+    requested_model: String,
+    runtime_configuration: Option<serde_json::Value>,
+}
+
+struct ProtocolGuard {
+    file: File,
+    state: ProtocolBinding,
+}
+impl ProtocolGuard {
+    fn open(path: &Path, plan: &AgentPlan) -> Result<Self, String> {
+        let (mut file, new) = match new_private_file(path) {
+            Ok(file) => (file, true),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => (
+                OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .open(path)
+                    .map_err(|_| "Cannot open agentic protocol binding")?,
+                false,
+            ),
+            Err(_) => return Err("Cannot create agentic protocol binding".into()),
+        };
+        #[cfg(unix)]
+        {
+            use std::os::fd::AsRawFd;
+            if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
+                return Err("Another agentic batch owns this protocol ledger".into());
+            }
+        }
+        #[cfg(not(unix))]
+        return Err("Agentic comparison locking requires macOS/Linux".into());
+        if file
+            .metadata()
+            .map_err(|_| "Cannot inspect agentic protocol binding")?
+            .len()
+            > 32_768
+        {
+            return Err("Oversized agentic protocol binding".into());
+        }
+        let state = if new {
+            ProtocolBinding {
+                schema_version: 1,
+                protocol_id: plan.protocol_id.clone(),
+                selection_sha256: plan.selection_sha256.clone(),
+                requested_model: plan.requested_model.clone(),
+                runtime_configuration: None,
+            }
+        } else {
+            let mut bytes = Vec::new();
+            file.read_to_end(&mut bytes)
+                .map_err(|_| "Cannot read agentic protocol binding")?;
+            serde_json::from_slice(&bytes).map_err(|_| "Invalid agentic protocol binding")?
+        };
+        if state.schema_version != 1
+            || state.protocol_id != plan.protocol_id
+            || state.selection_sha256 != plan.selection_sha256
+            || state.requested_model != plan.requested_model
+        {
+            return Err(
+                "The shared ledger is bound to a different agentic comparison/model".into(),
+            );
+        }
+        let mut guard = Self { file, state };
+        if new {
+            guard.persist()?;
+        }
+        Ok(guard)
+    }
+    fn observe(&mut self, live: &LiveRecord) -> Result<(), String> {
+        let configuration = live
+            .runtime_configuration
+            .as_ref()
+            .ok_or("Completed agentic run lacks runtime identity")?;
+        if configuration["model"] != self.state.requested_model
+            || self
+                .state
+                .runtime_configuration
+                .as_ref()
+                .is_some_and(|expected| expected != configuration)
+        {
+            return Err("Agentic runtime identity changed during the comparison".into());
+        }
+        if self.state.runtime_configuration.is_none() {
+            self.state.runtime_configuration = Some(configuration.clone());
+            self.persist()?;
+        }
+        Ok(())
+    }
+    fn persist(&mut self) -> Result<(), String> {
+        let bytes = serde_json::to_vec(&self.state)
+            .map_err(|_| "Cannot encode agentic protocol binding")?;
+        self.file
+            .seek(SeekFrom::Start(0))
+            .and_then(|_| self.file.set_len(0))
+            .and_then(|_| self.file.write_all(&bytes))
+            .and_then(|_| self.file.sync_all())
+            .map_err(|_| "Cannot persist agentic protocol binding".into())
+    }
+}
+impl Drop for ProtocolGuard {
+    fn drop(&mut self) {
+        #[cfg(unix)]
+        {
+            use std::os::fd::AsRawFd;
+            unsafe {
+                libc::flock(self.file.as_raw_fd(), libc::LOCK_UN);
+            }
+        }
+    }
 }
 
 pub fn fixed_config(method: SearchMethod) -> RunConfig {
@@ -283,9 +577,76 @@ pub fn plan_cli(args: &[String]) -> Result<serde_json::Value, String> {
         .map_err(|e| e.to_string())
 }
 
+/// Explicit live opt-in is required even when every question is already bundled.
+pub async fn cli(args: &[String]) -> Result<(), String> {
+    if args.first().map(String::as_str) != Some("agent-run")
+        || args.iter().filter(|arg| arg.as_str() == "--live").count() != 1
+    {
+        return Err("Agentic comparison generations require explicit lab agent-run --live".into());
+    }
+    let values = args[1..]
+        .iter()
+        .filter(|arg| arg.as_str() != "--live")
+        .cloned()
+        .collect::<Vec<_>>();
+    let flags = flags(
+        &values,
+        &[
+            "--cases",
+            "--methods",
+            "--output",
+            "--ledger",
+            "--model-cache",
+            "--max-generations",
+            "--max-seconds",
+        ],
+    )?;
+    let get = |key: &str| {
+        flags
+            .get(key)
+            .map(String::as_str)
+            .ok_or_else(|| format!("Missing {key}"))
+    };
+    let summary = run(AgentRunOptions {
+        plan: selected_plan(&flags)?,
+        output: get("--output")?.into(),
+        ledger: get("--ledger")?.into(),
+        model_cache: flags
+            .get("--model-cache")
+            .map(Into::into)
+            .unwrap_or_else(|| ".model-cache".into()),
+        max_generations: get("--max-generations")?
+            .parse()
+            .map_err(|_| "Invalid --max-generations")?,
+        max_seconds: get("--max-seconds")?
+            .parse()
+            .map_err(|_| "Invalid --max-seconds")?,
+    })
+    .await?;
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&summary).map_err(|e| e.to_string())?
+    );
+    if summary.failed > 0 {
+        return Err("Agentic batch stopped after a failed session; inspect the saved result and shared ledger before any continuation".into());
+    }
+    Ok(())
+}
+
+pub fn write_jsonl_new<T: Serialize>(path: &Path, values: &[T]) -> Result<(), String> {
+    if values.is_empty() {
+        return Err("Cannot create empty agentic assessment output".into());
+    }
+    let mut file = new_private_file(path).map_err(|_| "Choose a new agentic output file")?;
+    for value in values {
+        write_json_line(&mut file, value)?;
+    }
+    Ok(())
+}
+
 pub fn validate_record_identity(record: &AgentRunRecord) -> Result<(), String> {
     let selected = plan(
-        &[record.case_id.clone()],
+        std::slice::from_ref(&record.case_id),
         &[record.live.config.retrieval.method],
         &record.requested_model,
     )?;

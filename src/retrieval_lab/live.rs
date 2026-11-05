@@ -55,11 +55,7 @@ pub struct LiveRecord {
     pub trace_integrity_status: Option<String>,
 }
 
-/// Execute one bounded, fixed-treatment session. No reference answers are loaded here.
-pub async fn ask(options: LiveOptions) -> Result<LiveRecord, String> {
-    ask_with_runtime(options, CodexRunner::new_selected).await
-}
-
+/// Execute a bounded session only after its actual runtime matches the comparison.
 pub async fn ask_pinned(
     options: LiveOptions,
     model: &str,

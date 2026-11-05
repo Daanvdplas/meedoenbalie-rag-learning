@@ -189,6 +189,28 @@ fn report_assessments(
 pub fn cli(args: &[String]) -> Result<serde_json::Value, String> {
     match args.first().map(String::as_str) {
         Some("agent-plan") => super::agent_run::plan_cli(&args[1..]),
+        Some("agent-assess"|"agent-report") => {
+            let values=flags(&args[1..],&["--input","--output","--assessments"])?;
+            let mut stored=Vec::new();let mut ids=std::collections::BTreeSet::new();
+            for path in required(&values,"--input")?.split(',') {
+                for record in super::agent_run::read_records(Path::new(path))? {
+                    if !ids.insert(record.record.live.run_id.clone()){return Err("Duplicate live run across agentic inputs".into());}
+                    stored.push(record);
+                }
+            }
+            let assessed=match values.get("--assessments") {
+                Some(path)=>super::agent_assessment::read_assessments(&stored,Path::new(path))?,
+                None=>super::agent_assessment::assess(&stored)?,
+            };
+            let output=Path::new(required(&values,"--output")?);
+            if args[0]=="agent-assess" {
+                super::agent_run::write_jsonl_new(output,&assessed)?;
+            } else {
+                let report=super::agent_assessment::report(&stored,&assessed)?;
+                super::agent_run::write_jsonl_new(output,&[report])?;
+            }
+            Ok(serde_json::json!({"schema_version":1,"agentic_records":stored.len(),"assessments":assessed.len(),"output_sha256":crate::manifest::hash(&std::fs::read(output).map_err(|_|"Cannot read saved agentic report")?),"retrieval_calls":0,"codex_calls":0,"ai_judge_calls":0}))
+        }
         Some("plan" | "catalog") => {
             let flags = flags(&args[1..], COMMON)?;
             serde_json::to_value(selected_plan(&flags)?).map_err(|error| error.to_string())
