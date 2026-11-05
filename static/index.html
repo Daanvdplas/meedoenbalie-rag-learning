@@ -42,8 +42,8 @@
       #source-sections { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; }
       #source-heading { margin-top:0; }
       .source-document { flex:1 1 140px; min-width:0; background:white; border:1px solid var(--line); border-radius:5px; padding:4px 10px; margin:0; }
-      .source-document summary { min-height:44px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
-      .source-document summary::after { content:"+"; }
+      .source-document summary { min-height:44px; display:flex; align-items:center; justify-content:space-between; gap:8px; overflow-wrap:anywhere; }
+      .source-document summary::after { content:"+"; flex-shrink:0; }
       .source-document[open]>summary::after { content:"−"; }
       .source-document[open] { flex-basis:100%; order:1; }
       .source-document>small { display:none; }
