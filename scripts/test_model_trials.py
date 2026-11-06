@@ -16,7 +16,7 @@ class ModelTrialTests(unittest.TestCase):
         self.assertEqual(
             [(r["model"], r["case_id"], r["trial"]) for r in rows[:4]],
             [("gpt-6.1-sol", "RAG26-01", 1), ("gpt-6-luna", "RAG26-01", 1),
-             ("gpt-6-luna", "RAG26-05", 1), ("gpt-6.1-sol", "RAG26-05", 1)],
+             ("gpt-6-luna", "RAG26-02", 1), ("gpt-6.1-sol", "RAG26-02", 1)],
         )
 
     def test_reservation_cannot_repeat_an_uncertain_attempt(self):
@@ -50,6 +50,19 @@ class ModelTrialTests(unittest.TestCase):
         self.assertTrue(model_trials.cohort_complete(state))
         state["attempts"][-1]["status"] = "reserved"
         self.assertFalse(model_trials.cohort_complete(state))
+
+    def test_exact_tool_action_can_be_known_without_claiming_a_complete_answer(self):
+        record = {"live": {"status": "failed", "run": None, "error": "model_contract_violation", "safe_diagnostic": {
+            "category": "model_contract_violation", "stage": "agent_event_validation", "exit_code": 0,
+            "json_event_lines_valid": True, "event_types": ["item.completed"], "item_types": ["mcp_tool_call"],
+            "provider_error_code": None, "validation_reason": "outside_contract_tool", "tool_event_category": "other_mcp_tool"}}}
+        self.assertTrue(model_trials.verified_model_failure(record, 1))
+        self.assertFalse(model_trials.verified_model_failure(record, -9))
+        record["live"]["safe_diagnostic"]["validation_reason"] = "missing_required_search"
+        record["live"]["safe_diagnostic"]["tool_event_category"] = "none"
+        self.assertFalse(model_trials.verified_model_failure(record, 1))
+        record["live"]["error"] = "unexpected_tool"
+        self.assertFalse(model_trials.verified_model_failure(record, 1))
 
     def test_manifest_output_creation_never_overwrites_existing_evidence(self):
         with tempfile.TemporaryDirectory() as directory:

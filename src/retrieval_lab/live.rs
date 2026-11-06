@@ -44,6 +44,8 @@ pub struct LiveRecord {
     pub runtime_configuration: Option<Value>,
     pub run: Option<CodexRun>,
     pub error: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub safe_diagnostic: Option<crate::experiment::types::RuntimeDiagnostic>,
     pub elapsed_ms: u64,
     #[serde(default)]
     pub payload_mode: PayloadMode,
@@ -330,6 +332,7 @@ where
         runtime_configuration: None,
         run: None,
         error: None,
+        safe_diagnostic: None,
         elapsed_ms: 0,
         payload_mode: options.session.transport.as_ref().map(|t| t.payload_mode).unwrap_or_default(),
         transport_treatment_id: options.session.transport.as_ref().map(|t| {
@@ -356,6 +359,7 @@ where
         }
         let launch = crate::codex::SelectedMcpLaunch {
             corpus: options.session.corpus,
+            fixed_top_k: Some(options.session.config.retrieval.top_k),
             arguments: vec![
                 "lab".into(),
                 "mcp".into(),
@@ -394,6 +398,7 @@ where
         }
         Err(error) => {
             record.status = "failed".into();
+            record.safe_diagnostic = crate::codex::public_diagnostic(&error);
             record.error = Some(crate::codex::public_error_code(&error).into());
         }
     }
@@ -486,6 +491,36 @@ mod tests {
             unknowns: vec![],
         };
         [serde_json::json!({"type":"item.completed","item":{"type":"mcp_tool_call","server":"coa","tool":"search_document","arguments":{"query":"dinsdag binnen","top_k":3},"status":"completed","result":{"content":[{"type":"text","text":response.to_string()}]}}}),serde_json::json!({"type":"item.completed","item":{"type":"agent_message","text":serde_json::to_string(&answer).unwrap()}}),serde_json::json!({"type":"turn.completed"})].iter().map(Value::to_string).collect::<Vec<_>>().join("\n")
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn native_failure_persists_only_bounded_safe_event_evidence() {
+        let base = temporary();
+        std::fs::create_dir(&base).unwrap();
+        let options = options(&base);
+        let events = [serde_json::json!({"type":"item.completed","item":{"type":"agent_message","text":"PRIVATE-FINAL-CONTENT"}}),serde_json::json!({"type":"turn.completed"})].iter().map(Value::to_string).collect::<Vec<_>>().join("\n");
+        let script =
+            format!("#!/bin/sh\ncat >/dev/null\ncat <<'COA_EVENTS'\n{events}\nCOA_EVENTS\n");
+        let runner = crate::codex::fixture_runner(&base.join("runtime"), &script);
+        let record = ask_with_runtime(options.clone(), |_| async { Ok(runner) })
+            .await
+            .unwrap();
+        assert_eq!(record.status, "failed");
+        assert_eq!(record.error.as_deref(), Some("model_contract_violation"));
+        assert!(record.run.is_none());
+        let diagnostic = record.safe_diagnostic.unwrap();
+        assert_eq!(
+            diagnostic.validation_reason.as_deref(),
+            Some("missing_required_search")
+        );
+        assert_eq!(diagnostic.exit_code, Some(0));
+        assert!(
+            !std::fs::read_to_string(options.output)
+                .unwrap()
+                .contains("PRIVATE")
+        );
+        std::fs::remove_dir_all(base).unwrap();
     }
 
     #[cfg(unix)]

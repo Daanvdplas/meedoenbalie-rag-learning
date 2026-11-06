@@ -723,6 +723,12 @@ pub fn validate_record_identity(record: &AgentRunRecord) -> Result<(), String> {
         .find(|run| run.dataset_id == record.dataset_id && run.case_id == record.case_id)
         .ok_or("Agentic run has a different selected dataset or case")?;
     let live = &record.live;
+    if let Some(diagnostic) = &live.safe_diagnostic {
+        diagnostic.validate()?;
+        if live.status != "failed" || live.error.as_deref() != Some(diagnostic.category.as_str()) {
+            return Err("Stored failure diagnostic disagrees with native status".into());
+        }
+    }
     if record.schema_version != 1
         || record.execution_kind != EXECUTION_KIND
         || record.batch_id.is_empty()
@@ -960,7 +966,7 @@ mod tests {
             schema_version:2,execution_kind:"codex_selected_mcp_v2".into(),run_id:"agent-fixture".into(),
             question:selected.question.clone(),config_id:config_id.clone(),config:selected.config.clone(),filters:Default::default(),status:"failed".into(),
             budget_id:"fixture-budget".into(),generation_session_index:1,ai_judge_calls:0,answer_quality_status:"not_assessed".into(),
-            source_guard_passed:None,runtime_configuration:None,run:None,error:Some("runtime".into()),elapsed_ms:0,payload_mode:PayloadMode::Compact,
+            source_guard_passed:None,runtime_configuration:None,run:None,error:Some("runtime".into()),safe_diagnostic:None,elapsed_ms:0,payload_mode:PayloadMode::Compact,
             transport_treatment_id:Some(crate::manifest::hash(&serde_json::to_vec(&serde_json::json!({"schema_version":1,"config_id":config_id,"filters":crate::retrieval::QueryFilters::default(),"payload_mode":"compact"})).unwrap())),
             audit_trace:Some(TraceSummary {session_id:"fixture-trace".into(),path:trace,sha256:crate::manifest::hash(b""),trace_bytes:0,payload_bytes:0,successful_searches:0}),
             trace_integrity_status:Some("partial_not_validated".into()),

@@ -200,6 +200,13 @@ pub struct RuntimeDiagnostic {
     pub event_types: Vec<String>,
     pub item_types: Vec<String>,
     pub provider_error_code: Option<String>,
+    /// Fixed reason codes only; never model arguments, names or event text.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub validation_reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_event_category: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub json_event_lines_valid: Option<bool>,
 }
 impl RuntimeDiagnostic {
     pub fn validate(&self) -> Result<(), String> {
@@ -217,6 +224,7 @@ impl RuntimeDiagnostic {
                 | "unexpected_tool"
                 | "invalid_output"
                 | "model_output_invalid"
+                | "model_contract_violation"
                 | "timeout"
         ) || self
             .exit_code
@@ -266,8 +274,88 @@ impl RuntimeDiagnostic {
                         | "websocket_error"
                 )
             })
+            || self.validation_reason.as_deref().is_some_and(|value| {
+                !matches!(
+                    value,
+                    "missing_required_search"
+                        | "failed_search"
+                        | "invalid_search_arguments"
+                        | "outside_contract_tool"
+                        | "search_limit_exceeded"
+                        | "invalid_model_answer"
+                        | "invalid_event_stream"
+                        | "source_or_parser_failure"
+                )
+            })
+            || self.tool_event_category.as_deref().is_some_and(|value| {
+                !matches!(
+                    value,
+                    "none"
+                        | "search_document"
+                        | "failed_search_document"
+                        | "other_mcp_tool"
+                        | "command_execution"
+                        | "file_change"
+                        | "web_search"
+                        | "unclassified"
+                )
+            })
         {
             return Err("Invalid public runtime diagnostic".into());
+        }
+        if self.category == "model_contract_violation"
+            && (self.stage != "agent_event_validation"
+                || self.exit_code != Some(0)
+                || self.json_event_lines_valid != Some(true)
+                || self.provider_error_code.is_some()
+                || self
+                    .event_types
+                    .iter()
+                    .any(|kind| matches!(kind.as_str(), "error" | "turn.failed"))
+                || self.item_types.iter().any(|kind| kind == "error")
+                || !matches!(
+                    self.validation_reason.as_deref(),
+                    Some(
+                        "missing_required_search"
+                            | "invalid_search_arguments"
+                            | "outside_contract_tool"
+                            | "search_limit_exceeded"
+                    )
+                ))
+        {
+            return Err("Unproven model contract violation".into());
+        }
+        if self.category == "model_contract_violation" {
+            let completed = self.event_types.iter().any(|kind| kind == "turn.completed");
+            let agent_message = self.item_types.iter().any(|kind| kind == "agent_message");
+            let mcp = self.item_types.iter().any(|kind| kind == "mcp_tool_call");
+            let consistent = match (
+                self.validation_reason.as_deref(),
+                self.tool_event_category.as_deref(),
+            ) {
+                (Some("missing_required_search"), Some("none")) => {
+                    completed
+                        && agent_message
+                        && !mcp
+                        && self
+                            .item_types
+                            .iter()
+                            .all(|kind| matches!(kind.as_str(), "reasoning" | "agent_message"))
+                }
+                (
+                    Some("invalid_search_arguments" | "search_limit_exceeded"),
+                    Some("search_document"),
+                ) => mcp,
+                (Some("outside_contract_tool"), Some("other_mcp_tool")) => mcp,
+                (
+                    Some("outside_contract_tool"),
+                    Some(kind @ ("command_execution" | "file_change" | "web_search")),
+                ) => self.item_types.iter().any(|item| item == kind),
+                _ => false,
+            };
+            if !consistent {
+                return Err("Inconsistent model action evidence".into());
+            }
         }
         Ok(())
     }

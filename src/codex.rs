@@ -71,6 +71,8 @@ pub(crate) struct SelectedMcpLaunch {
     pub arguments: Vec<String>,
     pub instructions: String,
     pub corpus: crate::corpus::CorpusId,
+    /// Only selected lab sessions constrain the tool to one exact top-k.
+    pub fixed_top_k: Option<usize>,
 }
 
 fn usage_from_events(events: &str) -> Option<crate::experiment::types::TokenUsage> {
@@ -136,6 +138,7 @@ pub fn public_error_code(error: &str) -> &'static str {
             "unexpected_tool" => "unexpected_tool",
             "invalid_output" => "invalid_output",
             "model_output_invalid" => "model_output_invalid",
+            "model_contract_violation" => "model_contract_violation",
             "timeout" => "timeout",
             _ => "runtime_failed",
         };
@@ -161,6 +164,9 @@ pub fn public_diagnostic(error: &str) -> Option<crate::experiment::types::Runtim
             event_types: vec![],
             item_types: vec![],
             provider_error_code: None,
+            validation_reason: None,
+            tool_event_category: None,
+            json_event_lines_valid: None,
         });
     }
     let diagnostic = serde_json::from_str::<crate::experiment::types::RuntimeDiagnostic>(
@@ -171,6 +177,16 @@ pub fn public_diagnostic(error: &str) -> Option<crate::experiment::types::Runtim
     Some(diagnostic)
 }
 fn diagnostic_error(stage: &str, error: &str, events: &str, exit_code: Option<i32>) -> String {
+    diagnostic_error_with_top_k(stage, error, events, exit_code, None)
+}
+
+fn diagnostic_error_with_top_k(
+    stage: &str,
+    error: &str,
+    events: &str,
+    exit_code: Option<i32>,
+    expected_top_k: Option<usize>,
+) -> String {
     use std::collections::BTreeSet;
     let mut event_types = BTreeSet::new();
     let mut item_types = BTreeSet::new();
@@ -283,8 +299,27 @@ fn diagnostic_error(stage: &str, error: &str, events: &str, exit_code: Option<i3
                 | "output: Invalid citation section ID"
                 | "output: Citation quote is absent from retrieved evidence"
         );
+    let parsed_events = events
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .map(serde_json::from_str::<Value>)
+        .collect::<Result<Vec<_>, _>>();
+    let json_valid = parsed_events.is_ok();
+    let event_values = parsed_events.unwrap_or_default();
+    let (reason, tool_category, proven_action) =
+        validation_evidence(error, &event_values, expected_top_k);
+    let model_action_failure = stage == "agent_event_validation"
+        && exit_code == Some(0)
+        && json_valid
+        && provider_error_code.is_none()
+        && proven_action
+        && !event_types.contains("turn.failed")
+        && !event_types.contains("error")
+        && !item_types.contains("error");
     let category = if model_answer_failure {
         "model_output_invalid"
+    } else if model_action_failure {
+        "model_contract_violation"
     } else if error.starts_with("tool:") {
         "unexpected_tool"
     } else if error.starts_with("output:") {
@@ -306,11 +341,103 @@ fn diagnostic_error(stage: &str, error: &str, events: &str, exit_code: Option<i3
         event_types: event_types.into_iter().collect(),
         item_types: item_types.into_iter().collect(),
         provider_error_code,
+        validation_reason: (stage == "agent_event_validation").then(|| {
+            if model_answer_failure {
+                "invalid_model_answer"
+            } else if !json_valid {
+                "invalid_event_stream"
+            } else {
+                reason
+            }
+            .to_owned()
+        }),
+        tool_event_category: (stage == "agent_event_validation").then(|| tool_category.to_owned()),
+        json_event_lines_valid: (stage == "agent_event_validation").then_some(json_valid),
     };
     format!(
         "runtime-diagnostic:{}",
         serde_json::to_string(&diagnostic).expect("typed diagnostic serialization")
     )
+}
+
+fn validation_evidence(
+    error: &str,
+    events: &[Value],
+    expected_top_k: Option<usize>,
+) -> (&'static str, &'static str, bool) {
+    let items: Vec<_> = events
+        .iter()
+        .filter(|event| event["type"] == "item.completed")
+        .map(|event| &event["item"])
+        .collect();
+    let calls: Vec<_> = items
+        .iter()
+        .filter(|item| item["type"] == "mcp_tool_call")
+        .collect();
+    if error == "tool: Unexpected non-retrieval tool use" {
+        for kind in ["command_execution", "file_change", "web_search"] {
+            if items.iter().any(|item| item["type"] == kind) {
+                return ("outside_contract_tool", kind, true);
+            }
+        }
+    }
+    if error == "tool: Unexpected MCP tool"
+        && calls.iter().any(|item| {
+            item["server"].as_str().is_some()
+                && item["tool"].as_str().is_some()
+                && (item["server"] != "coa" || item["tool"] != "search_document")
+        })
+    {
+        return ("outside_contract_tool", "other_mcp_tool", true);
+    }
+    for item in &calls {
+        if item["server"] != "coa" || item["tool"] != "search_document" {
+            continue;
+        }
+        let Some(args) = item["arguments"].as_object() else {
+            continue;
+        };
+        let invalid_query = args
+            .get("query")
+            .and_then(Value::as_str)
+            .is_none_or(|query| crate::validate_query(query).is_err());
+        let top_k = args.get("top_k").and_then(Value::as_u64);
+        let invalid = args.len() != 2
+            || invalid_query
+            || top_k.is_none_or(|k| {
+                !(1..=6).contains(&k) || expected_top_k.is_some_and(|expected| k != expected as u64)
+            });
+        if invalid
+            && (matches!(
+                error,
+                "tool: Missing query" | "tool: Invalid top_k" | "tool: No successful MCP retrieval"
+            ) || args
+                .get("query")
+                .and_then(Value::as_str)
+                .is_some_and(|query| crate::validate_query(query).err().as_deref() == Some(error)))
+        {
+            return ("invalid_search_arguments", "search_document", true);
+        }
+    }
+    if error == "tool: Search call limit exceeded" && calls.len() > crate::mcp::MAX_SEARCH_CALLS {
+        return ("search_limit_exceeded", "search_document", true);
+    }
+    if error == "tool: No successful MCP retrieval" {
+        let no_tools = calls.is_empty()
+            && items
+                .iter()
+                .all(|item| matches!(item["type"].as_str(), Some("reasoning" | "agent_message")));
+        if no_tools
+            && events.iter().any(|event| event["type"] == "turn.completed")
+            && items.iter().any(|item| item["type"] == "agent_message")
+        {
+            return ("missing_required_search", "none", true);
+        }
+        if !calls.is_empty() {
+            return ("failed_search", "failed_search_document", false);
+        }
+    }
+    ("source_or_parser_failure", "unclassified", false)
 }
 
 fn parse_isolated_events(events: &str) -> Result<Value, String> {
@@ -745,6 +872,7 @@ impl CodexRunner {
             arguments: vec!["mcp".into(), "--corpus".into(), corpus.id().into()],
             instructions: "Use only the activity source corpus selected by the tool. Preserve document identity and source dates.".into(),
             corpus,
+            fixed_top_k: None,
         };
         self.run_with_selected_retrieval(query, top_k, &launch, RUN_TIMEOUT)
             .await
@@ -986,7 +1114,13 @@ impl CodexRunner {
         let started = Instant::now();
         let stdout = execute(command, prompt.as_bytes(), timeout).await?;
         let mut parsed = parse_events(&stdout).map_err(|error| {
-            diagnostic_error("agent_event_validation", &error, &stdout, Some(0))
+            diagnostic_error_with_top_k(
+                "agent_event_validation",
+                &error,
+                &stdout,
+                Some(0),
+                launch.and_then(|selected| selected.fixed_top_k),
+            )
         })?;
         parsed["usage"] = serde_json::to_value(usage_from_events(&stdout))
             .map_err(|_| "output: Invalid usage")?;
@@ -1307,6 +1441,121 @@ async fn runtime_fingerprints_cooperative(runtime: &Path, mcp: &Path) -> Result<
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn safe_diagnostic_distinguishes_skipped_search_from_failed_search() {
+        let skipped = [json!({"type":"item.completed","item":{"type":"agent_message","text":"PRIVATE-ANSWER"}}), json!({"type":"turn.completed"})].iter().map(Value::to_string).collect::<Vec<_>>().join("\n");
+        let error = parse_events(&skipped).unwrap_err();
+        let encoded = diagnostic_error("agent_event_validation", &error, &skipped, Some(0));
+        assert_eq!(public_error_code(&encoded), "model_contract_violation");
+        let diagnostic = public_diagnostic(&encoded).unwrap();
+        diagnostic.validate().unwrap();
+        let value = serde_json::to_value(diagnostic).unwrap();
+        assert_eq!(value["validation_reason"], "missing_required_search");
+        assert_eq!(value["tool_event_category"], "none");
+        assert_eq!(value["json_event_lines_valid"], true);
+        assert!(!encoded.contains("PRIVATE"));
+        let unknown = format!(
+            "{}\n{skipped}",
+            json!({"type":"item.completed","item":{"type":"unrecognized_future_tool"}})
+        );
+        let error = parse_events(&unknown).unwrap_err();
+        assert_ne!(
+            public_error_code(&diagnostic_error(
+                "agent_event_validation",
+                &error,
+                &unknown,
+                Some(0)
+            )),
+            "model_contract_violation"
+        );
+        let failed = stream(good_answer(), false);
+        let error = parse_events(&failed).unwrap_err();
+        let encoded = diagnostic_error("agent_event_validation", &error, &failed, Some(0));
+        assert_ne!(public_error_code(&encoded), "model_contract_violation");
+        assert_eq!(
+            serde_json::to_value(public_diagnostic(&encoded).unwrap()).unwrap()["tool_event_category"],
+            "failed_search_document"
+        );
+    }
+    #[test]
+    fn safe_tool_evidence_uses_the_fixed_contract_and_never_raw_arguments() {
+        let mut messages: Vec<Value> = stream(good_answer(), false)
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        messages[0]["item"]["arguments"] = json!({"query":"PRIVATE-QUERY","top_k":6});
+        let events = messages
+            .iter()
+            .map(Value::to_string)
+            .collect::<Vec<_>>()
+            .join("\n");
+        let error = parse_events(&events).unwrap_err();
+        let encoded = diagnostic_error_with_top_k(
+            "agent_event_validation",
+            &error,
+            &events,
+            Some(0),
+            Some(3),
+        );
+        assert_eq!(public_error_code(&encoded), "model_contract_violation");
+        assert!(!encoded.contains("PRIVATE"));
+        assert_eq!(
+            public_diagnostic(&encoded)
+                .unwrap()
+                .validation_reason
+                .as_deref(),
+            Some("invalid_search_arguments")
+        );
+        assert_ne!(
+            public_error_code(&diagnostic_error_with_top_k(
+                "agent_event_validation",
+                &error,
+                &events,
+                Some(0),
+                Some(6)
+            )),
+            "model_contract_violation"
+        );
+        assert_ne!(
+            public_error_code(&diagnostic_error_with_top_k(
+                "agent_event_validation",
+                &error,
+                &events,
+                Some(0),
+                None
+            )),
+            "model_contract_violation"
+        );
+        for suffix in [
+            "{broken".to_owned(),
+            json!({"type":"error","error":{"code":"stream_disconnected"}}).to_string(),
+        ] {
+            let bad = format!("{events}\n{suffix}");
+            assert_ne!(
+                public_error_code(&diagnostic_error_with_top_k(
+                    "agent_event_validation",
+                    &error,
+                    &bad,
+                    Some(0),
+                    Some(3)
+                )),
+                "model_contract_violation"
+            );
+        }
+        let tool_event = json!({"type":"item.completed","item":{"type":"web_search"}}).to_string();
+        let error = parse_events(&tool_event).unwrap_err();
+        let encoded = diagnostic_error("agent_event_validation", &error, &tool_event, Some(0));
+        assert_eq!(public_error_code(&encoded), "model_contract_violation");
+        let mut diagnostic = public_diagnostic(&encoded).unwrap();
+        assert!(
+            !diagnostic
+                .event_types
+                .iter()
+                .any(|kind| kind == "turn.completed")
+        );
+        diagnostic.validation_reason = Some("PRIVATE-REASON".into());
+        assert!(diagnostic.validate().is_err());
+    }
     #[test]
     fn only_completed_valid_event_streams_can_label_an_invalid_model_answer() {
         let mut wrong_quote = good_answer();
