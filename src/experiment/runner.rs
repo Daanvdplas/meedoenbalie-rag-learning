@@ -768,6 +768,9 @@ mod tests {
             event_types: vec!["error".into()],
             item_types: vec![],
             provider_error_code: Some("stream_disconnected".into()),
+            validation_reason: None,
+            tool_event_category: None,
+            json_event_lines_valid: None,
         });
         assert!(validate_record(&item).is_ok());
         item.diagnostic.as_mut().unwrap().provider_error_code = Some("PRIVATE-TOKEN".into());

@@ -16,9 +16,10 @@ import time
 
 DATASET = "strengthened-10-20261106"
 MODELS = ("gpt-6.1-sol", "gpt-6-luna")
-PILOT_CASES = ("RAG26-01", "RAG26-05")
+PILOT_CASES = ("RAG26-01", "RAG26-02")
 MAX_ATTEMPTS = 60
 MAX_SECONDS = 7200
+MODEL_FAILURES = ("model_output_invalid", "model_contract_violation")
 
 
 def load(path):
@@ -64,7 +65,7 @@ def reserve(state, rows, now):
     attempts = state["attempts"]
     if state["stopped"] or len(attempts) >= MAX_ATTEMPTS:
         raise ValueError("Experiment stopped or all60 attempts consumed")
-    if any(a["status"] not in ("completed", "model_output_invalid") for a in attempts):
+    if any(a["status"] not in ("completed", *MODEL_FAILURES) for a in attempts):
         raise ValueError("Uncertain or failed attempt exists; never retry automatically")
     if any(any(a.get(key) != row[key] for key in row) for a, row in zip(attempts, rows)):
         raise ValueError("Attempt history differs from preregistered order")
@@ -82,13 +83,39 @@ def validate_pilot_approval(approval, prereg_hash, attempts):
     if (approval.get("approved") is not True
             or approval.get("preregistration_sha256") != prereg_hash
             or len(attempts) < 4
-            or any(a["status"] not in ("completed", "model_output_invalid") for a in attempts[:4])
+            or any(a["status"] not in ("completed", *MODEL_FAILURES) for a in attempts[:4])
             or approval.get("pilot_attempts_sha256") != json_hash(attempts[:4])):
         raise ValueError("Independent pilot approval is absent or bound to different evidence")
 
 
 def model_env(prereg, model):
     return {**os.environ, "COA_CODEX_MODEL": model, "COA_CODEX_BIN": prereg["codex_binary"]}
+
+
+def verified_model_failure(record, returncode):
+    live = record["live"]
+    diagnostic = live.get("safe_diagnostic") or {}
+    category = live.get("error")
+    events = set(diagnostic.get("event_types", []))
+    items = set(diagnostic.get("item_types", []))
+    if (returncode != 1 or live["status"] != "failed" or live.get("run") is not None
+            or category not in MODEL_FAILURES or diagnostic.get("category") != category
+            or diagnostic.get("stage") != "agent_event_validation" or diagnostic.get("exit_code") != 0
+            or diagnostic.get("json_event_lines_valid") is not True or diagnostic.get("provider_error_code") is not None
+            or {"error", "turn.failed"} & events or "error" in items):
+        return False
+    reason, tool = diagnostic.get("validation_reason"), diagnostic.get("tool_event_category")
+    if category == "model_output_invalid":
+        return reason == "invalid_model_answer" and "turn.completed" in events and "agent_message" in items
+    if reason == "missing_required_search":
+        return (tool == "none" and "turn.completed" in events and "agent_message" in items
+                and items <= {"reasoning", "agent_message"})
+    if reason in ("invalid_search_arguments", "search_limit_exceeded"):
+        return tool == "search_document" and "mcp_tool_call" in items
+    if reason == "outside_contract_tool":
+        return ((tool == "other_mcp_tool" and "mcp_tool_call" in items)
+                or tool in ("command_execution", "file_change", "web_search") and tool in items)
+    return False
 
 
 def command_json(command, env):
@@ -180,7 +207,14 @@ def make_plan(args):
     identities = [r["live"]["run"]["manifest"]["corpus_identity"] for r in baseline_records if r["live"]["config"]["retrieval"]["method"] == "dense" and r["live"].get("run")]
     if not identities or any(identity != identities[0] for identity in identities):
         raise ValueError("Existing same-corpus dense retrieval identity is absent or inconsistent")
-    pins = {str(path): file_hash(path) for path in (binary, codex, host, Path(__file__).resolve(), Path(args.freeze).resolve(strict=True), Path(args.analysis_plan).resolve(strict=True), baseline_path)}
+    previous_stop_path = Path(args.previous_stop_manifest).resolve(strict=True)
+    previous_stop = load(previous_stop_path)
+    if previous_stop["state"] != "STOPPED_NO_RETRY" or previous_stop["attempts"] != 6:
+        raise ValueError("Expected the preserved six-attempt aborted experiment")
+    for entry in previous_stop["files"]:
+        if file_hash(previous_stop_path.parent / entry["path"]) != entry["sha256"]:
+            raise ValueError("An aborted-experiment artifact changed")
+    pins = {str(path): file_hash(path) for path in (binary, codex, host, Path(__file__).resolve(), Path(args.freeze).resolve(strict=True), Path(args.analysis_plan).resolve(strict=True), baseline_path, previous_stop_path)}
     prereg = {
         "schema_version": 1, "created_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "binary": str(binary), "codex_binary": str(codex), "runtime_version": version,
@@ -191,10 +225,13 @@ def make_plan(args):
         "plans": plans, "schedule": rows, "max_generation_attempts": MAX_ATTEMPTS,
         "max_global_seconds": MAX_SECONDS, "max_search_attempts_per_session": 4,
         "max_native_seconds_per_session": 120, "ai_judge_calls": 0,
+        "previous_aborted_experiment": {"manifest_path": str(previous_stop_path), "manifest_sha256": file_hash(previous_stop_path), "attempts": 6, "excluded_from_new_comparison": True},
+        "total_authorized_attempts_including_aborted": 66,
         "pilot_slots": [1, 2, 3, 4], "pilot_cases": list(PILOT_CASES),
+        "pilot_reason": "Integration verification includes the simple time/location case and the case of the prior unclassified tool failure; all ten questions remain in the full comparison without score-based selection",
         "ordering": "Fixed paired question/trial order; model order alternates for each pair; pilot four first",
         "repetition_identity": "Separate model/trial cohort files; one pinned30-attempt ledger per model, one external60-attempt global reservation",
-        "failure_policy": "Completed sessions, including rejected tool attempts, are valid model outcomes. An explicitly classified model_output_invalid result is retained as a model failure. Other native failures, missing records, trace/pin mismatch, provider/auth/network errors stop; no retries or fallback.",
+        "failure_policy": "Completed sessions, including rejected tool attempts, are valid model outcomes. A safely evidenced model_output_invalid or model_contract_violation remains a failed native attempt with unknown source coverage. Specific proven model actions need not imply a complete final answer. Broad errors, missing records, trace/pin mismatch, provider/auth/network errors stop; no retries or fallback.",
         "limitations": ["Development questions on synthetic data; no blind holdout or answer-correctness judging", "Equal reasoning labels do not imply equal compute", "This question set is not comparable to the previous35/40set"],
     }
     write_new(directory / "PREREGISTRATION.json", prereg)
@@ -258,23 +295,21 @@ def run_phase(args):
                     identity = record["live"]["run"]["manifest"]["corpus_identity"]
                     if identity != prereg["retrieval_corpus_identity"]:
                         raise ValueError("Embedding/source/vector identity changed")
-                elif record["live"].get("error") == "model_output_invalid":
+                elif record["live"].get("error") in MODEL_FAILURES:
                     trace = record["live"]["audit_trace"]
                     if file_hash(trace["path"]) != trace["sha256"]:
                         raise ValueError("Failed-answer trace bytes changed")
                     observed = [json.loads(line)["full_response"]["manifest"]["corpus_identity"] for line in Path(trace["path"]).read_text().splitlines()]
-                    if not observed or any(value != prereg["retrieval_corpus_identity"] for value in observed):
+                    if ((not observed and record["live"]["error"] == "model_output_invalid")
+                            or any(value != prereg["retrieval_corpus_identity"] for value in observed)):
                         raise ValueError("Failed-answer retrieval identity is absent or changed")
                 attempt["record_sha256"] = file_hash(output)
                 attempt["run_id"] = record["live"]["run_id"]
                 attempt["native_generation_index"] = record["live"]["generation_session_index"]
                 attempt["native_budget_id"] = record["live"]["budget_id"]
                 attempt["status"] = record["live"]["status"]
-                if (record["live"].get("error") == "model_output_invalid"
-                        and record["live"]["status"] == "failed"
-                        and record["live"].get("run") is None
-                        and result.returncode == 1):
-                    attempt["status"] = "model_output_invalid"
+                if verified_model_failure(record, result.returncode):
+                    attempt["status"] = record["live"]["error"]
                 elif result.returncode != 0 or attempt["status"] != "completed":
                     raise ValueError("Technical or unclassified native failure; stop without retry")
                 attempt["finished_at"] = time.time()
@@ -290,7 +325,7 @@ def run_phase(args):
 
 def cohort_complete(state):
     return (len(state["attempts"]) == MAX_ATTEMPTS and not state["stopped"]
-            and all(a["status"] in ("completed", "model_output_invalid") for a in state["attempts"]))
+            and all(a["status"] in ("completed", *MODEL_FAILURES) for a in state["attempts"]))
 
 
 def assess_cohorts(args):
@@ -326,7 +361,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     plan = commands.add_parser("plan")
-    for flag in ("binary", "codex-binary", "freeze", "analysis-plan", "retrieval-baseline", "model-cache", "directory"):
+    for flag in ("binary", "codex-binary", "freeze", "analysis-plan", "retrieval-baseline", "previous-stop-manifest", "model-cache", "directory"):
         plan.add_argument("--" + flag, required=True)
     run = commands.add_parser("run")
     run.add_argument("--directory", required=True)
