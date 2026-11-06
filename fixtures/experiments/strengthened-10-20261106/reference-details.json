@@ -1,0 +1,524 @@
+{
+  "schema_version": 1,
+  "dataset_id": "strengthened-10-20261106",
+  "reference_date": "2026-11-05",
+  "provenance": "AI-authored and independently AI-reviewed source expectations; not human calibration.",
+  "cases": [
+    {
+      "case_id": "RAG26-01",
+      "origin": "agent_authored_not_human",
+      "expected_action": "answer_source_facts",
+      "fact_roles": {
+        "rag26-01-sources": "support"
+      },
+      "expected_source_plans": [
+        [
+          {
+            "source_id": "ACT-TUIN-001",
+            "section_id": "S2"
+          },
+          {
+            "source_id": "ACT-TUIN-001",
+            "section_id": "S3"
+          }
+        ]
+      ],
+      "evidence": [
+        {
+          "fact_id": "rag26-01-sources",
+          "role": "support",
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2",
+          "source_date": "2026-10-20",
+          "heading": "Wanneer?",
+          "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+        },
+        {
+          "fact_id": "rag26-01-sources",
+          "role": "support",
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S3",
+          "source_date": "2026-10-20",
+          "heading": "Waar?",
+          "quote": "Buurttuin De Linde, achter het fictieve buurthuis aan de Lindenlaan 12 in het fictieve Lindedorp."
+        }
+      ],
+      "author_note": ""
+    },
+    {
+      "case_id": "RAG26-02",
+      "origin": "agent_authored_not_human",
+      "expected_action": "answer_source_facts",
+      "fact_roles": {
+        "rag26-02-sources": "support"
+      },
+      "expected_source_plans": [
+        [
+          {
+            "source_id": "ACT-TUIN-001",
+            "section_id": "S2"
+          },
+          {
+            "source_id": "ACT-FIETS-002",
+            "section_id": "S2"
+          },
+          {
+            "source_id": "ACT-MAAK-006",
+            "section_id": "S2"
+          }
+        ]
+      ],
+      "evidence": [
+        {
+          "fact_id": "rag26-02-sources",
+          "role": "support",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2",
+          "source_date": "2026-10-18",
+          "heading": "Wanneer?",
+          "quote": "Iedere dinsdag van 14.00 tot 16.00 uur."
+        },
+        {
+          "fact_id": "rag26-02-sources",
+          "role": "support",
+          "source_id": "ACT-MAAK-006",
+          "section_id": "S2",
+          "source_date": "2026-11-05",
+          "heading": "Wanneer?",
+          "quote": "Iedere dinsdag van 13.00 tot 15.00 uur."
+        },
+        {
+          "fact_id": "rag26-02-sources",
+          "role": "support",
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2",
+          "source_date": "2026-10-20",
+          "heading": "Wanneer?",
+          "quote": "Iedere dinsdag van 10.00 tot 12.00 uur."
+        }
+      ],
+      "author_note": ""
+    },
+    {
+      "case_id": "RAG26-03",
+      "origin": "agent_authored_not_human",
+      "expected_action": "answer_source_facts",
+      "fact_roles": {
+        "rag26-03-sources": "support"
+      },
+      "expected_source_plans": [
+        [
+          {
+            "source_id": "ACT-FIETS-002",
+            "section_id": "S2"
+          },
+          {
+            "source_id": "ACT-FIETS-002",
+            "section_id": "S3"
+          }
+        ],
+        [
+          {
+            "source_id": "ACT-MAAK-006",
+            "section_id": "S2"
+          },
+          {
+            "source_id": "ACT-MAAK-006",
+            "section_id": "S3"
+          }
+        ]
+      ],
+      "evidence": [
+        {
+          "fact_id": "rag26-03-sources",
+          "role": "support",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2",
+          "source_date": "2026-10-18",
+          "heading": "Wanneer?",
+          "quote": "Iedere dinsdag van 14.00 tot 16.00 uur."
+        },
+        {
+          "fact_id": "rag26-03-sources",
+          "role": "support",
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S3",
+          "source_date": "2026-10-18",
+          "heading": "Waar?",
+          "quote": "Werkplaats De Werkbank, in het fictieve wijkgebouw aan de Esdoornstraat 8 in het fictieve Lindedorp. We werken binnen."
+        },
+        {
+          "fact_id": "rag26-03-sources",
+          "role": "support",
+          "source_id": "ACT-MAAK-006",
+          "section_id": "S2",
+          "source_date": "2026-11-05",
+          "heading": "Wanneer?",
+          "quote": "Iedere dinsdag van 13.00 tot 15.00 uur."
+        },
+        {
+          "fact_id": "rag26-03-sources",
+          "role": "support",
+          "source_id": "ACT-MAAK-006",
+          "section_id": "S3",
+          "source_date": "2026-11-05",
+          "heading": "Waar?",
+          "quote": "Atelier De Kleurkamer, aan de fictieve Berkenstraat 14 in het fictieve Lindedorp. We werken binnen."
+        }
+      ],
+      "author_note": ""
+    },
+    {
+      "case_id": "RAG26-04",
+      "origin": "agent_authored_not_human",
+      "expected_action": "answer_source_facts",
+      "fact_roles": {
+        "rag26-04-sources": "support"
+      },
+      "expected_source_plans": [
+        [
+          {
+            "source_id": "ACT-WANDEL-005",
+            "section_id": "S2"
+          },
+          {
+            "source_id": "ACT-WANDEL-005",
+            "section_id": "S3"
+          },
+          {
+            "source_id": "ACT-PARK-007",
+            "section_id": "S2"
+          },
+          {
+            "source_id": "ACT-PARK-007",
+            "section_id": "S3"
+          }
+        ]
+      ],
+      "evidence": [
+        {
+          "fact_id": "rag26-04-sources",
+          "role": "support",
+          "source_id": "ACT-PARK-007",
+          "section_id": "S2",
+          "source_date": "2026-11-05",
+          "heading": "Wanneer?",
+          "quote": "Iedere vrijdag van 10.00 tot 12.00 uur."
+        },
+        {
+          "fact_id": "rag26-04-sources",
+          "role": "support",
+          "source_id": "ACT-PARK-007",
+          "section_id": "S3",
+          "source_date": "2026-11-05",
+          "heading": "Waar?",
+          "quote": "We verzamelen bij het fictieve gereedschapshuis van Park De Wilg, aan het fictieve Iepenpad 12 in het fictieve Lindedorp. We werken buiten."
+        },
+        {
+          "fact_id": "rag26-04-sources",
+          "role": "support",
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S2",
+          "source_date": "2026-10-20",
+          "heading": "Wanneer?",
+          "quote": "Iedere donderdag van 9.30 tot 10.30 uur."
+        },
+        {
+          "fact_id": "rag26-04-sources",
+          "role": "support",
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S3",
+          "source_date": "2026-10-20",
+          "heading": "Waar?",
+          "quote": "We verzamelen bij de ingang van het fictieve Park De Wilg, aan het fictieve Iepenpad 2 in het fictieve Lindedorp. De wandeling is buiten."
+        }
+      ],
+      "author_note": ""
+    },
+    {
+      "case_id": "RAG26-05",
+      "origin": "agent_authored_not_human",
+      "expected_action": "answer_source_facts",
+      "fact_roles": {
+        "rag26-05-sources": "support"
+      },
+      "expected_source_plans": [
+        [
+          {
+            "source_id": "ACT-TAAL-003",
+            "section_id": "S1"
+          },
+          {
+            "source_id": "ACT-TAAL-003",
+            "section_id": "S4"
+          },
+          {
+            "source_id": "ACT-BIEB-008",
+            "section_id": "S4"
+          }
+        ]
+      ],
+      "evidence": [
+        {
+          "fact_id": "rag26-05-sources",
+          "role": "support",
+          "source_id": "ACT-BIEB-008",
+          "section_id": "S4",
+          "source_date": "2026-11-05",
+          "heading": "Taal en hulp",
+          "quote": "Voor het voorlezen is Nederlands op niveau B1 nodig. Een bibliotheekvrijwilliger geeft uitleg over de taken. Er is geen individuele taalbegeleiding voor beginners vastgelegd."
+        },
+        {
+          "fact_id": "rag26-05-sources",
+          "role": "support",
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S1",
+          "source_date": "2026-10-19",
+          "heading": "Wat doen we?",
+          "quote": "We oefenen Nederlands door samen te praten over dagelijkse onderwerpen en korte taalspelletjes te doen. Dit is een vrijwillige activiteit, geen betaalde baan. Je mag meedoen als je nog weinig Nederlands spreekt."
+        },
+        {
+          "fact_id": "rag26-05-sources",
+          "role": "support",
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S4",
+          "source_date": "2026-10-19",
+          "heading": "Taal en hulp",
+          "quote": "Een taalvrijwilliger begeleidt de gesprekken en legt woorden eenvoudig uit. Er is geen informatie over ondersteuning in andere talen."
+        }
+      ],
+      "author_note": "De B1-eis geldt voor voorlezen. De bron stelt deze eis niet voor alle bibliotheektaken."
+    },
+    {
+      "case_id": "RAG26-06",
+      "origin": "agent_authored_not_human",
+      "expected_action": "answer_source_facts",
+      "fact_roles": {
+        "rag26-06-sources": "support"
+      },
+      "expected_source_plans": [
+        [
+          {
+            "source_id": "ACT-MUZIEK-009",
+            "section_id": "S1"
+          },
+          {
+            "source_id": "ACT-MUZIEK-009",
+            "section_id": "S2"
+          },
+          {
+            "source_id": "ACT-MUZIEK-009",
+            "section_id": "S4"
+          },
+          {
+            "source_id": "ACT-MUZIEK-009",
+            "section_id": "S5"
+          }
+        ]
+      ],
+      "evidence": [
+        {
+          "fact_id": "rag26-06-sources",
+          "role": "support",
+          "source_id": "ACT-MUZIEK-009",
+          "section_id": "S1",
+          "source_date": "2026-11-05",
+          "heading": "Wat doen we?",
+          "quote": "We zingen samen en maken ritmes met eenvoudige instrumenten. Je mag ook eerst luisteren. Muziekervaring of noten kunnen lezen is niet nodig. Dit is een vrijwillige activiteit, geen betaalde baan."
+        },
+        {
+          "fact_id": "rag26-06-sources",
+          "role": "support",
+          "source_id": "ACT-MUZIEK-009",
+          "section_id": "S2",
+          "source_date": "2026-11-05",
+          "heading": "Wanneer?",
+          "quote": "Iedere zaterdag van 10.00 tot 11.30 uur."
+        },
+        {
+          "fact_id": "rag26-06-sources",
+          "role": "support",
+          "source_id": "ACT-MUZIEK-009",
+          "section_id": "S4",
+          "source_date": "2026-11-05",
+          "heading": "Taal en hulp",
+          "quote": "Een muziekvrijwilliger doet ritmes voor en begeleidt de groep. Goed Nederlands spreken is niet nodig. Er is geen individuele muziekles of ondersteuning in andere talen vastgelegd."
+        },
+        {
+          "fact_id": "rag26-06-sources",
+          "role": "support",
+          "source_id": "ACT-MUZIEK-009",
+          "section_id": "S5",
+          "source_date": "2026-11-05",
+          "heading": "Kosten en materiaal",
+          "quote": "Deelname is gratis. Kleine trommels, ritmestokjes en liedbladen zijn aanwezig. Je hoeft zelf geen instrument mee te nemen. Het geluidsniveau is niet gemeten."
+        }
+      ],
+      "author_note": ""
+    },
+    {
+      "case_id": "RAG26-07",
+      "origin": "agent_authored_not_human",
+      "expected_action": "answer_source_facts",
+      "fact_roles": {
+        "rag26-07-sources": "support"
+      },
+      "expected_source_plans": [
+        [
+          {
+            "source_id": "ACT-DIGI-010",
+            "section_id": "S3"
+          },
+          {
+            "source_id": "ACT-DIGI-010",
+            "section_id": "S4"
+          },
+          {
+            "source_id": "ACT-DIGI-010",
+            "section_id": "S5"
+          }
+        ]
+      ],
+      "evidence": [
+        {
+          "fact_id": "rag26-07-sources",
+          "role": "support",
+          "source_id": "ACT-DIGI-010",
+          "section_id": "S3",
+          "source_date": "2026-11-05",
+          "heading": "Waar?",
+          "quote": "Computerruimte op de eerste verdieping van het fictieve wijkgebouw aan de Esdoornstraat 8 in het fictieve Lindedorp. We werken binnen."
+        },
+        {
+          "fact_id": "rag26-07-sources",
+          "role": "support",
+          "source_id": "ACT-DIGI-010",
+          "section_id": "S4",
+          "source_date": "2026-11-05",
+          "heading": "Taal en hulp",
+          "quote": "Een digitale vrijwilliger geeft uitleg in eenvoudig Nederlands en helpt tijdens het oefenen. Je hoeft niet zelfstandig Nederlands te kunnen lezen. Persoonlijke accounts en wachtwoorden zijn niet nodig."
+        },
+        {
+          "fact_id": "rag26-07-sources",
+          "role": "support",
+          "source_id": "ACT-DIGI-010",
+          "section_id": "S5",
+          "source_date": "2026-11-05",
+          "heading": "Kosten en materiaal",
+          "quote": "Deelname is gratis. Oefencomputers en een oefenwebsite zijn aanwezig. Je hoeft zelf geen laptop of telefoon mee te nemen. Betalingen en echte aanvragen horen niet bij deze activiteit."
+        }
+      ],
+      "author_note": ""
+    },
+    {
+      "case_id": "RAG26-08",
+      "origin": "agent_authored_not_human",
+      "expected_action": "no_matching_named_activity",
+      "fact_roles": {
+        "rag26-08-sources": "exclusion"
+      },
+      "expected_source_plans": [
+        [
+          {
+            "source_id": "ACT-MUZIEK-009",
+            "section_id": "S2"
+          },
+          {
+            "source_id": "ACT-DIGI-010",
+            "section_id": "S2"
+          }
+        ]
+      ],
+      "evidence": [
+        {
+          "fact_id": "rag26-08-sources",
+          "role": "exclusion",
+          "source_id": "ACT-DIGI-010",
+          "section_id": "S2",
+          "source_date": "2026-11-05",
+          "heading": "Wanneer?",
+          "quote": "Iedere maandag van 15.00 tot 16.00 uur."
+        },
+        {
+          "fact_id": "rag26-08-sources",
+          "role": "exclusion",
+          "source_id": "ACT-MUZIEK-009",
+          "section_id": "S2",
+          "source_date": "2026-11-05",
+          "heading": "Wanneer?",
+          "quote": "Iedere zaterdag van 10.00 tot 11.30 uur."
+        }
+      ],
+      "author_note": "Dit gaat alleen over de twee genoemde activiteiten, niet over alle mogelijke zondagactiviteiten."
+    },
+    {
+      "case_id": "RAG26-09",
+      "origin": "agent_authored_not_human",
+      "expected_action": "needs_verification",
+      "fact_roles": {
+        "rag26-09-sources": "clarification"
+      },
+      "expected_source_plans": [
+        [
+          {
+            "source_id": "ACT-KOKEN-004",
+            "section_id": "S5"
+          }
+        ]
+      ],
+      "evidence": [
+        {
+          "fact_id": "rag26-09-sources",
+          "role": "clarification",
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S5",
+          "source_date": "2026-10-17",
+          "heading": "Kosten en materiaal",
+          "quote": "Deelname is gratis. Ingrediënten, schorten en keukengerei zijn aanwezig. Informatie over allergenen en alternatieve diëten ontbreekt."
+        }
+      ],
+      "author_note": "Ontbrekende allergeneninformatie betekent dat de bron geen bevestiging van sesamveiligheid geeft."
+    },
+    {
+      "case_id": "RAG26-10",
+      "origin": "agent_authored_not_human",
+      "expected_action": "needs_verification",
+      "fact_roles": {
+        "rag26-10-sources": "clarification"
+      },
+      "expected_source_plans": [
+        [
+          {
+            "source_id": "ACT-PARK-007",
+            "section_id": "S6"
+          },
+          {
+            "source_id": "ACT-DIGI-010",
+            "section_id": "S6"
+          }
+        ]
+      ],
+      "evidence": [
+        {
+          "fact_id": "rag26-10-sources",
+          "role": "clarification",
+          "source_id": "ACT-DIGI-010",
+          "section_id": "S6",
+          "source_date": "2026-11-05",
+          "heading": "Beschikbaarheid",
+          "quote": "Op 2026-10-01 was er één vrije plek. Sindsdien is het aantal plekken niet opnieuw gecontroleerd. De actuele beschikbaarheid op 2026-11-05 is onbekend. Vervoer is niet beschreven."
+        },
+        {
+          "fact_id": "rag26-10-sources",
+          "role": "clarification",
+          "source_id": "ACT-PARK-007",
+          "section_id": "S6",
+          "source_date": "2026-11-05",
+          "heading": "Beschikbaarheid",
+          "quote": "Op 2026-11-04 waren er vier vrije plekken. Er is geen latere controle vastgelegd; actuele beschikbaarheid op 2026-11-05 moet nog worden nagevraagd. Wat er bij slecht weer gebeurt is niet beschreven."
+        }
+      ],
+      "author_note": ""
+    }
+  ]
+}

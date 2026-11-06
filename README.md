@@ -90,6 +90,22 @@ cargo run --locked -- lab assess --dataset expanded-10-20261105 --input /tmp/exp
 
 Alle vier zoekmethoden en de bestaande document-/SQLite-structuren kunnen dezelfde versie kiezen via `--dataset expanded-10-20261105`. SQLite vereist `--features sqlite`. Nieuwe SQLite-caches krijgen een eigen map op basis van de corpus-hash, zodat oude en nieuwe metingen gescheiden blijven. Een agentvergelijking vereist bovendien expliciet `lab agent-run --live` en een nieuw begrensd ledger; de limiet blijft vier zoekacties en 120 seconden per sessie. Een volledige bronset vinden beoordeelt bronretrieval, niet automatisch de inhoud van het uiteindelijke antwoord.
 
+## Herhaalde modelvergelijking
+
+De aparte ontwikkelset `strengthened-10-20261106` bevat tien brongebaseerde vragen op hetzelfde corpus. Vier vragen zijn behouden en zes zijn nieuw of aangescherpt. De oude datasets en resultaten blijven afzonderlijk beschikbaar; een score op deze nieuwe vragen is geen verbetering ten opzichte van de eerdere 35/40-meting.
+
+`scripts/model_trials.py` voert een vooraf vastgelegde proef uit met `gpt-6.1-sol` en `gpt-6-luna`, de bestaande standaardzoekmethode `dense`, tien vragen en drie herhalingen: zestig pogingen. Modelvolgorde wisselt per vraag/herhaling. Beide gebruiken dezelfde gepinde runtime, bron- en embeddingidentiteit, `low` reasoning, top-3, contextlimiet 1200, maximaal vier zoekpogingen en 120 seconden per sessie. Dezelfde reasoningnaam betekent geen gegarandeerd gelijk rekenwerk.
+
+Het script heeft drie stappen: `plan` schrijft de volledige volgorde en hashes zonder modelcalls; `run --live --phase pilot` voert eerst vier vastgelegde pogingen uit; `run --live --phase remaining` vereist een onafhankelijke, hashgebonden `PILOT_APPROVED.json`. `assess` herberekent daarna zes afzonderlijke model/herhalingcohorten met de bestaande Rust-beoordeling. Gebruik `python3 scripts/model_trials.py --help` en de subcommando's voor alle expliciete paden. De globale limiet is zestig pogingen en 7200 seconden, met twee begrensde modelledgers van elk dertig; er zijn geen automatische herhalingen of alternatieve modellen bij fouten.
+
+Een volledig ontvangen maar aantoonbaar ongeldig eindantwoord wordt bewaard als modelmislukking; brondekking blijft daarbij onbekend. Netwerk-, authenticatie-, runtime-, hash- en onduidelijke parserfouten stoppen de proef. Vrije antwoordkwaliteit wordt niet door een AI-beoordelaar geëvalueerd. Een kleiner model is niet vooraf beter of slechter: de vergelijking meet het model samen met deze harness.
+
+De budget-/volgorde-/annuleringschecks draaien zonder modelcalls:
+
+```sh
+python3 -m unittest discover -s scripts -p 'test_model_trials.py'
+```
+
 ## Grenzen en werkwijze
 
 Lees de [privacygrenzen en open besluiten](docs/privacy-boundaries.md) voordat je gegevens of toegang uitbreidt.

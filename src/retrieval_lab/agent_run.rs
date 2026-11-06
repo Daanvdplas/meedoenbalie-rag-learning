@@ -453,30 +453,31 @@ fn selection_text(dataset_id: Option<&str>) -> Result<&'static str, String> {
             dataset::verify_expanded_artifact("presentation-selection.json", dataset::EXPANDED_SELECTION)?;
             Ok(dataset::EXPANDED_SELECTION)
         }
-        _ => Err("Agentic dataset must be expanded-10-20261105; omit --dataset for the historical five-source presentation".into()),
+        Some(dataset::STRENGTHENED_ID) => {
+            dataset::verify_ten_source_artifact(dataset::STRENGTHENED_ID, "presentation-selection.json", dataset::STRENGTHENED_SELECTION)?;
+            Ok(dataset::STRENGTHENED_SELECTION)
+        }
+        _ => Err("Select a frozen ten-source agentic dataset or omit --dataset for the historical five-source presentation".into()),
     }
 }
 
 fn plan_dataset(runs: &[PlannedRun]) -> Result<Option<&'static str>, String> {
-    if runs
+    if let Some(id) = runs
         .iter()
-        .any(|run| run.dataset_id == dataset::EXPANDED_ID)
+        .find_map(|run| dataset::ten_source_dataset_id(&run.dataset_id))
     {
-        if runs
-            .iter()
-            .any(|run| run.dataset_id != dataset::EXPANDED_ID)
-        {
+        if runs.iter().any(|run| run.dataset_id != id) {
             return Err("Agentic plan mixes source corpus versions".into());
         }
-        Ok(Some(dataset::EXPANDED_ID))
+        Ok(Some(id))
     } else {
         Ok(None)
     }
 }
 
 fn protocol_for_dataset(dataset_id: Option<&str>, model: &str) -> Result<String, String> {
-    let ids = if dataset_id.is_some() {
-        vec![dataset::EXPANDED_ID]
+    let ids = if let Some(id) = dataset_id {
+        vec![id]
     } else {
         vec!["legacy", "independent-20261103"]
     };
@@ -711,11 +712,7 @@ pub fn write_jsonl_new<T: Serialize>(path: &Path, values: &[T]) -> Result<(), St
 
 pub fn validate_record_identity(record: &AgentRunRecord) -> Result<(), String> {
     let selected = plan_for_dataset(
-        if record.dataset_id == dataset::EXPANDED_ID {
-            Some(dataset::EXPANDED_ID)
-        } else {
-            None
-        },
+        dataset::ten_source_dataset_id(&record.dataset_id),
         std::slice::from_ref(&record.case_id),
         &[record.live.config.retrieval.method],
         &record.requested_model,
@@ -865,6 +862,41 @@ pub fn read_records(path: &Path) -> Result<Vec<StoredAgentRecord>, String> {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn strengthened_plan_keeps_models_separate_and_gold_out_of_inputs() {
+        let sol = super::plan_for_dataset(
+            Some(super::dataset::STRENGTHENED_ID),
+            &[],
+            &[crate::retrieval::SearchMethod::Dense],
+            "gpt-6.1-sol",
+        )
+        .unwrap();
+        let luna = super::plan_for_dataset(
+            Some(super::dataset::STRENGTHENED_ID),
+            &[],
+            &[crate::retrieval::SearchMethod::Dense],
+            "gpt-6-luna",
+        )
+        .unwrap();
+        assert_eq!(sol.planned_sessions, 10);
+        assert_eq!(sol.case_count, 10);
+        assert_eq!(sol.selection_sha256, luna.selection_sha256);
+        assert_ne!(sol.protocol_id, luna.protocol_id);
+        assert_eq!(sol.runs[0].dataset, luna.runs[0].dataset);
+        assert_eq!(sol.max_search_calls_per_session, 4);
+        let inputs = serde_json::to_string(&sol).unwrap();
+        assert!(!inputs.contains("evidence_alternatives"));
+        assert!(!inputs.contains("evaluation_only_canary"));
+        assert!(
+            sol.runs
+                .iter()
+                .all(|run| run.dataset_id == super::dataset::STRENGTHENED_ID)
+        );
+        let mut mixed = sol.runs.clone();
+        mixed[0].dataset_id = super::dataset::EXPANDED_ID.into();
+        assert!(super::plan_dataset(&mixed).is_err());
+    }
+
+    #[test]
     fn expanded_plan_is_forty_bound_sessions_and_preserves_historical_protocol() {
         let expanded = super::plan_for_dataset(
             Some(super::dataset::EXPANDED_ID),
@@ -915,6 +947,10 @@ mod tests {
 
     fn failed_record(base: &Path) -> AgentRunRecord {
         let plan = plan(&["T02".into()], &[SearchMethod::Bm25], "test-model").unwrap();
+        failed_record_for_plan(base, &plan)
+    }
+
+    fn failed_record_for_plan(base: &Path, plan: &AgentPlan) -> AgentRunRecord {
         let selected = &plan.runs[0];
         let output = base.join("live.jsonl");
         let trace = output.with_extension("mcp-trace.jsonl");
@@ -941,13 +977,50 @@ mod tests {
             query_inputs_sha256: selected.query_inputs_sha256.clone(),
             case_id: selected.case_id.clone(),
             question: selected.question.clone(),
-            selection_sha256: plan.selection_sha256,
-            protocol_id: plan.protocol_id,
+            selection_sha256: plan.selection_sha256.clone(),
+            protocol_id: plan.protocol_id.clone(),
             requested_model: "test-model".into(),
             live_output_path: output,
             live_output_sha256: crate::manifest::hash(&bytes),
             live,
         }
+    }
+
+    #[test]
+    fn strengthened_cli_replays_assessment_without_model_or_retrieval_calls() {
+        let base = directory();
+        let plan = plan_for_dataset(
+            Some(dataset::STRENGTHENED_ID),
+            &["RAG26-01".into()],
+            &[SearchMethod::Dense],
+            "test-model",
+        )
+        .unwrap();
+        let record = failed_record_for_plan(&base, &plan);
+        let input = base.join("records.jsonl");
+        let assessed = base.join("assessment.jsonl");
+        let reported = base.join("report.json");
+        write_jsonl_new(&input, &[record]).unwrap();
+        for (command, output) in [("agent-assess", &assessed), ("agent-report", &reported)] {
+            let result = super::super::cli::cli(&[
+                command.into(),
+                "--input".into(),
+                input.display().to_string(),
+                "--output".into(),
+                output.display().to_string(),
+            ])
+            .unwrap();
+            assert_eq!(result["codex_calls"], 0);
+            assert_eq!(result["retrieval_calls"], 0);
+        }
+        let assessment: serde_json::Value =
+            serde_json::from_str(std::fs::read_to_string(assessed).unwrap().trim()).unwrap();
+        assert_eq!(assessment["dataset_id"], dataset::STRENGTHENED_ID);
+        assert!(assessment["source_coverage"]["complete"].is_null());
+        let report: serde_json::Value =
+            serde_json::from_str(std::fs::read_to_string(reported).unwrap().trim()).unwrap();
+        assert_eq!(report["questions"].as_array().unwrap().len(), 10);
+        std::fs::remove_dir_all(base).unwrap();
     }
 
     fn options(base: &Path) -> AgentRunOptions {

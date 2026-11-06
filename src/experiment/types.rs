@@ -216,6 +216,7 @@ impl RuntimeDiagnostic {
                 | "provider_server_failed"
                 | "unexpected_tool"
                 | "invalid_output"
+                | "model_output_invalid"
                 | "timeout"
         ) || self
             .exit_code

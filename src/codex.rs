@@ -135,6 +135,7 @@ pub fn public_error_code(error: &str) -> &'static str {
             "provider_server_failed" => "provider_server_failed",
             "unexpected_tool" => "unexpected_tool",
             "invalid_output" => "invalid_output",
+            "model_output_invalid" => "model_output_invalid",
             "timeout" => "timeout",
             _ => "runtime_failed",
         };
@@ -258,7 +259,33 @@ fn diagnostic_error(stage: &str, error: &str, events: &str, exit_code: Option<i3
         .as_ref()
         .map(|code| safe_runtime_diagnostic(code))
         .filter(|category| *category != "runtime_failed");
-    let category = if error.starts_with("tool:") {
+    // These exact failures occur only after parse_events has validated the
+    // complete stream and retrieved provenance. Keep malformed events/transport
+    // failures ambiguous rather than attributing infrastructure errors to a model.
+    let model_answer_failure = stage == "agent_event_validation"
+        && exit_code == Some(0)
+        && provider_error_code.is_none()
+        && event_types.contains("turn.completed")
+        && !event_types.contains("turn.failed")
+        && !event_types.contains("error")
+        && !item_types.contains("error")
+        && item_types.contains("agent_message")
+        && item_types.contains("mcp_tool_call")
+        && events
+            .lines()
+            .filter(|line| !line.trim().is_empty())
+            .all(|line| serde_json::from_str::<Value>(line).is_ok())
+        && matches!(
+            error,
+            "output: Final answer does not match the schema"
+                | "output: Invalid answer size or unknown flags"
+                | "output: Answer has no citations or stated unknowns"
+                | "output: Invalid citation section ID"
+                | "output: Citation quote is absent from retrieved evidence"
+        );
+    let category = if model_answer_failure {
+        "model_output_invalid"
+    } else if error.starts_with("tool:") {
         "unexpected_tool"
     } else if error.starts_with("output:") {
         "invalid_output"
@@ -1280,6 +1307,67 @@ async fn runtime_fingerprints_cooperative(runtime: &Path, mcp: &Path) -> Result<
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn only_completed_valid_event_streams_can_label_an_invalid_model_answer() {
+        let mut wrong_quote = good_answer();
+        wrong_quote["citations"][0]["quote"] = json!("Een niet opgehaalde verzonnen tekst.");
+        let actual_stream = stream(wrong_quote, true);
+        let actual_error = parse_events(&actual_stream).unwrap_err();
+        assert_eq!(
+            public_error_code(&diagnostic_error(
+                "agent_event_validation",
+                &actual_error,
+                &actual_stream,
+                Some(0)
+            )),
+            "model_output_invalid"
+        );
+        let events = [
+            json!({"type":"item.completed","item":{"type":"mcp_tool_call"}}),
+            json!({"type":"item.completed","item":{"type":"agent_message","text":"not valid answer JSON"}}),
+            json!({"type":"turn.completed"}),
+        ].iter().map(Value::to_string).collect::<Vec<_>>().join("\n");
+        let error = "output: Final answer does not match the schema";
+        let classified = diagnostic_error("agent_event_validation", error, &events, Some(0));
+        assert_eq!(public_error_code(&classified), "model_output_invalid");
+        public_diagnostic(&classified).unwrap().validate().unwrap();
+        for (stage, message, stream, exit) in [
+            (
+                "agent_event_validation",
+                "output: Invalid Codex JSON event",
+                events.clone(),
+                Some(0),
+            ),
+            (
+                "agent_event_validation",
+                error,
+                format!("{events}\n{{broken"),
+                Some(0),
+            ),
+            (
+                "agent_event_validation",
+                error,
+                events.replace("turn.completed", "turn.failed"),
+                Some(0),
+            ),
+            (
+                "agent_event_validation",
+                error,
+                format!(
+                    "{events}\n{}",
+                    json!({"type":"error","error":{"code":"stream_disconnected"}})
+                ),
+                Some(0),
+            ),
+            ("agent_event_validation", error, events.clone(), Some(1)),
+            ("isolated_event_validation", error, events, Some(0)),
+        ] {
+            assert_ne!(
+                public_error_code(&diagnostic_error(stage, message, &stream, exit)),
+                "model_output_invalid"
+            );
+        }
+    }
     use super::*;
     use serde_json::json;
 
