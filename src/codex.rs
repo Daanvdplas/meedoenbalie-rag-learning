@@ -383,8 +383,12 @@ fn validation_evidence(
     }
     if error == "tool: Unexpected MCP tool"
         && calls.iter().any(|item| {
-            item["server"].as_str().is_some()
-                && item["tool"].as_str().is_some()
+            item["server"]
+                .as_str()
+                .is_some_and(|name| !name.trim().is_empty())
+                && item["tool"]
+                    .as_str()
+                    .is_some_and(|name| !name.trim().is_empty())
                 && (item["server"] != "coa" || item["tool"] != "search_document")
         })
     {
@@ -1555,6 +1559,17 @@ mod tests {
         );
         diagnostic.validation_reason = Some("PRIVATE-REASON".into());
         assert!(diagnostic.validate().is_err());
+        let empty_native_identity = json!({"type":"item.completed","item":{"type":"mcp_tool_call","server":"","tool":"search_document"}}).to_string();
+        let error = parse_events(&empty_native_identity).unwrap_err();
+        assert_ne!(
+            public_error_code(&diagnostic_error(
+                "agent_event_validation",
+                &error,
+                &empty_native_identity,
+                Some(0)
+            )),
+            "model_contract_violation"
+        );
     }
     #[test]
     fn only_completed_valid_event_streams_can_label_an_invalid_model_answer() {
