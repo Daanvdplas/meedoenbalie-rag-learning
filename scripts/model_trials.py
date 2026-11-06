@@ -288,10 +288,15 @@ def run_phase(args):
                 raise
 
 
+def cohort_complete(state):
+    return (len(state["attempts"]) == MAX_ATTEMPTS and not state["stopped"]
+            and all(a["status"] in ("completed", "model_output_invalid") for a in state["attempts"]))
+
+
 def assess_cohorts(args):
     directory = Path(args.directory).resolve(strict=True)
     prereg, state = checked_prereg(directory)
-    if len(state["attempts"]) != MAX_ATTEMPTS or state["stopped"]:
+    if not cohort_complete(state):
         raise ValueError("A full non-stopped60-attempt cohort is required; partial evidence remains saved")
     index = []
     for model in MODELS:

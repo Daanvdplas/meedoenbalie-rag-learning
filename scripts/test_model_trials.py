@@ -45,6 +45,12 @@ class ModelTrialTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             model_trials.reserve(state, rows, 101)
 
+    def test_last_reserved_attempt_is_not_a_completed_cohort(self):
+        state = {"attempts": [{"status": "completed"} for _ in range(60)], "stopped": False}
+        self.assertTrue(model_trials.cohort_complete(state))
+        state["attempts"][-1]["status"] = "reserved"
+        self.assertFalse(model_trials.cohort_complete(state))
+
     def test_manifest_output_creation_never_overwrites_existing_evidence(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "frozen.json"
