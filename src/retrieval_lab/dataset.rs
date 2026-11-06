@@ -111,11 +111,41 @@ const EXPANDED_FROZEN: &str =
 // Independently approved exact source-reference freeze, before measurement.
 const EXPANDED_FROZEN_SHA256: &str =
     "48d09a54102b9cbb75d9bbe4c6436e746cfb8290b323d284a26a4b900436e394";
+pub const STRENGTHENED_ID: &str = "strengthened-10-20261106";
+pub const STRENGTHENED_QUESTIONS: &str =
+    include_str!("../../fixtures/experiments/strengthened-10-20261106/questions.json");
+pub const STRENGTHENED_EXPECTATIONS: &str =
+    include_str!("../../fixtures/experiments/strengthened-10-20261106/expectations.json");
+pub const STRENGTHENED_DETAILS: &str =
+    include_str!("../../fixtures/experiments/strengthened-10-20261106/reference-details.json");
+pub const STRENGTHENED_SELECTION: &str =
+    include_str!("../../fixtures/experiments/strengthened-10-20261106/presentation-selection.json");
+const STRENGTHENED_FROZEN: &str =
+    include_str!("../../fixtures/experiments/strengthened-10-20261106/FROZEN.json");
+const STRENGTHENED_FROZEN_SHA256: &str =
+    "08e4febda02e92237b03966c285f086eb9e2b5c1623e84ee6463edee4e9626b0";
+
+pub(super) fn ten_source_dataset_id(id: &str) -> Option<&'static str> {
+    match id {
+        EXPANDED_ID => Some(EXPANDED_ID),
+        STRENGTHENED_ID => Some(STRENGTHENED_ID),
+        _ => None,
+    }
+}
 
 pub(super) fn verify_expanded_artifact(name: &str, text: &str) -> Result<(), String> {
+    verify_ten_source_artifact(EXPANDED_ID, name, text)
+}
+
+pub(super) fn verify_ten_source_artifact(id: &str, name: &str, text: &str) -> Result<(), String> {
+    let (frozen, frozen_sha256) = match id {
+        EXPANDED_ID => (EXPANDED_FROZEN, EXPANDED_FROZEN_SHA256),
+        STRENGTHENED_ID => (STRENGTHENED_FROZEN, STRENGTHENED_FROZEN_SHA256),
+        _ => return Err("Unknown ten-source dataset".into()),
+    };
     let freeze: serde_json::Value =
-        serde_json::from_str(EXPANDED_FROZEN).map_err(|error| error.to_string())?;
-    if crate::manifest::hash(EXPANDED_FROZEN.as_bytes()) != EXPANDED_FROZEN_SHA256
+        serde_json::from_str(frozen).map_err(|error| error.to_string())?;
+    if crate::manifest::hash(frozen.as_bytes()) != frozen_sha256
         || freeze["review"]["approved"] != true
         || freeze["reference_date"] != crate::corpus::CorpusId::ExpandedTen.as_of()
         || freeze["integrity"]["corpus_sha256"] != crate::corpus::CorpusId::ExpandedTen.sha256()
@@ -124,7 +154,7 @@ pub(super) fn verify_expanded_artifact(name: &str, text: &str) -> Result<(), Str
             "Expanded source/reference freeze is not independently approved or has changed".into(),
         );
     }
-    let path = format!("fixtures/experiments/{EXPANDED_ID}/{name}");
+    let path = format!("fixtures/experiments/{id}/{name}");
     let expected = crate::manifest::hash(text.as_bytes());
     let matches = freeze["integrity"]["artifacts"]
         .as_array()
@@ -157,7 +187,7 @@ pub struct QuestionDataset {
 
 impl QuestionDataset {
     pub fn corpus(&self) -> crate::corpus::CorpusId {
-        if self.id == EXPANDED_ID {
+        if ten_source_dataset_id(&self.id).is_some() {
             crate::corpus::CorpusId::ExpandedTen
         } else {
             crate::corpus::CorpusId::BaselineFive
@@ -221,7 +251,16 @@ pub fn load(id: &str) -> Result<QuestionDataset, String> {
             }
             Ok(QuestionDataset { id: id.into(), catalog, query_inputs: Default::default(), query_inputs_sha256: None })
         }
-        _ => Err("Unknown dataset; select legacy, independent-20261103 or expanded-10-20261105 explicitly".into()),
+        STRENGTHENED_ID => {
+            verify_ten_source_artifact(id, "questions.json", STRENGTHENED_QUESTIONS)?;
+            let mut catalog = questions_for_corpus(&[STRENGTHENED_QUESTIONS], true, crate::corpus::CorpusId::ExpandedTen)?;
+            if catalog.cases.len() != 10 {
+                return Err("Strengthened comparison requires exactly ten frozen questions".into());
+            }
+            catalog.identity.limitation = "Prospectively frozen source-based development questions on ten known fictional documents; four retained and six new or refined, AI-authored and independently AI-reviewed, not human calibration or a blind heldout benchmark".into();
+            Ok(QuestionDataset { id: id.into(), catalog, query_inputs: Default::default(), query_inputs_sha256: None })
+        }
+        _ => Err("Unknown dataset; select legacy, independent-20261103, expanded-10-20261105 or strengthened-10-20261106 explicitly".into()),
     }
 }
 
@@ -280,6 +319,44 @@ fn load_user_inputs(
 mod tests {
     use super::*;
     use std::collections::BTreeSet;
+
+    #[test]
+    fn strengthened_questions_are_input_only_and_preserve_the_previous_dataset() {
+        let dataset = load("strengthened-10-20261106").unwrap();
+        assert_eq!(dataset.catalog.cases.len(), 10);
+        assert_eq!(dataset.corpus(), crate::corpus::CorpusId::ExpandedTen);
+        assert_eq!(dataset.catalog.cases[0].id, "RAG26-01");
+        assert_eq!(load(EXPANDED_ID).unwrap().catalog.cases[0].id, "P01");
+        assert_ne!(
+            dataset.catalog.identity,
+            load(EXPANDED_ID).unwrap().catalog.identity
+        );
+        let inputs = serde_json::to_string(&dataset.catalog.cases).unwrap();
+        for gold in [
+            "evidence_alternatives",
+            "required_unknowns",
+            "evaluation_only_canary",
+        ] {
+            assert!(!inputs.contains(gold));
+        }
+    }
+
+    #[test]
+    fn strengthened_freeze_rejects_changed_reference_bytes_and_wrong_names() {
+        for (name, text) in [
+            ("questions.json", STRENGTHENED_QUESTIONS),
+            ("expectations.json", STRENGTHENED_EXPECTATIONS),
+            ("reference-details.json", STRENGTHENED_DETAILS),
+            ("presentation-selection.json", STRENGTHENED_SELECTION),
+        ] {
+            verify_ten_source_artifact(STRENGTHENED_ID, name, text).unwrap();
+            assert!(
+                verify_ten_source_artifact(STRENGTHENED_ID, name, &format!("{text}\n")).is_err()
+            );
+            assert!(verify_ten_source_artifact(STRENGTHENED_ID, "other.json", text).is_err());
+            assert!(verify_ten_source_artifact(EXPANDED_ID, name, text).is_err());
+        }
+    }
 
     #[test]
     fn expanded_freeze_rejects_mutated_artifact_bytes_and_wrong_names() {

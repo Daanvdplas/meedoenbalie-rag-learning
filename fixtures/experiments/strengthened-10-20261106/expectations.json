@@ -1,0 +1,459 @@
+{
+  "schema_version": "1",
+  "dataset_version": "strengthened-10-20261106-v1",
+  "questions_sha256": "1c1d224c864a442d1c01de2ebb742a0b8622a378e3bc032be0fd6c05677f3b66",
+  "evaluation_only_canary": "strengthened-10-20261106-evaluation-only",
+  "review_note": "Minimal sufficient source combinations only; all valid complete alternatives retained. Relevance labels are not exhaustive; generated-answer correctness is unassessed. Independent source review and freeze precede all new model measurements.",
+  "cases": [
+    {
+      "case_id": "RAG26-01",
+      "facts": [
+        {
+          "id": "rag26-01-sources",
+          "description": "Tijd en locatie uit twee stukjes samenbrengen.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S3"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Historische aantallen als bevestiging van actuele vrije plaatsen presenteren."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S3"
+        }
+      ]
+    },
+    {
+      "case_id": "RAG26-02",
+      "facts": [
+        {
+          "id": "rag26-02-sources",
+          "description": "Alle passende activiteiten vinden, ook het nieuwe atelier.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TUIN-001",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-MAAK-006",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Historische aantallen als bevestiging van actuele vrije plaatsen presenteren."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-MAAK-006",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-TUIN-001",
+          "section_id": "S2"
+        }
+      ]
+    },
+    {
+      "case_id": "RAG26-03",
+      "facts": [
+        {
+          "id": "rag26-03-sources",
+          "description": "Een volledig juiste optie accepteren; geen tijden en locaties door elkaar halen.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-FIETS-002",
+                "section_id": "S3"
+              }
+            ],
+            [
+              {
+                "source_id": "ACT-MAAK-006",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-MAAK-006",
+                "section_id": "S3"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Historische aantallen als bevestiging van actuele vrije plaatsen presenteren."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-FIETS-002",
+          "section_id": "S3"
+        },
+        {
+          "source_id": "ACT-MAAK-006",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-MAAK-006",
+          "section_id": "S3"
+        }
+      ]
+    },
+    {
+      "case_id": "RAG26-04",
+      "facts": [
+        {
+          "id": "rag26-04-sources",
+          "description": "Twee activiteiten vinden en hun verschillende adressen uit elkaar houden.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-WANDEL-005",
+                "section_id": "S3"
+              },
+              {
+                "source_id": "ACT-PARK-007",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-PARK-007",
+                "section_id": "S3"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Historische aantallen als bevestiging van actuele vrije plaatsen presenteren."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-PARK-007",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-PARK-007",
+          "section_id": "S3"
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-WANDEL-005",
+          "section_id": "S3"
+        }
+      ]
+    },
+    {
+      "case_id": "RAG26-05",
+      "facts": [
+        {
+          "id": "rag26-05-sources",
+          "description": "Taalvoorwaarden vergelijken en de B1-eis alleen op voorlezen toepassen.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-TAAL-003",
+                "section_id": "S1"
+              },
+              {
+                "source_id": "ACT-TAAL-003",
+                "section_id": "S4"
+              },
+              {
+                "source_id": "ACT-BIEB-008",
+                "section_id": "S4"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Historische aantallen als bevestiging van actuele vrije plaatsen presenteren."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-BIEB-008",
+          "section_id": "S4"
+        },
+        {
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S1"
+        },
+        {
+          "source_id": "ACT-TAAL-003",
+          "section_id": "S4"
+        }
+      ]
+    },
+    {
+      "case_id": "RAG26-06",
+      "facts": [
+        {
+          "id": "rag26-06-sources",
+          "description": "Een Engelse vraag beantwoorden met Nederlandse bronnen over ervaring, materiaal, tijd en begeleiding.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-MUZIEK-009",
+                "section_id": "S1"
+              },
+              {
+                "source_id": "ACT-MUZIEK-009",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-MUZIEK-009",
+                "section_id": "S4"
+              },
+              {
+                "source_id": "ACT-MUZIEK-009",
+                "section_id": "S5"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Historische aantallen als bevestiging van actuele vrije plaatsen presenteren."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-MUZIEK-009",
+          "section_id": "S1"
+        },
+        {
+          "source_id": "ACT-MUZIEK-009",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-MUZIEK-009",
+          "section_id": "S4"
+        },
+        {
+          "source_id": "ACT-MUZIEK-009",
+          "section_id": "S5"
+        }
+      ]
+    },
+    {
+      "case_id": "RAG26-07",
+      "facts": [
+        {
+          "id": "rag26-07-sources",
+          "description": "Praktische voorwaarden combineren en de computerruimte van de fietsenwerkplaats onderscheiden.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-DIGI-010",
+                "section_id": "S3"
+              },
+              {
+                "source_id": "ACT-DIGI-010",
+                "section_id": "S4"
+              },
+              {
+                "source_id": "ACT-DIGI-010",
+                "section_id": "S5"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Historische aantallen als bevestiging van actuele vrije plaatsen presenteren."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-DIGI-010",
+          "section_id": "S3"
+        },
+        {
+          "source_id": "ACT-DIGI-010",
+          "section_id": "S4"
+        },
+        {
+          "source_id": "ACT-DIGI-010",
+          "section_id": "S5"
+        }
+      ]
+    },
+    {
+      "case_id": "RAG26-08",
+      "facts": [
+        {
+          "id": "rag26-08-sources",
+          "description": "Een afgebakende negatieve uitkomst onderbouwen met de twee genoemde roosters.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-MUZIEK-009",
+                "section_id": "S2"
+              },
+              {
+                "source_id": "ACT-DIGI-010",
+                "section_id": "S2"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Historische aantallen als bevestiging van actuele vrije plaatsen presenteren."
+      ],
+      "required_unknowns": [],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-DIGI-010",
+          "section_id": "S2"
+        },
+        {
+          "source_id": "ACT-MUZIEK-009",
+          "section_id": "S2"
+        }
+      ]
+    },
+    {
+      "case_id": "RAG26-09",
+      "facts": [
+        {
+          "id": "rag26-09-sources",
+          "description": "Ontbrekende informatie herkennen en aanwezige materialen vinden.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-KOKEN-004",
+                "section_id": "S5"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Historische aantallen als bevestiging van actuele vrije plaatsen presenteren."
+      ],
+      "required_unknowns": [
+        "De bron bevestigt niet dat sesam vermeden kan worden."
+      ],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-KOKEN-004",
+          "section_id": "S5"
+        }
+      ]
+    },
+    {
+      "case_id": "RAG26-10",
+      "facts": [
+        {
+          "id": "rag26-10-sources",
+          "description": "Een recente brondatum onderscheiden van een oude telling van vrije plekken.",
+          "kind": "fact",
+          "evidence_alternatives": [
+            [
+              {
+                "source_id": "ACT-PARK-007",
+                "section_id": "S6"
+              },
+              {
+                "source_id": "ACT-DIGI-010",
+                "section_id": "S6"
+              }
+            ]
+          ]
+        }
+      ],
+      "conditions": [],
+      "forbidden_claims": [
+        "Historische aantallen als bevestiging van actuele vrije plaatsen presenteren."
+      ],
+      "required_unknowns": [
+        "Historische aantallen bevestigen geen actuele beschikbaarheid op 5 november 2026."
+      ],
+      "relevance_labels_complete": false,
+      "relevant_sections": [
+        {
+          "source_id": "ACT-DIGI-010",
+          "section_id": "S6"
+        },
+        {
+          "source_id": "ACT-PARK-007",
+          "section_id": "S6"
+        }
+      ]
+    }
+  ]
+}

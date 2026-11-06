@@ -36,6 +36,11 @@ impl ExpectationsContext {
                 vec![dataset::EXPANDED_QUESTIONS],
                 vec![dataset::EXPANDED_EXPECTATIONS],
             )
+        } else if id == dataset::STRENGTHENED_ID {
+            (
+                vec![dataset::STRENGTHENED_QUESTIONS],
+                vec![dataset::STRENGTHENED_EXPECTATIONS],
+            )
         } else {
             (
                 vec![dataset::INDEPENDENT_QUESTIONS],
@@ -56,17 +61,16 @@ impl ExpectationsContext {
         if id != "legacy" {
             let details = if id == dataset::EXPANDED_ID {
                 dataset::EXPANDED_DETAILS
+            } else if id == dataset::STRENGTHENED_ID {
+                dataset::STRENGTHENED_DETAILS
             } else {
                 include_str!(
                     "../../fixtures/experiments/independent-20261103/reference-details.json"
                 )
             };
-            if id == dataset::EXPANDED_ID {
-                dataset::verify_expanded_artifact(
-                    "expectations.json",
-                    dataset::EXPANDED_EXPECTATIONS,
-                )?;
-                dataset::verify_expanded_artifact("reference-details.json", details)?;
+            if dataset::ten_source_dataset_id(id).is_some() {
+                dataset::verify_ten_source_artifact(id, "expectations.json", labels[0])?;
+                dataset::verify_ten_source_artifact(id, "reference-details.json", details)?;
             } else {
                 let frozen: serde_json::Value =
                     serde_json::from_str(dataset::FROZEN).map_err(|e| e.to_string())?;
@@ -165,6 +169,30 @@ mod tests {
         assessment::{self, AssessmentKind},
         types::StoredRecord,
     };
+
+    #[test]
+    fn strengthened_references_preserve_complete_alternatives_and_unknowns() {
+        let context = ExpectationsContext::load(dataset::STRENGTHENED_ID).unwrap();
+        assert_eq!(context.criteria.len(), 10);
+        let alternatives = &context.criteria["RAG26-03"].facts[0].evidence_alternatives;
+        assert_eq!(alternatives.len(), 2);
+        for alternative in alternatives {
+            assert_eq!(alternative.len(), 2);
+            assert_eq!(alternative[0].source_id, alternative[1].source_id);
+        }
+        assert!(!context.criteria["RAG26-09"].required_unknowns.is_empty());
+        assert_eq!(
+            context.metadata["RAG26-08"]
+                .fact_roles
+                .values()
+                .next()
+                .unwrap(),
+            "exclusion"
+        );
+        for case in context.criteria.values() {
+            assert!(!case.relevance_labels_complete);
+        }
+    }
 
     #[test]
     fn expanded_references_are_separate_and_reject_historical_retrieval_records() {

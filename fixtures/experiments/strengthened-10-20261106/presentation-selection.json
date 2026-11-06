@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "selection_id": "strengthened-10-20261106-ten-cases-v1",
+  "cases": [
+    {
+      "dataset_id": "strengthened-10-20261106",
+      "case_id": "RAG26-01"
+    },
+    {
+      "dataset_id": "strengthened-10-20261106",
+      "case_id": "RAG26-02"
+    },
+    {
+      "dataset_id": "strengthened-10-20261106",
+      "case_id": "RAG26-03"
+    },
+    {
+      "dataset_id": "strengthened-10-20261106",
+      "case_id": "RAG26-04"
+    },
+    {
+      "dataset_id": "strengthened-10-20261106",
+      "case_id": "RAG26-05"
+    },
+    {
+      "dataset_id": "strengthened-10-20261106",
+      "case_id": "RAG26-06"
+    },
+    {
+      "dataset_id": "strengthened-10-20261106",
+      "case_id": "RAG26-07"
+    },
+    {
+      "dataset_id": "strengthened-10-20261106",
+      "case_id": "RAG26-08"
+    },
+    {
+      "dataset_id": "strengthened-10-20261106",
+      "case_id": "RAG26-09"
+    },
+    {
+      "dataset_id": "strengthened-10-20261106",
+      "case_id": "RAG26-10"
+    }
+  ]
+}
