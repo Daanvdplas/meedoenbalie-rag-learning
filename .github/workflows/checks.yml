@@ -34,5 +34,5 @@ jobs:
         run: cargo +1.94.1 test --locked ${{ matrix.flags }}
       - name: Build
         run: cargo +1.94.1 build --locked ${{ matrix.flags }}
-      - name: Model trial budget and orchestration checks (no model calls)
-        run: python3 -m unittest discover -s scripts -p 'test_model_trials.py'
+      - name: Python budget and public-export checks (no model calls)
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
