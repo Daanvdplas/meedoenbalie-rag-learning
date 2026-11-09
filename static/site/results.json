@@ -1,0 +1,2657 @@
+{
+  "schema_version": 1,
+  "evidence_manifest_sha256": "c1385fc9aac9d6c59671971cc8a09e14d9628bc131dc75e26ca20800579e1157",
+  "dataset": "strengthened-10-20261106",
+  "measured_date": "2026-11-06",
+  "source_date": "2026-11-05",
+  "corpus_sha256": "757595a36d23b2ef73baaccbff37941cf0e956fe7ebcaf55efbe110960e8e00f",
+  "method": "dense",
+  "method_label": "Op betekenis",
+  "repetitions": 3,
+  "answer_quality": "not_assessed",
+  "historical_aborted_attempts": 6,
+  "models": [
+    {
+      "id": "gpt-6.1-sol",
+      "label": "Sol",
+      "attempts": 30,
+      "complete": 26,
+      "actions": 71,
+      "always_complete": 8
+    },
+    {
+      "id": "gpt-6-luna",
+      "label": "Luna",
+      "attempts": 30,
+      "complete": 18,
+      "actions": 61,
+      "always_complete": 5
+    }
+  ],
+  "documents": [
+    {
+      "id": "ACT-TUIN-001",
+      "title": "Tuinieren",
+      "date": "2026-10-20",
+      "preamble": "Alle namen, gegevens en datums hieronder zijn verzonnen. Dit is geen bestaand COA-aanbod. De brondatum bevestigt geen actuele beschikbaarheid.",
+      "sections": [
+        "ACT-TUIN-001:S1",
+        "ACT-TUIN-001:S2",
+        "ACT-TUIN-001:S3",
+        "ACT-TUIN-001:S4",
+        "ACT-TUIN-001:S5",
+        "ACT-TUIN-001:S6"
+      ]
+    },
+    {
+      "id": "ACT-FIETS-002",
+      "title": "Fietsen opknappen",
+      "date": "2026-10-18",
+      "preamble": "Dit document en alle genoemde locaties zijn verzonnen. Referentiedatum: 2026-10-20.",
+      "sections": [
+        "ACT-FIETS-002:S1",
+        "ACT-FIETS-002:S2",
+        "ACT-FIETS-002:S3",
+        "ACT-FIETS-002:S4",
+        "ACT-FIETS-002:S5",
+        "ACT-FIETS-002:S6"
+      ]
+    },
+    {
+      "id": "ACT-TAAL-003",
+      "title": "Taalcafé",
+      "date": "2026-10-19",
+      "preamble": "Dit document en alle genoemde locaties zijn verzonnen. Referentiedatum: 2026-10-20.",
+      "sections": [
+        "ACT-TAAL-003:S1",
+        "ACT-TAAL-003:S2",
+        "ACT-TAAL-003:S3",
+        "ACT-TAAL-003:S4",
+        "ACT-TAAL-003:S5",
+        "ACT-TAAL-003:S6"
+      ]
+    },
+    {
+      "id": "ACT-KOKEN-004",
+      "title": "Samen koken",
+      "date": "2026-10-17",
+      "preamble": "Dit document en alle genoemde locaties zijn verzonnen. Referentiedatum: 2026-10-20.",
+      "sections": [
+        "ACT-KOKEN-004:S1",
+        "ACT-KOKEN-004:S2",
+        "ACT-KOKEN-004:S3",
+        "ACT-KOKEN-004:S4",
+        "ACT-KOKEN-004:S5",
+        "ACT-KOKEN-004:S6"
+      ]
+    },
+    {
+      "id": "ACT-WANDEL-005",
+      "title": "Wandelen",
+      "date": "2026-10-20",
+      "preamble": "Dit document en alle genoemde locaties zijn verzonnen. Referentiedatum: 2026-10-20.",
+      "sections": [
+        "ACT-WANDEL-005:S1",
+        "ACT-WANDEL-005:S2",
+        "ACT-WANDEL-005:S3",
+        "ACT-WANDEL-005:S4",
+        "ACT-WANDEL-005:S5",
+        "ACT-WANDEL-005:S6"
+      ]
+    },
+    {
+      "id": "ACT-MAAK-006",
+      "title": "Creatief atelier",
+      "date": "2026-11-05",
+      "preamble": "Dit document en alle genoemde locaties zijn verzonnen. Dit is geen bestaand COA-aanbod. Referentiedatum: 2026-11-05.",
+      "sections": [
+        "ACT-MAAK-006:S1",
+        "ACT-MAAK-006:S2",
+        "ACT-MAAK-006:S3",
+        "ACT-MAAK-006:S4",
+        "ACT-MAAK-006:S5",
+        "ACT-MAAK-006:S6"
+      ]
+    },
+    {
+      "id": "ACT-PARK-007",
+      "title": "Parkonderhoud",
+      "date": "2026-11-05",
+      "preamble": "Dit document en alle genoemde locaties zijn verzonnen. Dit is geen bestaand COA-aanbod. Referentiedatum: 2026-11-05.",
+      "sections": [
+        "ACT-PARK-007:S1",
+        "ACT-PARK-007:S2",
+        "ACT-PARK-007:S3",
+        "ACT-PARK-007:S4",
+        "ACT-PARK-007:S5",
+        "ACT-PARK-007:S6"
+      ]
+    },
+    {
+      "id": "ACT-BIEB-008",
+      "title": "Buurtbibliotheek",
+      "date": "2026-11-05",
+      "preamble": "Dit document en alle genoemde locaties zijn verzonnen. Dit is geen bestaand COA-aanbod. Referentiedatum: 2026-11-05.",
+      "sections": [
+        "ACT-BIEB-008:S1",
+        "ACT-BIEB-008:S2",
+        "ACT-BIEB-008:S3",
+        "ACT-BIEB-008:S4",
+        "ACT-BIEB-008:S5",
+        "ACT-BIEB-008:S6"
+      ]
+    },
+    {
+      "id": "ACT-MUZIEK-009",
+      "title": "Muziekgroep",
+      "date": "2026-11-05",
+      "preamble": "Dit document en alle genoemde locaties zijn verzonnen. Dit is geen bestaand COA-aanbod. Referentiedatum: 2026-11-05.",
+      "sections": [
+        "ACT-MUZIEK-009:S1",
+        "ACT-MUZIEK-009:S2",
+        "ACT-MUZIEK-009:S3",
+        "ACT-MUZIEK-009:S4",
+        "ACT-MUZIEK-009:S5",
+        "ACT-MUZIEK-009:S6"
+      ]
+    },
+    {
+      "id": "ACT-DIGI-010",
+      "title": "Digitale hulp",
+      "date": "2026-11-05",
+      "preamble": "Dit document en alle genoemde locaties zijn verzonnen. Dit is geen bestaand COA-aanbod. Referentiedatum: 2026-11-05.",
+      "sections": [
+        "ACT-DIGI-010:S1",
+        "ACT-DIGI-010:S2",
+        "ACT-DIGI-010:S3",
+        "ACT-DIGI-010:S4",
+        "ACT-DIGI-010:S5",
+        "ACT-DIGI-010:S6"
+      ]
+    }
+  ],
+  "sources": {
+    "ACT-TUIN-001:S1": {
+      "source_id": "ACT-TUIN-001",
+      "source_title": "Tuinieren",
+      "source_date": "2026-10-20",
+      "id": "S1",
+      "heading": "Wat doen we?",
+      "text": "We verzorgen samen groenten en bloemen in de buurttuin. Je werkt buiten met je handen. Ervaring met tuinieren is niet nodig."
+    },
+    "ACT-TUIN-001:S2": {
+      "source_id": "ACT-TUIN-001",
+      "source_title": "Tuinieren",
+      "source_date": "2026-10-20",
+      "id": "S2",
+      "heading": "Wanneer?",
+      "text": "Iedere dinsdag van 10.00 tot 12.00 uur."
+    },
+    "ACT-TUIN-001:S3": {
+      "source_id": "ACT-TUIN-001",
+      "source_title": "Tuinieren",
+      "source_date": "2026-10-20",
+      "id": "S3",
+      "heading": "Waar?",
+      "text": "Buurttuin De Linde, achter het fictieve buurthuis aan de Lindenlaan 12 in het fictieve Lindedorp."
+    },
+    "ACT-TUIN-001:S4": {
+      "source_id": "ACT-TUIN-001",
+      "source_title": "Tuinieren",
+      "source_date": "2026-10-20",
+      "id": "S4",
+      "heading": "Taal en hulp",
+      "text": "De begeleider spreekt eenvoudig Nederlands en doet het werk eerst voor. Je hoeft niet goed Nederlands te spreken. De begeleider is tijdens de activiteit aanwezig."
+    },
+    "ACT-TUIN-001:S5": {
+      "source_id": "ACT-TUIN-001",
+      "source_title": "Tuinieren",
+      "source_date": "2026-10-20",
+      "id": "S5",
+      "heading": "Wat neem je mee?",
+      "text": "Trek stevige schoenen aan. Handschoenen en tuingereedschap zijn aanwezig. Deelname kost niets en is vrijwillig."
+    },
+    "ACT-TUIN-001:S6": {
+      "source_id": "ACT-TUIN-001",
+      "source_title": "Tuinieren",
+      "source_date": "2026-10-20",
+      "id": "S6",
+      "heading": "Beschikbaarheid",
+      "text": "Op 2026-09-01 waren er twee vrije plekken. Sindsdien is het aantal plekken niet opnieuw gecontroleerd."
+    },
+    "ACT-FIETS-002:S1": {
+      "source_id": "ACT-FIETS-002",
+      "source_title": "Fietsen opknappen",
+      "source_date": "2026-10-18",
+      "id": "S1",
+      "heading": "Wat doen we?",
+      "text": "We knappen samen oude fietsen op in de werkplaats. Je helpt met banden plakken, fietsen schoonmaken en eenvoudige reparaties. Dit is een vrijwillige activiteit, geen betaalde baan. Je hoeft geen ervaring met fietsreparatie te hebben."
+    },
+    "ACT-FIETS-002:S2": {
+      "source_id": "ACT-FIETS-002",
+      "source_title": "Fietsen opknappen",
+      "source_date": "2026-10-18",
+      "id": "S2",
+      "heading": "Wanneer?",
+      "text": "Iedere dinsdag van 14.00 tot 16.00 uur."
+    },
+    "ACT-FIETS-002:S3": {
+      "source_id": "ACT-FIETS-002",
+      "source_title": "Fietsen opknappen",
+      "source_date": "2026-10-18",
+      "id": "S3",
+      "heading": "Waar?",
+      "text": "Werkplaats De Werkbank, in het fictieve wijkgebouw aan de Esdoornstraat 8 in het fictieve Lindedorp. We werken binnen."
+    },
+    "ACT-FIETS-002:S4": {
+      "source_id": "ACT-FIETS-002",
+      "source_title": "Fietsen opknappen",
+      "source_date": "2026-10-18",
+      "id": "S4",
+      "heading": "Taal en hulp",
+      "text": "Een begeleider laat iedere reparatie stap voor stap zien en helpt tijdens de activiteit. Eenvoudig Nederlands is voldoende. Er is geen informatie over ondersteuning in andere talen."
+    },
+    "ACT-FIETS-002:S5": {
+      "source_id": "ACT-FIETS-002",
+      "source_title": "Fietsen opknappen",
+      "source_date": "2026-10-18",
+      "id": "S5",
+      "heading": "Kosten en materiaal",
+      "text": "Deelname is gratis en vrijwillig. Gereedschap en reparatiemateriaal zijn aanwezig. Trek kleding aan die vies mag worden."
+    },
+    "ACT-FIETS-002:S6": {
+      "source_id": "ACT-FIETS-002",
+      "source_title": "Fietsen opknappen",
+      "source_date": "2026-10-18",
+      "id": "S6",
+      "heading": "Beschikbaarheid",
+      "text": "Op 2026-10-18 waren er drie vrije plekken. Er is geen recentere controle vastgelegd. De actuele beschikbaarheid op 2026-10-20 is onbekend. Vervoer naar de werkplaats is niet beschreven."
+    },
+    "ACT-TAAL-003:S1": {
+      "source_id": "ACT-TAAL-003",
+      "source_title": "Taalcafé",
+      "source_date": "2026-10-19",
+      "id": "S1",
+      "heading": "Wat doen we?",
+      "text": "We oefenen Nederlands door samen te praten over dagelijkse onderwerpen en korte taalspelletjes te doen. Dit is een vrijwillige activiteit, geen betaalde baan. Je mag meedoen als je nog weinig Nederlands spreekt."
+    },
+    "ACT-TAAL-003:S2": {
+      "source_id": "ACT-TAAL-003",
+      "source_title": "Taalcafé",
+      "source_date": "2026-10-19",
+      "id": "S2",
+      "heading": "Wanneer?",
+      "text": "Iedere woensdag van 14.00 tot 15.30 uur."
+    },
+    "ACT-TAAL-003:S3": {
+      "source_id": "ACT-TAAL-003",
+      "source_title": "Taalcafé",
+      "source_date": "2026-10-19",
+      "id": "S3",
+      "heading": "Waar?",
+      "text": "Leeszaal Het Woordhuis, aan de fictieve Kastanjelaan 4 in het fictieve Lindedorp. We zitten binnen aan een grote tafel."
+    },
+    "ACT-TAAL-003:S4": {
+      "source_id": "ACT-TAAL-003",
+      "source_title": "Taalcafé",
+      "source_date": "2026-10-19",
+      "id": "S4",
+      "heading": "Taal en hulp",
+      "text": "Een taalvrijwilliger begeleidt de gesprekken en legt woorden eenvoudig uit. Er is geen informatie over ondersteuning in andere talen."
+    },
+    "ACT-TAAL-003:S5": {
+      "source_id": "ACT-TAAL-003",
+      "source_title": "Taalcafé",
+      "source_date": "2026-10-19",
+      "id": "S5",
+      "heading": "Kosten en materiaal",
+      "text": "Deelname is gratis. Kaartjes, papier en pennen zijn aanwezig. Je hoeft zelf niets mee te nemen."
+    },
+    "ACT-TAAL-003:S6": {
+      "source_id": "ACT-TAAL-003",
+      "source_title": "Taalcafé",
+      "source_date": "2026-10-19",
+      "id": "S6",
+      "heading": "Beschikbaarheid",
+      "text": "De actuele beschikbaarheid op 2026-10-20 is niet vastgelegd. Vervoer naar het taalcafé is niet beschreven."
+    },
+    "ACT-KOKEN-004:S1": {
+      "source_id": "ACT-KOKEN-004",
+      "source_title": "Samen koken",
+      "source_date": "2026-10-17",
+      "id": "S1",
+      "heading": "Wat doen we?",
+      "text": "We maken samen een eenvoudige groentemaaltijd en ruimen de keuken op. Je helpt met wassen, snijden en tafeldekken. Kookervaring is niet nodig. Dit is een vrijwillige activiteit, geen betaalde baan."
+    },
+    "ACT-KOKEN-004:S2": {
+      "source_id": "ACT-KOKEN-004",
+      "source_title": "Samen koken",
+      "source_date": "2026-10-17",
+      "id": "S2",
+      "heading": "Wanneer?",
+      "text": "Iedere vrijdag van 11.00 tot 13.00 uur."
+    },
+    "ACT-KOKEN-004:S3": {
+      "source_id": "ACT-KOKEN-004",
+      "source_title": "Samen koken",
+      "source_date": "2026-10-17",
+      "id": "S3",
+      "heading": "Waar?",
+      "text": "De oefenkeuken van buurthuis De Pan, aan de fictieve Beukenstraat 6 in het fictieve Lindedorp. We werken binnen."
+    },
+    "ACT-KOKEN-004:S4": {
+      "source_id": "ACT-KOKEN-004",
+      "source_title": "Samen koken",
+      "source_date": "2026-10-17",
+      "id": "S4",
+      "heading": "Taal en hulp",
+      "text": "Een begeleider geeft uitleg in eenvoudig Nederlands en laat de stappen zien. Je kunt tijdens het koken hulp vragen."
+    },
+    "ACT-KOKEN-004:S5": {
+      "source_id": "ACT-KOKEN-004",
+      "source_title": "Samen koken",
+      "source_date": "2026-10-17",
+      "id": "S5",
+      "heading": "Kosten en materiaal",
+      "text": "Deelname is gratis. Ingrediënten, schorten en keukengerei zijn aanwezig. Informatie over allergenen en alternatieve diëten ontbreekt."
+    },
+    "ACT-KOKEN-004:S6": {
+      "source_id": "ACT-KOKEN-004",
+      "source_title": "Samen koken",
+      "source_date": "2026-10-17",
+      "id": "S6",
+      "heading": "Beschikbaarheid",
+      "text": "De actuele beschikbaarheid op 2026-10-20 is niet vastgelegd. Vervoer naar de keuken is niet beschreven."
+    },
+    "ACT-WANDEL-005:S1": {
+      "source_id": "ACT-WANDEL-005",
+      "source_title": "Wandelen",
+      "source_date": "2026-10-20",
+      "id": "S1",
+      "heading": "Wat doen we?",
+      "text": "We maken samen een rustige wandeling van ongeveer één kilometer door het park. Onderweg is er tijd om te praten. Dit is een vrijwillige activiteit, geen betaalde baan."
+    },
+    "ACT-WANDEL-005:S2": {
+      "source_id": "ACT-WANDEL-005",
+      "source_title": "Wandelen",
+      "source_date": "2026-10-20",
+      "id": "S2",
+      "heading": "Wanneer?",
+      "text": "Iedere donderdag van 9.30 tot 10.30 uur."
+    },
+    "ACT-WANDEL-005:S3": {
+      "source_id": "ACT-WANDEL-005",
+      "source_title": "Wandelen",
+      "source_date": "2026-10-20",
+      "id": "S3",
+      "heading": "Waar?",
+      "text": "We verzamelen bij de ingang van het fictieve Park De Wilg, aan het fictieve Iepenpad 2 in het fictieve Lindedorp. De wandeling is buiten."
+    },
+    "ACT-WANDEL-005:S4": {
+      "source_id": "ACT-WANDEL-005",
+      "source_title": "Wandelen",
+      "source_date": "2026-10-20",
+      "id": "S4",
+      "heading": "Taal en hulp",
+      "text": "Een wandelvrijwilliger loopt met de groep mee. Goed Nederlands spreken is niet nodig. De toegankelijkheid van de route voor rolstoelen is niet beschreven."
+    },
+    "ACT-WANDEL-005:S5": {
+      "source_id": "ACT-WANDEL-005",
+      "source_title": "Wandelen",
+      "source_date": "2026-10-20",
+      "id": "S5",
+      "heading": "Kosten en materiaal",
+      "text": "Deelname is gratis. Trek schoenen aan waarop je prettig kunt lopen en neem zelf water mee."
+    },
+    "ACT-WANDEL-005:S6": {
+      "source_id": "ACT-WANDEL-005",
+      "source_title": "Wandelen",
+      "source_date": "2026-10-20",
+      "id": "S6",
+      "heading": "Beschikbaarheid",
+      "text": "De actuele beschikbaarheid op 2026-10-20 is niet vastgelegd. Vervoer naar het park is niet beschreven."
+    },
+    "ACT-MAAK-006:S1": {
+      "source_id": "ACT-MAAK-006",
+      "source_title": "Creatief atelier",
+      "source_date": "2026-11-05",
+      "id": "S1",
+      "heading": "Wat doen we?",
+      "text": "We maken samen kaarten, eenvoudige schilderijen en kleine werkstukken van papier. Je kiest zelf wat je maakt. Ervaring met tekenen is niet nodig. Dit is een vrijwillige activiteit, geen betaalde baan."
+    },
+    "ACT-MAAK-006:S2": {
+      "source_id": "ACT-MAAK-006",
+      "source_title": "Creatief atelier",
+      "source_date": "2026-11-05",
+      "id": "S2",
+      "heading": "Wanneer?",
+      "text": "Iedere dinsdag van 13.00 tot 15.00 uur."
+    },
+    "ACT-MAAK-006:S3": {
+      "source_id": "ACT-MAAK-006",
+      "source_title": "Creatief atelier",
+      "source_date": "2026-11-05",
+      "id": "S3",
+      "heading": "Waar?",
+      "text": "Atelier De Kleurkamer, aan de fictieve Berkenstraat 14 in het fictieve Lindedorp. We werken binnen."
+    },
+    "ACT-MAAK-006:S4": {
+      "source_id": "ACT-MAAK-006",
+      "source_title": "Creatief atelier",
+      "source_date": "2026-11-05",
+      "id": "S4",
+      "heading": "Taal en hulp",
+      "text": "Een creatieve vrijwilliger doet iedere opdracht voor en helpt tijdens het maken. We gebruiken eenvoudig Nederlands. Je hoeft niet goed Nederlands te spreken."
+    },
+    "ACT-MAAK-006:S5": {
+      "source_id": "ACT-MAAK-006",
+      "source_title": "Creatief atelier",
+      "source_date": "2026-11-05",
+      "id": "S5",
+      "heading": "Kosten en materiaal",
+      "text": "Deelname is gratis. Papier, verf, scharen en lijm zijn aanwezig. Trek kleding aan die vies mag worden. Je hoeft zelf geen materiaal mee te nemen."
+    },
+    "ACT-MAAK-006:S6": {
+      "source_id": "ACT-MAAK-006",
+      "source_title": "Creatief atelier",
+      "source_date": "2026-11-05",
+      "id": "S6",
+      "heading": "Beschikbaarheid",
+      "text": "Het aantal vrije plekken op 2026-11-05 is niet vastgelegd. De brondatum bevestigt dus niet dat je meteen kunt aansluiten. Vervoer naar het atelier is niet beschreven."
+    },
+    "ACT-PARK-007:S1": {
+      "source_id": "ACT-PARK-007",
+      "source_title": "Parkonderhoud",
+      "source_date": "2026-11-05",
+      "id": "S1",
+      "heading": "Wat doen we?",
+      "text": "We verzorgen planten en verzamelen zwerfafval in het park. Je werkt in de natuur met je handen. Ervaring met groenonderhoud is niet nodig. Dit is een vrijwillige activiteit, geen betaalde baan."
+    },
+    "ACT-PARK-007:S2": {
+      "source_id": "ACT-PARK-007",
+      "source_title": "Parkonderhoud",
+      "source_date": "2026-11-05",
+      "id": "S2",
+      "heading": "Wanneer?",
+      "text": "Iedere vrijdag van 10.00 tot 12.00 uur."
+    },
+    "ACT-PARK-007:S3": {
+      "source_id": "ACT-PARK-007",
+      "source_title": "Parkonderhoud",
+      "source_date": "2026-11-05",
+      "id": "S3",
+      "heading": "Waar?",
+      "text": "We verzamelen bij het fictieve gereedschapshuis van Park De Wilg, aan het fictieve Iepenpad 12 in het fictieve Lindedorp. We werken buiten."
+    },
+    "ACT-PARK-007:S4": {
+      "source_id": "ACT-PARK-007",
+      "source_title": "Parkonderhoud",
+      "source_date": "2026-11-05",
+      "id": "S4",
+      "heading": "Taal en hulp",
+      "text": "Een parkvrijwilliger laat het werk eerst zien en blijft tijdens de activiteit aanwezig. Eenvoudig Nederlands is voldoende. Je mag rustig werken en tussendoor pauzeren."
+    },
+    "ACT-PARK-007:S5": {
+      "source_id": "ACT-PARK-007",
+      "source_title": "Parkonderhoud",
+      "source_date": "2026-11-05",
+      "id": "S5",
+      "heading": "Kosten en materiaal",
+      "text": "Deelname is gratis. Handschoenen, afvalgrijpers en tuingereedschap zijn aanwezig. Trek stevige schoenen en kleding aan die vies mag worden. Neem zelf water mee."
+    },
+    "ACT-PARK-007:S6": {
+      "source_id": "ACT-PARK-007",
+      "source_title": "Parkonderhoud",
+      "source_date": "2026-11-05",
+      "id": "S6",
+      "heading": "Beschikbaarheid",
+      "text": "Op 2026-11-04 waren er vier vrije plekken. Er is geen latere controle vastgelegd; actuele beschikbaarheid op 2026-11-05 moet nog worden nagevraagd. Wat er bij slecht weer gebeurt is niet beschreven."
+    },
+    "ACT-BIEB-008:S1": {
+      "source_id": "ACT-BIEB-008",
+      "source_title": "Buurtbibliotheek",
+      "source_date": "2026-11-05",
+      "id": "S1",
+      "heading": "Wat doen we?",
+      "text": "We zetten boeken terug en lezen korte Nederlandse verhalen voor aan bezoekers. Dit is een vrijwillige activiteit, geen betaalde baan. Het is geen taalcafé of beginnersles Nederlands."
+    },
+    "ACT-BIEB-008:S2": {
+      "source_id": "ACT-BIEB-008",
+      "source_title": "Buurtbibliotheek",
+      "source_date": "2026-11-05",
+      "id": "S2",
+      "heading": "Wanneer?",
+      "text": "Iedere woensdag van 10.00 tot 12.00 uur."
+    },
+    "ACT-BIEB-008:S3": {
+      "source_id": "ACT-BIEB-008",
+      "source_title": "Buurtbibliotheek",
+      "source_date": "2026-11-05",
+      "id": "S3",
+      "heading": "Waar?",
+      "text": "Buurtbibliotheek Het Blad, aan de fictieve Kersenstraat 18 in het fictieve Lindedorp. We werken binnen."
+    },
+    "ACT-BIEB-008:S4": {
+      "source_id": "ACT-BIEB-008",
+      "source_title": "Buurtbibliotheek",
+      "source_date": "2026-11-05",
+      "id": "S4",
+      "heading": "Taal en hulp",
+      "text": "Voor het voorlezen is Nederlands op niveau B1 nodig. Een bibliotheekvrijwilliger geeft uitleg over de taken. Er is geen individuele taalbegeleiding voor beginners vastgelegd."
+    },
+    "ACT-BIEB-008:S5": {
+      "source_id": "ACT-BIEB-008",
+      "source_title": "Buurtbibliotheek",
+      "source_date": "2026-11-05",
+      "id": "S5",
+      "heading": "Kosten en materiaal",
+      "text": "Deelname is gratis. Boeken en een indeling van de kasten zijn aanwezig. Je hoeft zelf geen materiaal mee te nemen. Er is geen ervaring met bibliotheekwerk nodig."
+    },
+    "ACT-BIEB-008:S6": {
+      "source_id": "ACT-BIEB-008",
+      "source_title": "Buurtbibliotheek",
+      "source_date": "2026-11-05",
+      "id": "S6",
+      "heading": "Beschikbaarheid",
+      "text": "Het aantal vrije plekken op 2026-11-05 is niet vastgelegd. De brondatum bevestigt geen vrije plaats. Toegankelijkheid van het gebouw en vervoer naar de bibliotheek zijn niet beschreven."
+    },
+    "ACT-MUZIEK-009:S1": {
+      "source_id": "ACT-MUZIEK-009",
+      "source_title": "Muziekgroep",
+      "source_date": "2026-11-05",
+      "id": "S1",
+      "heading": "Wat doen we?",
+      "text": "We zingen samen en maken ritmes met eenvoudige instrumenten. Je mag ook eerst luisteren. Muziekervaring of noten kunnen lezen is niet nodig. Dit is een vrijwillige activiteit, geen betaalde baan."
+    },
+    "ACT-MUZIEK-009:S2": {
+      "source_id": "ACT-MUZIEK-009",
+      "source_title": "Muziekgroep",
+      "source_date": "2026-11-05",
+      "id": "S2",
+      "heading": "Wanneer?",
+      "text": "Iedere zaterdag van 10.00 tot 11.30 uur."
+    },
+    "ACT-MUZIEK-009:S3": {
+      "source_id": "ACT-MUZIEK-009",
+      "source_title": "Muziekgroep",
+      "source_date": "2026-11-05",
+      "id": "S3",
+      "heading": "Waar?",
+      "text": "Muziekzaal De Maat, aan de fictieve Lijsterstraat 3 in het fictieve Lindedorp. We zitten binnen."
+    },
+    "ACT-MUZIEK-009:S4": {
+      "source_id": "ACT-MUZIEK-009",
+      "source_title": "Muziekgroep",
+      "source_date": "2026-11-05",
+      "id": "S4",
+      "heading": "Taal en hulp",
+      "text": "Een muziekvrijwilliger doet ritmes voor en begeleidt de groep. Goed Nederlands spreken is niet nodig. Er is geen individuele muziekles of ondersteuning in andere talen vastgelegd."
+    },
+    "ACT-MUZIEK-009:S5": {
+      "source_id": "ACT-MUZIEK-009",
+      "source_title": "Muziekgroep",
+      "source_date": "2026-11-05",
+      "id": "S5",
+      "heading": "Kosten en materiaal",
+      "text": "Deelname is gratis. Kleine trommels, ritmestokjes en liedbladen zijn aanwezig. Je hoeft zelf geen instrument mee te nemen. Het geluidsniveau is niet gemeten."
+    },
+    "ACT-MUZIEK-009:S6": {
+      "source_id": "ACT-MUZIEK-009",
+      "source_title": "Muziekgroep",
+      "source_date": "2026-11-05",
+      "id": "S6",
+      "heading": "Beschikbaarheid",
+      "text": "De actuele beschikbaarheid op 2026-11-05 is niet vastgelegd. Aanwezig materiaal betekent niet dat er vrije plaatsen zijn. Vervoer naar de muziekzaal is niet beschreven."
+    },
+    "ACT-DIGI-010:S1": {
+      "source_id": "ACT-DIGI-010",
+      "source_title": "Digitale hulp",
+      "source_date": "2026-11-05",
+      "id": "S1",
+      "heading": "Wat doen we?",
+      "text": "We oefenen met typen, een muis gebruiken en informatie zoeken op een oefenwebsite. We gebruiken verzonnen voorbeeldgegevens. Computerervaring is niet nodig. Dit is een vrijwillige activiteit, geen betaalde baan."
+    },
+    "ACT-DIGI-010:S2": {
+      "source_id": "ACT-DIGI-010",
+      "source_title": "Digitale hulp",
+      "source_date": "2026-11-05",
+      "id": "S2",
+      "heading": "Wanneer?",
+      "text": "Iedere maandag van 15.00 tot 16.00 uur."
+    },
+    "ACT-DIGI-010:S3": {
+      "source_id": "ACT-DIGI-010",
+      "source_title": "Digitale hulp",
+      "source_date": "2026-11-05",
+      "id": "S3",
+      "heading": "Waar?",
+      "text": "Computerruimte op de eerste verdieping van het fictieve wijkgebouw aan de Esdoornstraat 8 in het fictieve Lindedorp. We werken binnen."
+    },
+    "ACT-DIGI-010:S4": {
+      "source_id": "ACT-DIGI-010",
+      "source_title": "Digitale hulp",
+      "source_date": "2026-11-05",
+      "id": "S4",
+      "heading": "Taal en hulp",
+      "text": "Een digitale vrijwilliger geeft uitleg in eenvoudig Nederlands en helpt tijdens het oefenen. Je hoeft niet zelfstandig Nederlands te kunnen lezen. Persoonlijke accounts en wachtwoorden zijn niet nodig."
+    },
+    "ACT-DIGI-010:S5": {
+      "source_id": "ACT-DIGI-010",
+      "source_title": "Digitale hulp",
+      "source_date": "2026-11-05",
+      "id": "S5",
+      "heading": "Kosten en materiaal",
+      "text": "Deelname is gratis. Oefencomputers en een oefenwebsite zijn aanwezig. Je hoeft zelf geen laptop of telefoon mee te nemen. Betalingen en echte aanvragen horen niet bij deze activiteit."
+    },
+    "ACT-DIGI-010:S6": {
+      "source_id": "ACT-DIGI-010",
+      "source_title": "Digitale hulp",
+      "source_date": "2026-11-05",
+      "id": "S6",
+      "heading": "Beschikbaarheid",
+      "text": "Op 2026-10-01 was er één vrije plek. Sindsdien is het aantal plekken niet opnieuw gecontroleerd. De actuele beschikbaarheid op 2026-11-05 is onbekend. Vervoer is niet beschreven."
+    }
+  },
+  "questions": [
+    {
+      "id": "RAG26-01",
+      "question": "Waar en wanneer kan ik tuinieren?",
+      "purpose": "Tijd en locatie uit twee stukjes samenbrengen.",
+      "alternatives": [
+        [
+          "ACT-TUIN-001:S2",
+          "ACT-TUIN-001:S3"
+        ]
+      ],
+      "runs": [
+        {
+          "complete": true,
+          "actions": 4,
+          "first_complete": 4,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Waar en wanneer kan ik tuinieren?",
+              "hits": [
+                "ACT-TUIN-001:S1",
+                "ACT-PARK-007:S1",
+                "ACT-TUIN-001:S5"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Tuinieren: op welke dagen en tijden is de activiteit, en op welke locatie/buurttuin?",
+              "hits": [
+                "ACT-FIETS-002:S2",
+                "ACT-TUIN-001:S2",
+                "ACT-MAAK-006:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 3,
+              "query": "Tuinieren locatie waar buurttuin plaats adres ontmoetingsplek",
+              "hits": [
+                "ACT-WANDEL-005:S3",
+                "ACT-KOKEN-004:S3",
+                "ACT-PARK-007:S3"
+              ],
+              "complete": false
+            },
+            {
+              "index": 4,
+              "query": "Tuinieren ACT-TUIN-001 Waar locatie S3 buurttuin adres",
+              "hits": [
+                "ACT-TUIN-001:S3",
+                "ACT-MUZIEK-009:S3",
+                "ACT-DIGI-010:S3"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 1
+        },
+        {
+          "complete": false,
+          "actions": 2,
+          "first_complete": null,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Waar en wanneer kan ik tuinieren?",
+              "hits": [
+                "ACT-TUIN-001:S1",
+                "ACT-PARK-007:S1",
+                "ACT-TUIN-001:S5"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Tuinieren ACT-TUIN-001 wanneer dag tijd rooster locatie waar buurttuin adres",
+              "hits": [
+                "ACT-TUIN-001:S3",
+                "ACT-KOKEN-004:S3",
+                "ACT-TUIN-001:S1"
+              ],
+              "complete": false
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 2
+        },
+        {
+          "complete": false,
+          "actions": 4,
+          "first_complete": null,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Waar en wanneer kan ik tuinieren?",
+              "hits": [
+                "ACT-TUIN-001:S1",
+                "ACT-PARK-007:S1",
+                "ACT-TUIN-001:S5"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Tuinieren buurttuin waar vindt plaats locatie en wanneer dagen tijden rooster",
+              "hits": [
+                "ACT-TUIN-001:S1",
+                "ACT-KOKEN-004:S3",
+                "ACT-WANDEL-005:S3"
+              ],
+              "complete": false
+            },
+            {
+              "index": 3,
+              "query": "Tuinieren activiteit wanneer dagen tijd start buurttuin rooster",
+              "hits": [
+                "ACT-TUIN-001:S1",
+                "ACT-KOKEN-004:S2",
+                "ACT-FIETS-002:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 4,
+              "query": "ACT-TUIN-001 Tuinieren Waar buurttuin adres locatie wanneer S2",
+              "hits": [
+                "ACT-TUIN-001:S3",
+                "ACT-DIGI-010:S3",
+                "ACT-FIETS-002:S3"
+              ],
+              "complete": false
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 3
+        },
+        {
+          "complete": false,
+          "actions": 4,
+          "first_complete": null,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Waar en wanneer kan ik tuinieren?",
+              "hits": [
+                "ACT-TUIN-001:S1",
+                "ACT-PARK-007:S1",
+                "ACT-TUIN-001:S5"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Tuinieren waar locatie wanneer dag tijd",
+              "hits": [
+                "ACT-WANDEL-005:S3",
+                "ACT-KOKEN-004:S3",
+                "ACT-FIETS-002:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 3,
+              "query": "Wanneer werken we in de buurttuin tuinieren?",
+              "hits": [
+                "ACT-TUIN-001:S1",
+                "ACT-PARK-007:S1",
+                "ACT-KOKEN-004:S1"
+              ],
+              "complete": false
+            },
+            {
+              "index": 4,
+              "query": "Tuinieren buurttuin adres maandag dinsdag woensdag donderdag vrijdag uur",
+              "hits": [
+                "ACT-PARK-007:S2",
+                "ACT-BIEB-008:S2",
+                "ACT-TUIN-001:S2"
+              ],
+              "complete": false
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 1
+        },
+        {
+          "complete": true,
+          "actions": 4,
+          "first_complete": 4,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Waar en wanneer kan ik tuinieren?",
+              "hits": [
+                "ACT-TUIN-001:S1",
+                "ACT-PARK-007:S1",
+                "ACT-TUIN-001:S5"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Tuinieren waar locatie wanneer dag tijd beschikbare plekken",
+              "hits": [
+                "ACT-TUIN-001:S6",
+                "ACT-WANDEL-005:S3",
+                "ACT-KOKEN-004:S3"
+              ],
+              "complete": false
+            },
+            {
+              "index": 3,
+              "query": "Tuinieren buurttuin Waar Wanneer",
+              "hits": [
+                "ACT-KOKEN-004:S3",
+                "ACT-WANDEL-005:S3",
+                "ACT-TUIN-001:S3"
+              ],
+              "complete": false
+            },
+            {
+              "index": 4,
+              "query": "Tuinieren welke dag hoe laat tijdstip",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-WANDEL-005:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 2
+        },
+        {
+          "complete": true,
+          "actions": 4,
+          "first_complete": 3,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Waar en wanneer kan ik tuinieren?",
+              "hits": [
+                "ACT-TUIN-001:S1",
+                "ACT-PARK-007:S1",
+                "ACT-TUIN-001:S5"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Tuinieren waar locatie wanneer dag tijd beschikbaar plek",
+              "hits": [
+                "ACT-FIETS-002:S2",
+                "ACT-PARK-007:S2",
+                "ACT-TUIN-001:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 3,
+              "query": "Tuinieren Waar buurttuin adres verzamelen",
+              "hits": [
+                "ACT-TUIN-001:S1",
+                "ACT-TUIN-001:S3",
+                "ACT-PARK-007:S3"
+              ],
+              "complete": true
+            },
+            {
+              "index": 4,
+              "query": "Tuinieren aanmelden beschikbaarheid vrije plaatsen laatst bevestigd",
+              "hits": [
+                "ACT-MAAK-006:S6",
+                "ACT-TUIN-001:S6",
+                "ACT-FIETS-002:S6"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 3
+        }
+      ]
+    },
+    {
+      "id": "RAG26-02",
+      "question": "Welke activiteiten zijn er allemaal op dinsdag en hoe laat zijn ze?",
+      "purpose": "Alle passende activiteiten vinden, ook het nieuwe atelier.",
+      "alternatives": [
+        [
+          "ACT-TUIN-001:S2",
+          "ACT-FIETS-002:S2",
+          "ACT-MAAK-006:S2"
+        ]
+      ],
+      "runs": [
+        {
+          "complete": false,
+          "actions": 2,
+          "first_complete": null,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Welke activiteiten zijn er allemaal op dinsdag en hoe laat zijn ze?",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "activiteiten die iedere dinsdag plaatsvinden, dagen en tijden",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 1
+        },
+        {
+          "complete": false,
+          "actions": 2,
+          "first_complete": null,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Welke activiteiten zijn er allemaal op dinsdag en hoe laat zijn ze?",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "activiteiten die iedere dinsdag plaatsvinden en de bijbehorende tijden",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 2
+        },
+        {
+          "complete": true,
+          "actions": 3,
+          "first_complete": 3,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Welke activiteiten zijn er allemaal op dinsdag en hoe laat zijn ze?",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Welke andere activiteiten vinden iedere dinsdag plaats, en wat zijn de begintijd en eindtijd?",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 3,
+              "query": "Dinsdag activiteiten schema dag dinsdag tijdstip activiteitenoverzicht",
+              "hits": [
+                "ACT-FIETS-002:S2",
+                "ACT-TUIN-001:S2",
+                "ACT-MAAK-006:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 3
+        },
+        {
+          "complete": true,
+          "actions": 4,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Welke activiteiten zijn er allemaal op dinsdag en hoe laat zijn ze?",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Wanneer zijn Taalcafé, Samen koken en Wandelen? Welke dag en tijden?",
+              "hits": [
+                "ACT-TAAL-003:S2",
+                "ACT-KOKEN-004:S2",
+                "ACT-MAAK-006:S2"
+              ],
+              "complete": true
+            },
+            {
+              "index": 3,
+              "query": "Wanneer zijn Buurtbibliotheek, Muziekgroep en Digitale hulp? Dinsdag tijden",
+              "hits": [
+                "ACT-BIEB-008:S2",
+                "ACT-MUZIEK-009:S2",
+                "ACT-DIGI-010:S2"
+              ],
+              "complete": true
+            },
+            {
+              "index": 4,
+              "query": "Wandelen Wanneer welke dag en hoe laat?",
+              "hits": [
+                "ACT-WANDEL-005:S2",
+                "ACT-PARK-007:S2",
+                "ACT-TUIN-001:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 1
+        },
+        {
+          "complete": true,
+          "actions": 4,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Welke activiteiten zijn er allemaal op dinsdag en hoe laat zijn ze?",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Wanneer zijn Taalcafé, Samen koken en Wandelen? Welke dag en tijd?",
+              "hits": [
+                "ACT-TAAL-003:S2",
+                "ACT-KOKEN-004:S2",
+                "ACT-MAAK-006:S2"
+              ],
+              "complete": true
+            },
+            {
+              "index": 3,
+              "query": "Wanneer zijn Buurtbibliotheek, Muziekgroep en Digitale hulp? Dag en tijden",
+              "hits": [
+                "ACT-BIEB-008:S2",
+                "ACT-MUZIEK-009:S6",
+                "ACT-MUZIEK-009:S1"
+              ],
+              "complete": true
+            },
+            {
+              "index": 4,
+              "query": "Wandelen Muziekgroep Digitale hulp iedere dinsdag Wanneer tijd uur",
+              "hits": [
+                "ACT-MUZIEK-009:S2",
+                "ACT-DIGI-010:S2",
+                "ACT-MUZIEK-009:S1"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 2
+        },
+        {
+          "complete": true,
+          "actions": 4,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Welke activiteiten zijn er allemaal op dinsdag en hoe laat zijn ze?",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Wanneer zijn Taalcafé, Samen koken en Wandelen? Welke dagen en tijden?",
+              "hits": [
+                "ACT-TAAL-003:S2",
+                "ACT-KOKEN-004:S2",
+                "ACT-MAAK-006:S2"
+              ],
+              "complete": true
+            },
+            {
+              "index": 3,
+              "query": "Wanneer zijn Buurtbibliotheek, Muziekgroep en Digitale hulp? Dinsdag openingstijden",
+              "hits": [
+                "ACT-BIEB-008:S2",
+                "ACT-MUZIEK-009:S2",
+                "ACT-MUZIEK-009:S6"
+              ],
+              "complete": true
+            },
+            {
+              "index": 4,
+              "query": "Wandelen en Digitale hulp: wanneer, welke dag en hoe laat?",
+              "hits": [
+                "ACT-DIGI-010:S2",
+                "ACT-WANDEL-005:S2",
+                "ACT-DIGI-010:S1"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 3
+        }
+      ]
+    },
+    {
+      "id": "RAG26-03",
+      "question": "Welke activiteit kan ik op dinsdag binnen doen, hoe laat is die en waar moet ik zijn?",
+      "purpose": "Een volledig juiste optie accepteren; geen tijden en locaties door elkaar halen.",
+      "alternatives": [
+        [
+          "ACT-FIETS-002:S2",
+          "ACT-FIETS-002:S3"
+        ],
+        [
+          "ACT-MAAK-006:S2",
+          "ACT-MAAK-006:S3"
+        ]
+      ],
+      "runs": [
+        {
+          "complete": true,
+          "actions": 3,
+          "first_complete": 3,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Welke activiteit kan ik op dinsdag binnen doen, hoe laat is die en waar moet ik zijn?",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Welke activiteiten zijn op dinsdag binnen, met tijdstip en locatie?",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-MAAK-006:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 3,
+              "query": "Creatief atelier dinsdag binnen locatie waar is het?",
+              "hits": [
+                "ACT-MAAK-006:S2",
+                "ACT-MAAK-006:S3",
+                "ACT-MAAK-006:S6"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 1
+        },
+        {
+          "complete": true,
+          "actions": 3,
+          "first_complete": 3,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Welke activiteit kan ik op dinsdag binnen doen, hoe laat is die en waar moet ik zijn?",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Tuinieren activiteit dinsdag binnen of buiten locatie waar verzamelen?",
+              "hits": [
+                "ACT-FIETS-002:S2",
+                "ACT-TUIN-001:S2",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 3,
+              "query": "Fietsen opknappen dinsdag activiteit binnen werkplaats locatie adres",
+              "hits": [
+                "ACT-DIGI-010:S3",
+                "ACT-FIETS-002:S3",
+                "ACT-FIETS-002:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 2
+        },
+        {
+          "complete": true,
+          "actions": 3,
+          "first_complete": 3,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Welke activiteit kan ik op dinsdag binnen doen, hoe laat is die en waar moet ik zijn?",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Welke activiteiten zijn binnen, op dinsdag gepland, met tijd en locatie?",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-MAAK-006:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 3,
+              "query": "Locatie en binnen of buiten van Creatief atelier dinsdag 13.00-15.00 en Fietsen opknappen dinsdag 14.00-16.00",
+              "hits": [
+                "ACT-MAAK-006:S2",
+                "ACT-MAAK-006:S6",
+                "ACT-MAAK-006:S3"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 3
+        },
+        {
+          "complete": true,
+          "actions": 2,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Welke activiteit kan ik op dinsdag binnen doen, hoe laat is die en waar moet ik zijn?",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Fietsen opknappen binnen locatie waar",
+              "hits": [
+                "ACT-FIETS-002:S3",
+                "ACT-KOKEN-004:S3",
+                "ACT-BIEB-008:S3"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 1
+        },
+        {
+          "complete": true,
+          "actions": 2,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Welke activiteit kan ik op dinsdag binnen doen, hoe laat is die en waar moet ik zijn?",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Fietsen opknappen binnen locatie waar",
+              "hits": [
+                "ACT-FIETS-002:S3",
+                "ACT-KOKEN-004:S3",
+                "ACT-BIEB-008:S3"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 2
+        },
+        {
+          "complete": true,
+          "actions": 2,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Welke activiteit kan ik op dinsdag binnen doen, hoe laat is die en waar moet ik zijn?",
+              "hits": [
+                "ACT-TUIN-001:S2",
+                "ACT-FIETS-002:S2",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Fietsen opknappen binnen locatie waar",
+              "hits": [
+                "ACT-FIETS-002:S3",
+                "ACT-KOKEN-004:S3",
+                "ACT-BIEB-008:S3"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 3
+        }
+      ]
+    },
+    {
+      "id": "RAG26-04",
+      "question": "Ik wil op donderdag of vrijdag buiten iets doen. Welke activiteiten uit dit aanbod passen? Geef van elke passende activiteit het tijdstip en de exacte verzamelplek.",
+      "purpose": "Twee activiteiten vinden en hun verschillende adressen uit elkaar houden.",
+      "alternatives": [
+        [
+          "ACT-WANDEL-005:S2",
+          "ACT-WANDEL-005:S3",
+          "ACT-PARK-007:S2",
+          "ACT-PARK-007:S3"
+        ]
+      ],
+      "runs": [
+        {
+          "complete": false,
+          "actions": 4,
+          "first_complete": null,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik wil op donderdag of vrijdag buiten iets doen. Welke activiteiten uit dit aanbod passen? Geef van elke passende activiteit het tijdstip en de exacte verzamelplek.",
+              "hits": [
+                "ACT-PARK-007:S2",
+                "ACT-WANDEL-005:S2",
+                "ACT-FIETS-002:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Parkonderhoud exacte verzamelplek buiten verzamelen waar",
+              "hits": [
+                "ACT-PARK-007:S5",
+                "ACT-PARK-007:S4",
+                "ACT-PARK-007:S1"
+              ],
+              "complete": false
+            },
+            {
+              "index": 3,
+              "query": "Wandelen exacte verzamelplek waar verzamelen locatie donderdag",
+              "hits": [
+                "ACT-PARK-007:S2",
+                "ACT-WANDEL-005:S2",
+                "ACT-WANDEL-005:S1"
+              ],
+              "complete": false
+            },
+            {
+              "index": 4,
+              "query": "Wandelen Parkonderhoud waar precies afgesproken startpunt verzamelplek",
+              "hits": [
+                "ACT-PARK-007:S4",
+                "ACT-WANDEL-005:S1",
+                "ACT-WANDEL-005:S3"
+              ],
+              "complete": false
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 1
+        },
+        {
+          "complete": false,
+          "actions": 4,
+          "first_complete": null,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik wil op donderdag of vrijdag buiten iets doen. Welke activiteiten uit dit aanbod passen? Geef van elke passende activiteit het tijdstip en de exacte verzamelplek.",
+              "hits": [
+                "ACT-PARK-007:S2",
+                "ACT-WANDEL-005:S2",
+                "ACT-FIETS-002:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Parkonderhoud exacte verzamelplek locatie waar verzamelen",
+              "hits": [
+                "ACT-PARK-007:S5",
+                "ACT-PARK-007:S4",
+                "ACT-PARK-007:S1"
+              ],
+              "complete": false
+            },
+            {
+              "index": 3,
+              "query": "Wandelen donderdag exacte verzamelplek locatie startpunt",
+              "hits": [
+                "ACT-WANDEL-005:S3",
+                "ACT-PARK-007:S2",
+                "ACT-WANDEL-005:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 4,
+              "query": "Parkonderhoud vrijdag Waar verzamelen exacte locatie verzamelpunt",
+              "hits": [
+                "ACT-PARK-007:S2",
+                "ACT-PARK-007:S6",
+                "ACT-PARK-007:S4"
+              ],
+              "complete": false
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 2
+        },
+        {
+          "complete": false,
+          "actions": 4,
+          "first_complete": null,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik wil op donderdag of vrijdag buiten iets doen. Welke activiteiten uit dit aanbod passen? Geef van elke passende activiteit het tijdstip en de exacte verzamelplek.",
+              "hits": [
+                "ACT-PARK-007:S2",
+                "ACT-WANDEL-005:S2",
+                "ACT-FIETS-002:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Buitenactiviteit op donderdag of vrijdag: exacte verzamelplek van wandelen en parkonderhoud; welke activiteiten vinden buiten plaats?",
+              "hits": [
+                "ACT-PARK-007:S2",
+                "ACT-WANDEL-005:S1",
+                "ACT-WANDEL-005:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 3,
+              "query": "Parkonderhoud buiten activiteit exacte verzamelplek waar spreken we af locatie vrijdag?",
+              "hits": [
+                "ACT-PARK-007:S2",
+                "ACT-WANDEL-005:S1",
+                "ACT-PARK-007:S1"
+              ],
+              "complete": false
+            },
+            {
+              "index": 4,
+              "query": "Wandelen park exacte verzamelplek waar verzamelen we wandelen donderdag locatie ontmoetingspunt?",
+              "hits": [
+                "ACT-PARK-007:S2",
+                "ACT-WANDEL-005:S1",
+                "ACT-WANDEL-005:S2"
+              ],
+              "complete": false
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 3
+        },
+        {
+          "complete": false,
+          "actions": 4,
+          "first_complete": null,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik wil op donderdag of vrijdag buiten iets doen. Welke activiteiten uit dit aanbod passen? Geef van elke passende activiteit het tijdstip en de exacte verzamelplek.",
+              "hits": [
+                "ACT-PARK-007:S2",
+                "ACT-WANDEL-005:S2",
+                "ACT-FIETS-002:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Wandelen Parkonderhoud buiten exacte verzamelplek Waar",
+              "hits": [
+                "ACT-WANDEL-005:S1",
+                "ACT-PARK-007:S4",
+                "ACT-PARK-007:S5"
+              ],
+              "complete": false
+            },
+            {
+              "index": 3,
+              "query": "Waar verzamelen wandelen parkonderhoud locatie ingang",
+              "hits": [
+                "ACT-WANDEL-005:S1",
+                "ACT-WANDEL-005:S3",
+                "ACT-PARK-007:S4"
+              ],
+              "complete": false
+            },
+            {
+              "index": 4,
+              "query": "Parkonderhoud Waar buiten verzamelen",
+              "hits": [
+                "ACT-PARK-007:S1",
+                "ACT-PARK-007:S4",
+                "ACT-PARK-007:S5"
+              ],
+              "complete": false
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 1
+        },
+        {
+          "complete": false,
+          "actions": 4,
+          "first_complete": null,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik wil op donderdag of vrijdag buiten iets doen. Welke activiteiten uit dit aanbod passen? Geef van elke passende activiteit het tijdstip en de exacte verzamelplek.",
+              "hits": [
+                "ACT-PARK-007:S2",
+                "ACT-WANDEL-005:S2",
+                "ACT-FIETS-002:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Wandelen Parkonderhoud buiten exacte verzamelplek Waar verzamelen",
+              "hits": [
+                "ACT-WANDEL-005:S1",
+                "ACT-PARK-007:S5",
+                "ACT-PARK-007:S4"
+              ],
+              "complete": false
+            },
+            {
+              "index": 3,
+              "query": "Waar is het? Wandelen Parkonderhoud verzamelen ingang",
+              "hits": [
+                "ACT-WANDEL-005:S3",
+                "ACT-WANDEL-005:S1",
+                "ACT-PARK-007:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 4,
+              "query": "Parkonderhoud Waar? buiten verzamelplek",
+              "hits": [
+                "ACT-PARK-007:S1",
+                "ACT-PARK-007:S5",
+                "ACT-PARK-007:S4"
+              ],
+              "complete": false
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 2
+        },
+        {
+          "complete": false,
+          "actions": 4,
+          "first_complete": null,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik wil op donderdag of vrijdag buiten iets doen. Welke activiteiten uit dit aanbod passen? Geef van elke passende activiteit het tijdstip en de exacte verzamelplek.",
+              "hits": [
+                "ACT-PARK-007:S2",
+                "ACT-WANDEL-005:S2",
+                "ACT-FIETS-002:S2"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Wandelen Parkonderhoud buiten waar exacte verzamelplek",
+              "hits": [
+                "ACT-WANDEL-005:S1",
+                "ACT-PARK-007:S5",
+                "ACT-PARK-007:S4"
+              ],
+              "complete": false
+            },
+            {
+              "index": 3,
+              "query": "Waar verzamelen Wandelen Parkonderhoud locatie ingang",
+              "hits": [
+                "ACT-WANDEL-005:S3",
+                "ACT-WANDEL-005:S1",
+                "ACT-PARK-007:S4"
+              ],
+              "complete": false
+            },
+            {
+              "index": 4,
+              "query": "Parkonderhoud Waar? buiten verzamelen",
+              "hits": [
+                "ACT-PARK-007:S1",
+                "ACT-PARK-007:S5",
+                "ACT-PARK-007:S4"
+              ],
+              "complete": false
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 3
+        }
+      ]
+    },
+    {
+      "id": "RAG26-05",
+      "question": "Ik spreek nog weinig Nederlands en heb geen B1. Kan ik Nederlands oefenen in het Taalcafé én voorlezen bij de Buurtbibliotheek? Welke hulp is bij beide beschreven?",
+      "purpose": "Taalvoorwaarden vergelijken en de B1-eis alleen op voorlezen toepassen.",
+      "alternatives": [
+        [
+          "ACT-TAAL-003:S1",
+          "ACT-TAAL-003:S4",
+          "ACT-BIEB-008:S4"
+        ]
+      ],
+      "runs": [
+        {
+          "complete": true,
+          "actions": 2,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik spreek nog weinig Nederlands en heb geen B1. Kan ik Nederlands oefenen in het Taalcafé én voorlezen bij de Buurtbibliotheek? Welke hulp is bij beide beschreven?",
+              "hits": [
+                "ACT-BIEB-008:S4",
+                "ACT-TUIN-001:S4",
+                "ACT-TAAL-003:S1"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Taalcafé hulp begeleiding Nederlands weinig spreken taalniveau uitleg ondersteuning vrijwilliger",
+              "hits": [
+                "ACT-TAAL-003:S4",
+                "ACT-TAAL-003:S1",
+                "ACT-MAAK-006:S4"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 1
+        },
+        {
+          "complete": true,
+          "actions": 2,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik spreek nog weinig Nederlands en heb geen B1. Kan ik Nederlands oefenen in het Taalcafé én voorlezen bij de Buurtbibliotheek? Welke hulp is bij beide beschreven?",
+              "hits": [
+                "ACT-BIEB-008:S4",
+                "ACT-TUIN-001:S4",
+                "ACT-TAAL-003:S1"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Taalcafé hulp begeleiding uitleg ondersteuning taal oefenen weinig Nederlands",
+              "hits": [
+                "ACT-TAAL-003:S1",
+                "ACT-TAAL-003:S4",
+                "ACT-TUIN-001:S4"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 2
+        },
+        {
+          "complete": true,
+          "actions": 2,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik spreek nog weinig Nederlands en heb geen B1. Kan ik Nederlands oefenen in het Taalcafé én voorlezen bij de Buurtbibliotheek? Welke hulp is bij beide beschreven?",
+              "hits": [
+                "ACT-BIEB-008:S4",
+                "ACT-TUIN-001:S4",
+                "ACT-TAAL-003:S1"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Taalcafé Taal en hulp begeleiding weinig Nederlands taalniveau beginner",
+              "hits": [
+                "ACT-MAAK-006:S4",
+                "ACT-TAAL-003:S4",
+                "ACT-TAAL-003:S1"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 3
+        },
+        {
+          "complete": true,
+          "actions": 2,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik spreek nog weinig Nederlands en heb geen B1. Kan ik Nederlands oefenen in het Taalcafé én voorlezen bij de Buurtbibliotheek? Welke hulp is bij beide beschreven?",
+              "hits": [
+                "ACT-BIEB-008:S4",
+                "ACT-TUIN-001:S4",
+                "ACT-TAAL-003:S1"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Taalcafé welke hulp taalbegeleiding beginners begeleider",
+              "hits": [
+                "ACT-TAAL-003:S4",
+                "ACT-TAAL-003:S1",
+                "ACT-MAAK-006:S4"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 1
+        },
+        {
+          "complete": true,
+          "actions": 2,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik spreek nog weinig Nederlands en heb geen B1. Kan ik Nederlands oefenen in het Taalcafé én voorlezen bij de Buurtbibliotheek? Welke hulp is bij beide beschreven?",
+              "hits": [
+                "ACT-BIEB-008:S4",
+                "ACT-TUIN-001:S4",
+                "ACT-TAAL-003:S1"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Taalcafé welke hulp taalvrijwilliger begeleiding eenvoudig Nederlands beginners taal en hulp",
+              "hits": [
+                "ACT-MAAK-006:S4",
+                "ACT-TAAL-003:S1",
+                "ACT-TAAL-003:S4"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 2
+        },
+        {
+          "complete": true,
+          "actions": 2,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik spreek nog weinig Nederlands en heb geen B1. Kan ik Nederlands oefenen in het Taalcafé én voorlezen bij de Buurtbibliotheek? Welke hulp is bij beide beschreven?",
+              "hits": [
+                "ACT-BIEB-008:S4",
+                "ACT-TUIN-001:S4",
+                "ACT-TAAL-003:S1"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Taalcafé welke hulp begeleiding beginners Nederlands taalvrijwilliger B1",
+              "hits": [
+                "ACT-MAAK-006:S4",
+                "ACT-TAAL-003:S1",
+                "ACT-TAAL-003:S4"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 3
+        }
+      ]
+    },
+    {
+      "id": "RAG26-06",
+      "question": "For the music group, do I need musical experience or my own instrument? When does it meet, and does someone guide the group?",
+      "purpose": "Een Engelse vraag beantwoorden met Nederlandse bronnen over ervaring, materiaal, tijd en begeleiding.",
+      "alternatives": [
+        [
+          "ACT-MUZIEK-009:S1",
+          "ACT-MUZIEK-009:S2",
+          "ACT-MUZIEK-009:S4",
+          "ACT-MUZIEK-009:S5"
+        ]
+      ],
+      "runs": [
+        {
+          "complete": false,
+          "actions": 1,
+          "first_complete": null,
+          "calls": [
+            {
+              "index": 1,
+              "query": "For the music group, do I need musical experience or my own instrument? When does it meet, and does someone guide the group?",
+              "hits": [
+                "ACT-MUZIEK-009:S1",
+                "ACT-MUZIEK-009:S5",
+                "ACT-MUZIEK-009:S4"
+              ],
+              "complete": false
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 1
+        },
+        {
+          "complete": false,
+          "actions": 1,
+          "first_complete": null,
+          "calls": [
+            {
+              "index": 1,
+              "query": "For the music group, do I need musical experience or my own instrument? When does it meet, and does someone guide the group?",
+              "hits": [
+                "ACT-MUZIEK-009:S1",
+                "ACT-MUZIEK-009:S5",
+                "ACT-MUZIEK-009:S4"
+              ],
+              "complete": false
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 2
+        },
+        {
+          "complete": false,
+          "actions": 1,
+          "first_complete": null,
+          "calls": [
+            {
+              "index": 1,
+              "query": "For the music group, do I need musical experience or my own instrument? When does it meet, and does someone guide the group?",
+              "hits": [
+                "ACT-MUZIEK-009:S1",
+                "ACT-MUZIEK-009:S5",
+                "ACT-MUZIEK-009:S4"
+              ],
+              "complete": false
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 3
+        },
+        {
+          "complete": true,
+          "actions": 2,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "For the music group, do I need musical experience or my own instrument? When does it meet, and does someone guide the group?",
+              "hits": [
+                "ACT-MUZIEK-009:S1",
+                "ACT-MUZIEK-009:S5",
+                "ACT-MUZIEK-009:S4"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Muziekgroep wanneer bijeenkomst welke dag en tijd",
+              "hits": [
+                "ACT-MUZIEK-009:S2",
+                "ACT-MUZIEK-009:S1",
+                "ACT-MAAK-006:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 1
+        },
+        {
+          "complete": true,
+          "actions": 2,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "For the music group, do I need musical experience or my own instrument? When does it meet, and does someone guide the group?",
+              "hits": [
+                "ACT-MUZIEK-009:S1",
+                "ACT-MUZIEK-009:S5",
+                "ACT-MUZIEK-009:S4"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Muziekgroep wanneer bijeenkomsten dag tijd rooster",
+              "hits": [
+                "ACT-MUZIEK-009:S2",
+                "ACT-MUZIEK-009:S1",
+                "ACT-MUZIEK-009:S5"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 2
+        },
+        {
+          "complete": true,
+          "actions": 2,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "For the music group, do I need musical experience or my own instrument? When does it meet, and does someone guide the group?",
+              "hits": [
+                "ACT-MUZIEK-009:S1",
+                "ACT-MUZIEK-009:S5",
+                "ACT-MUZIEK-009:S4"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Muziekgroep wanneer bijeenkomst welke dag hoe laat",
+              "hits": [
+                "ACT-MUZIEK-009:S2",
+                "ACT-MUZIEK-009:S1",
+                "ACT-TUIN-001:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 3
+        }
+      ]
+    },
+    {
+      "id": "RAG26-07",
+      "question": "Kan ik bij Digitale hulp oefenen zonder laptop of telefoon en zonder persoonlijke accounts of wachtwoorden? Welke hulp krijg ik als ik nog niet zelfstandig Nederlands lees, en waar is het?",
+      "purpose": "Praktische voorwaarden combineren en de computerruimte van de fietsenwerkplaats onderscheiden.",
+      "alternatives": [
+        [
+          "ACT-DIGI-010:S3",
+          "ACT-DIGI-010:S4",
+          "ACT-DIGI-010:S5"
+        ]
+      ],
+      "runs": [
+        {
+          "complete": true,
+          "actions": 2,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Kan ik bij Digitale hulp oefenen zonder laptop of telefoon en zonder persoonlijke accounts of wachtwoorden? Welke hulp krijg ik als ik nog niet zelfstandig Nederlands lees, en waar is het?",
+              "hits": [
+                "ACT-DIGI-010:S4",
+                "ACT-BIEB-008:S4",
+                "ACT-TUIN-001:S4"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Digitale hulp locatie waar vindt plaats laptop telefoon apparaat oefenen zelf meenemen beschikbaar",
+              "hits": [
+                "ACT-DIGI-010:S5",
+                "ACT-DIGI-010:S1",
+                "ACT-DIGI-010:S3"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 1
+        },
+        {
+          "complete": false,
+          "actions": 1,
+          "first_complete": null,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Kan ik bij Digitale hulp oefenen zonder laptop of telefoon en zonder persoonlijke accounts of wachtwoorden? Welke hulp krijg ik als ik nog niet zelfstandig Nederlands lees, en waar is het?",
+              "hits": [
+                "ACT-DIGI-010:S4",
+                "ACT-BIEB-008:S4",
+                "ACT-TUIN-001:S4"
+              ],
+              "complete": false
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 2
+        },
+        {
+          "complete": false,
+          "actions": 2,
+          "first_complete": null,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Kan ik bij Digitale hulp oefenen zonder laptop of telefoon en zonder persoonlijke accounts of wachtwoorden? Welke hulp krijg ik als ik nog niet zelfstandig Nederlands lees, en waar is het?",
+              "hits": [
+                "ACT-DIGI-010:S4",
+                "ACT-BIEB-008:S4",
+                "ACT-TUIN-001:S4"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Digitale hulp: is er een laptop of telefoon aanwezig om mee te oefenen, en op welke locatie vindt de activiteit plaats?",
+              "hits": [
+                "ACT-DIGI-010:S1",
+                "ACT-DIGI-010:S5",
+                "ACT-DIGI-010:S2"
+              ],
+              "complete": false
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 3
+        },
+        {
+          "complete": true,
+          "actions": 2,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Kan ik bij Digitale hulp oefenen zonder laptop of telefoon en zonder persoonlijke accounts of wachtwoorden? Welke hulp krijg ik als ik nog niet zelfstandig Nederlands lees, en waar is het?",
+              "hits": [
+                "ACT-DIGI-010:S4",
+                "ACT-BIEB-008:S4",
+                "ACT-TUIN-001:S4"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Digitale hulp zonder eigen laptop telefoon apparaten beschikbaar waar locatie",
+              "hits": [
+                "ACT-DIGI-010:S5",
+                "ACT-DIGI-010:S6",
+                "ACT-DIGI-010:S3"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 1
+        },
+        {
+          "complete": true,
+          "actions": 4,
+          "first_complete": 4,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Kan ik bij Digitale hulp oefenen zonder laptop of telefoon en zonder persoonlijke accounts of wachtwoorden? Welke hulp krijg ik als ik nog niet zelfstandig Nederlands lees, en waar is het?",
+              "hits": [
+                "ACT-DIGI-010:S4",
+                "ACT-BIEB-008:S4",
+                "ACT-TUIN-001:S4"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Digitale hulp eigen laptop telefoon niet nodig oefenapparaten waar locatie",
+              "hits": [
+                "ACT-DIGI-010:S5",
+                "ACT-DIGI-010:S1",
+                "ACT-DIGI-010:S4"
+              ],
+              "complete": false
+            },
+            {
+              "index": 3,
+              "query": "Digitale hulp locatie waar vindt het plaats",
+              "hits": [
+                "ACT-DIGI-010:S5",
+                "ACT-DIGI-010:S2",
+                "ACT-DIGI-010:S6"
+              ],
+              "complete": false
+            },
+            {
+              "index": 4,
+              "query": "Digitale hulp Waar? gebouw ruimte adres",
+              "hits": [
+                "ACT-DIGI-010:S3",
+                "ACT-FIETS-002:S3",
+                "ACT-DIGI-010:S6"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 2
+        },
+        {
+          "complete": true,
+          "actions": 2,
+          "first_complete": 2,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Kan ik bij Digitale hulp oefenen zonder laptop of telefoon en zonder persoonlijke accounts of wachtwoorden? Welke hulp krijg ik als ik nog niet zelfstandig Nederlands lees, en waar is het?",
+              "hits": [
+                "ACT-DIGI-010:S4",
+                "ACT-BIEB-008:S4",
+                "ACT-TUIN-001:S4"
+              ],
+              "complete": false
+            },
+            {
+              "index": 2,
+              "query": "Digitale hulp zonder eigen laptop telefoon apparaten beschikbaar locatie waar",
+              "hits": [
+                "ACT-DIGI-010:S5",
+                "ACT-DIGI-010:S6",
+                "ACT-DIGI-010:S3"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 3
+        }
+      ]
+    },
+    {
+      "id": "RAG26-08",
+      "question": "Ik kan alleen op zondag. Kan ik volgens hun beschreven roosters dan bij de Muziekgroep of Digitale hulp terecht?",
+      "purpose": "Een afgebakende negatieve uitkomst onderbouwen met de twee genoemde roosters.",
+      "alternatives": [
+        [
+          "ACT-MUZIEK-009:S2",
+          "ACT-DIGI-010:S2"
+        ]
+      ],
+      "runs": [
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik kan alleen op zondag. Kan ik volgens hun beschreven roosters dan bij de Muziekgroep of Digitale hulp terecht?",
+              "hits": [
+                "ACT-MUZIEK-009:S2",
+                "ACT-MUZIEK-009:S1",
+                "ACT-DIGI-010:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 1
+        },
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik kan alleen op zondag. Kan ik volgens hun beschreven roosters dan bij de Muziekgroep of Digitale hulp terecht?",
+              "hits": [
+                "ACT-MUZIEK-009:S2",
+                "ACT-MUZIEK-009:S1",
+                "ACT-DIGI-010:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 2
+        },
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik kan alleen op zondag. Kan ik volgens hun beschreven roosters dan bij de Muziekgroep of Digitale hulp terecht?",
+              "hits": [
+                "ACT-MUZIEK-009:S2",
+                "ACT-MUZIEK-009:S1",
+                "ACT-DIGI-010:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 3
+        },
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik kan alleen op zondag. Kan ik volgens hun beschreven roosters dan bij de Muziekgroep of Digitale hulp terecht?",
+              "hits": [
+                "ACT-MUZIEK-009:S2",
+                "ACT-MUZIEK-009:S1",
+                "ACT-DIGI-010:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 1
+        },
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik kan alleen op zondag. Kan ik volgens hun beschreven roosters dan bij de Muziekgroep of Digitale hulp terecht?",
+              "hits": [
+                "ACT-MUZIEK-009:S2",
+                "ACT-MUZIEK-009:S1",
+                "ACT-DIGI-010:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 2
+        },
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Ik kan alleen op zondag. Kan ik volgens hun beschreven roosters dan bij de Muziekgroep of Digitale hulp terecht?",
+              "hits": [
+                "ACT-MUZIEK-009:S2",
+                "ACT-MUZIEK-009:S1",
+                "ACT-DIGI-010:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 3
+        }
+      ]
+    },
+    {
+      "id": "RAG26-09",
+      "question": "Bij Samen koken wil ik alleen meedoen als vaststaat dat ik sesam kan vermijden. Bevestigt de bron dat? Moet ik daarnaast zelf een schort en keukengerei meenemen?",
+      "purpose": "Ontbrekende informatie herkennen en aanwezige materialen vinden.",
+      "alternatives": [
+        [
+          "ACT-KOKEN-004:S5"
+        ]
+      ],
+      "runs": [
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Bij Samen koken wil ik alleen meedoen als vaststaat dat ik sesam kan vermijden. Bevestigt de bron dat? Moet ik daarnaast zelf een schort en keukengerei meenemen?",
+              "hits": [
+                "ACT-KOKEN-004:S1",
+                "ACT-KOKEN-004:S5",
+                "ACT-KOKEN-004:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 1
+        },
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Bij Samen koken wil ik alleen meedoen als vaststaat dat ik sesam kan vermijden. Bevestigt de bron dat? Moet ik daarnaast zelf een schort en keukengerei meenemen?",
+              "hits": [
+                "ACT-KOKEN-004:S1",
+                "ACT-KOKEN-004:S5",
+                "ACT-KOKEN-004:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 2
+        },
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Bij Samen koken wil ik alleen meedoen als vaststaat dat ik sesam kan vermijden. Bevestigt de bron dat? Moet ik daarnaast zelf een schort en keukengerei meenemen?",
+              "hits": [
+                "ACT-KOKEN-004:S1",
+                "ACT-KOKEN-004:S5",
+                "ACT-KOKEN-004:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 3
+        },
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Bij Samen koken wil ik alleen meedoen als vaststaat dat ik sesam kan vermijden. Bevestigt de bron dat? Moet ik daarnaast zelf een schort en keukengerei meenemen?",
+              "hits": [
+                "ACT-KOKEN-004:S1",
+                "ACT-KOKEN-004:S5",
+                "ACT-KOKEN-004:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 1
+        },
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Bij Samen koken wil ik alleen meedoen als vaststaat dat ik sesam kan vermijden. Bevestigt de bron dat? Moet ik daarnaast zelf een schort en keukengerei meenemen?",
+              "hits": [
+                "ACT-KOKEN-004:S1",
+                "ACT-KOKEN-004:S5",
+                "ACT-KOKEN-004:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 2
+        },
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Bij Samen koken wil ik alleen meedoen als vaststaat dat ik sesam kan vermijden. Bevestigt de bron dat? Moet ik daarnaast zelf een schort en keukengerei meenemen?",
+              "hits": [
+                "ACT-KOKEN-004:S1",
+                "ACT-KOKEN-004:S5",
+                "ACT-KOKEN-004:S2"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 3
+        }
+      ]
+    },
+    {
+      "id": "RAG26-10",
+      "question": "Zet voor Parkonderhoud en Digitale hulp naast elkaar hoeveel plekken voor het laatst zijn genoemd en op welke datum dat was. Mag ik die aantallen gebruiken als bevestiging dat er op 5 november 2026 nog plek is?",
+      "purpose": "Een recente brondatum onderscheiden van een oude telling van vrije plekken.",
+      "alternatives": [
+        [
+          "ACT-PARK-007:S6",
+          "ACT-DIGI-010:S6"
+        ]
+      ],
+      "runs": [
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Zet voor Parkonderhoud en Digitale hulp naast elkaar hoeveel plekken voor het laatst zijn genoemd en op welke datum dat was. Mag ik die aantallen gebruiken als bevestiging dat er op 5 november 2026 nog plek is?",
+              "hits": [
+                "ACT-PARK-007:S6",
+                "ACT-TUIN-001:S6",
+                "ACT-DIGI-010:S6"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 1
+        },
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Parkonderhoud en Digitale hulp: hoeveel plekken zijn voor het laatst genoemd en op welke datum? Is er nog plek op 5 november 2026?",
+              "hits": [
+                "ACT-PARK-007:S6",
+                "ACT-DIGI-010:S6",
+                "ACT-FIETS-002:S6"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 2
+        },
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Zet voor Parkonderhoud en Digitale hulp naast elkaar hoeveel plekken voor het laatst zijn genoemd en op welke datum dat was. Mag ik die aantallen gebruiken als bevestiging dat er op 5 november 2026 nog plek is?",
+              "hits": [
+                "ACT-PARK-007:S6",
+                "ACT-TUIN-001:S6",
+                "ACT-DIGI-010:S6"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6-luna",
+          "trial": 3
+        },
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Zet voor Parkonderhoud en Digitale hulp naast elkaar hoeveel plekken voor het laatst zijn genoemd en op welke datum dat was. Mag ik die aantallen gebruiken als bevestiging dat er op 5 november 2026 nog plek is?",
+              "hits": [
+                "ACT-PARK-007:S6",
+                "ACT-TUIN-001:S6",
+                "ACT-DIGI-010:S6"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 1
+        },
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Zet voor Parkonderhoud en Digitale hulp naast elkaar hoeveel plekken voor het laatst zijn genoemd en op welke datum dat was. Mag ik die aantallen gebruiken als bevestiging dat er op 5 november 2026 nog plek is?",
+              "hits": [
+                "ACT-PARK-007:S6",
+                "ACT-TUIN-001:S6",
+                "ACT-DIGI-010:S6"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 2
+        },
+        {
+          "complete": true,
+          "actions": 1,
+          "first_complete": 1,
+          "calls": [
+            {
+              "index": 1,
+              "query": "Zet voor Parkonderhoud en Digitale hulp naast elkaar hoeveel plekken voor het laatst zijn genoemd en op welke datum dat was. Mag ik die aantallen gebruiken als bevestiging dat er op 5 november 2026 nog plek is?",
+              "hits": [
+                "ACT-PARK-007:S6",
+                "ACT-TUIN-001:S6",
+                "ACT-DIGI-010:S6"
+              ],
+              "complete": true
+            }
+          ],
+          "model": "gpt-6.1-sol",
+          "trial": 3
+        }
+      ]
+    }
+  ]
+}

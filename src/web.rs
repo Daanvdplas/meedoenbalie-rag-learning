@@ -218,7 +218,13 @@ async fn report(State(app): State<App>, headers: HeaderMap) -> Result<impl IntoR
     ))
 }
 fn router(app: App) -> Router {
-    Router::new().route("/",get(||async{Html(include_str!("../static/index.html"))}))
+    Router::new().route("/",get(||async{Html(include_str!("../static/site/home.html"))}))
+ .route("/demo/",get(||async{Html(include_str!("../static/index.html"))}))
+ .route("/resultaten/",get(||async{Html(include_str!("../static/site/results.html"))}))
+ .route("/techniek/",get(||async{Html(include_str!("../static/site/technical.html"))}))
+ .route("/assets/site.css",get(||async{([(header::CONTENT_TYPE,"text/css; charset=utf-8")],include_str!("../static/site/site.css"))}))
+ .route("/assets/results.js",get(||async{([(header::CONTENT_TYPE,"text/javascript; charset=utf-8")],include_str!("../static/site/results.js"))}))
+ .route("/assets/results.json",get(||async{([(header::CONTENT_TYPE,"application/json; charset=utf-8")],include_str!("../static/site/results.json"))}))
  .route("/api/source",get({let app=app.clone();move||{let app=app.clone();async move{Json(json!({"sources":app.sources,"as_of":app.manifest["as_of"],"runtime_ready":app.runner.is_some(),"runtime_error":app.runner_error}))}}}))
  .route("/api/questions",get(||async{Json(serde_json::from_str::<Value>(include_str!("../fixtures/questions.json")).unwrap())}))
  .route("/api/session",post(new_session).get(summary)).route("/api/runs",post(run))
@@ -257,6 +263,68 @@ pub async fn serve(index: Index) -> Result<(), Box<dyn std::error::Error>> {
 mod tests {
     use super::*;
     use meedoen_retrieval::AS_OF;
+    #[tokio::test]
+    async fn learning_site_routes_share_navigation_and_only_expose_curated_assets() {
+        use tower::ServiceExt;
+        let corpus = meedoen_retrieval::corpus::CorpusId::ExpandedTen;
+        let app = Arc::new(WebState {
+            corpus,
+            store: Mutex::new(RunStore::new()),
+            runner: None,
+            runner_error: None,
+            manifest: json!({}),
+            sources: json!([]),
+            configuration: json!({}),
+        });
+        for path in [
+            "/",
+            "/demo/",
+            "/resultaten/",
+            "/techniek/",
+            "/assets/site.css",
+            "/assets/results.js",
+            "/assets/results.json",
+        ] {
+            let response = router(app.clone())
+                .oneshot(
+                    axum::http::Request::builder()
+                        .uri(path)
+                        .body(axum::body::Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(
+                response.status(),
+                StatusCode::OK,
+                "missing site route {path}"
+            );
+            let bytes = axum::body::to_bytes(response.into_body(), 4 * 1024 * 1024)
+                .await
+                .unwrap();
+            let text = String::from_utf8(bytes.to_vec()).unwrap();
+            if path.ends_with('/') {
+                assert!(
+                    text.contains("/demo/")
+                        && text.contains("/resultaten/")
+                        && text.contains("/techniek/"),
+                    "missing shared navigation in {path}"
+                );
+            }
+            assert!(!text.contains("/private/tmp/"));
+            assert!(!text.contains("/Users/"));
+        }
+        let response = router(app)
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/assets/PREREGISTRATION.json")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
     #[tokio::test]
     async fn expanded_source_reader_exposes_ten_sources_and_its_reference_date() {
         use tower::ServiceExt;
