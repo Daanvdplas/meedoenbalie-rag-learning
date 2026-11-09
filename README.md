@@ -16,9 +16,20 @@ Benodigd: Rust 1.94.1 en een aangemelde Codex-client. De demo zoekt lokaal naar 
 cargo run --locked
 ```
 
-Open **http://127.0.0.1:8766/**. De eerste start downloadt ongeveer 235 MB aan modelbestanden en aanvullende bestanden naar `.model-cache/`. Voor embeddings is geen API-sleutel nodig; Codex gebruikt je bestaande aanmelding. De server start nadat het lokale model is geladen.
+Open **http://127.0.0.1:8766/**. De startpagina verbindt de [live demo](http://127.0.0.1:8766/demo/), [tests en resultaten](http://127.0.0.1:8766/resultaten/) en [technische uitleg](http://127.0.0.1:8766/techniek/). De [architectuurgids](docs/CODEBASE_GUIDE.md) beschrijft de routes en de scheiding tussen live vragen en opgeslagen resultaten. De eerste start downloadt ongeveer 235 MB aan modelbestanden en aanvullende bestanden naar `.model-cache/`. Voor embeddings is geen API-sleutel nodig; Codex gebruikt je bestaande aanmelding. De server start nadat het lokale model is geladen.
 
 Een andere lokale poort kan met `COA_PORT=8767 cargo run --locked`. `COA_CODEX_MODEL` kan het expliciet gekozen antwoordmodel veranderen; de gebruikte versie en instellingen worden per run vastgelegd.
+
+## De website en opgeslagen vergelijking
+
+De resultatenpagina toont de zestig vastgelegde sessies van 6 november 2026: tien vragen, Sol en Luna en drie herhalingen. De modelkeuze daar selecteert bewaarde runs; zij verandert het live-demomodel niet en start geen modelcalls. Beide modellen zijn in deze proef met zoeken op betekenis getest. Bronvolledigheid is geen inhoudelijke antwoordkwaliteitsscore.
+
+De gepubliceerde presentatie is een beperkte export van de werkelijke brontraces. Ruwe logs, reasoning, aanmeldgegevens en lokale paden worden niet door de webserver aangeboden. Opnieuw exporteren uit een bestaande, bevroren proefmap kan zonder modelcalls:
+
+```sh
+python3 scripts/export_site_results.py --experiment-dir /pad/naar/de/proef
+python3 -m unittest discover -s scripts -p 'test_export_site_results.py'
+```
 
 ## Zelf testen
 
