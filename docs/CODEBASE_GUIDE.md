@@ -11,7 +11,7 @@ Deze gids beschrijft de actuele weblaag en de grenzen tussen live uitvoering en 
 
 ## Eén origin, drie onderdelen
 
-De executable start met `serve` of zonder argumenten. [`web::serve`](../src/web.rs) laadt de bronnen/index, maakt `WebState` en bindt op localhost. De standaardpoort blijft 8766; `COA_PORT` kan een andere lokale poort kiezen.
+De executable start met `serve` of zonder argumenten. De CLI laadt eerst de bronnen/index. [`web::serve`](../src/web.rs) ontvangt die index, maakt `WebState` en bindt op localhost. De standaardpoort blijft 8766; `COA_PORT` kan een andere lokale poort kiezen.
 
 | Route | Wat de bezoeker krijgt |
 | --- | --- |
