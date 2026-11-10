@@ -34,10 +34,12 @@ python3 -m unittest discover -s scripts -p 'test_export_site_results.py'
 ## Zelf testen
 
 1. Bovenaan staan tien compacte activiteiten, waaronder **Tuinieren**, **Fietsen opknappen**, **Creatief atelier** en **Parkonderhoud**. Klik een titel om het volledige fictieve document met bron en datum te lezen. Er staat steeds maximaal één activiteit open.
-2. Schrijf één eigen vraag. Alle documenten beschrijven vrijwillige activiteiten, geen betaalde banen.
+2. Kies bovenaan **🇳🇱 Nederlands** of **🇬🇧 English** en schrijf één eigen vraag. De keuze blijft bij vernieuwen bewaard. De interface en nieuwe antwoorden volgen de gekozen taal; de vraag die je al typt en bestaande antwoorden blijven staan. Alle documenten beschrijven vrijwillige activiteiten, geen betaalde banen.
 3. Codex maakt één antwoord. Onder **Bekijk de resultaten** staan de echte zoekacties van Codex. Codex kan meerdere keren zoeken om ontbrekende informatie voor dat ene antwoord te verzamelen; dit zijn geen extra gebruikersvragen.
 4. Exact geciteerde tekst is gemarkeerd in de werkelijk gevonden passages. Bron en datum staan erbij; de volledige activiteiten blijven bovenaan leesbaar. Er is geen afzonderlijk bewijsblok of beoordelingsflow.
 5. Pas de vraag aan en zoek opnieuw. Het vorige antwoord verdwijnt zodra je typt; iedere ingediende vraag krijgt een eigen uitvoering. Voorbeeldvragen, losse knoppen voor nieuwe vragen of herhalen, technische uitvoeringsgegevens en geschiedenis worden niet getoond.
+
+De activiteitnamen en sectiekoppen zijn vertaalde schermlabels. Originele bronparagrafen en letterlijke citaten blijven Nederlands, herkenbaar aan het bronlabel en de brondatum. Wisselen van taal start geen zoek- of modelaanroep en vertaalt een bestaand antwoord niet. De navigatie en footer volgen de voorkeur ook op de andere pagina’s; hun inhoud blijft voorlopig Nederlands.
 
 Een Codex-antwoord kan ongeveer een minuut duren; de bron blijft ondertussen leesbaar. Er kan één modeluitvoering tegelijk lopen. Fouten blijven zichtbaar. Uitvoeringen staan in begrensd servergeheugen en verdwijnen bij herstart; de demo toont geen geschiedenis. Er is geen beoordelings- of criteriaflow; cosinusovereenkomsten staan alleen bij de technische zoekresultaten.
 

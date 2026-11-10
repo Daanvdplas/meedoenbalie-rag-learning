@@ -51,248 +51,34 @@
       @media(max-width:360px) { .source-document { padding-inline:6px; } .source-document summary,.source-document summary::after { font-size:.875rem; } .source-document summary { gap:4px; } }
     </style>
 
-  <link rel="stylesheet" href="/assets/site.css?v=20261110">
+  <link rel="stylesheet" href="/assets/site.css?v=20261110-language">
+<script src="/assets/language.js?v=20261110" defer></script>
+<script src="/assets/demo.js?v=20261110" defer></script>
 </head>
-  <body><nav class="site-nav" aria-label="Hoofdnavigatie"><a href="/" class="site-brand">Activiteiten verkennen</a><a href="/demo/" aria-current="page">Demo</a><a href="/techniek/">Hoe het werkt</a></nav>
+  <body><nav class="site-nav" aria-label="Hoofdnavigatie"><a href="/" class="site-brand" data-i18n="brand">Activiteiten verkennen</a><a href="/demo/" aria-current="page" data-i18n="demo">Demo</a><a href="/techniek/" data-i18n="technical">Hoe het werkt</a><div class="language-switch" role="group" aria-label="Taal"><button type="button" data-language="nl" lang="nl" aria-pressed="true"><span aria-hidden="true">🇳🇱</span> Nederlands</button><button type="button" data-language="en" lang="en" aria-pressed="false"><span aria-hidden="true">🇬🇧</span> English</button></div></nav>
     <main class="demo-main">
       <section id="source" aria-labelledby="source-heading">
-        <h2 id="source-heading">Activiteiten</h2>
+        <h2 id="source-heading" data-i18n="activities">Activiteiten</h2>
         <div id="source-sections"></div>
       </section>
-      <h1>Wat wil je doen?</h1>
+      <h1 data-i18n="questionTitle">Wat wil je doen?</h1>
       <form id="form">
-        <label for="question">Stel je vraag over de activiteiten</label>
+        <label for="question" data-i18n="questionLabel">Stel je vraag over de activiteiten</label>
         <textarea id="question" class="run-control" maxlength="1000" required placeholder="Bijvoorbeeld: welke activiteiten zijn er op dinsdag?"></textarea>
         <div class="toolbar">
-          <button class="primary run-control" type="submit">Zoek een antwoord</button>
+          <button class="primary run-control" type="submit" data-i18n="submit">Zoek een antwoord</button>
         </div>
       </form>
       <p id="status" role="status"></p>
       <section id="result" hidden aria-label="Uitvoering en antwoord">
-        <h2 id="result-title">Het antwoord</h2>
+        <h2 id="result-title" data-i18n="answer">Het antwoord</h2>
         <div class="answer-panel"><p id="answer" class="answer"></p><div id="unknowns"></div></div>
         <details id="tool-details">
-          <summary>Bekijk de resultaten</summary>
+          <summary data-i18n="results">Bekijk de resultaten</summary>
           <div id="tools"></div>
         </details>
       </section>
     </main>
-    <script>
-      const el = (id) => document.getElementById(id);
-      let session = "",
-        source = {},
-        busy = false,
-        pollVersion = 0;
-      async function api(path, body, method) {
-        const response = await fetch(path, {
-          method: method || (body ? "POST" : "GET"),
-          headers: {
-            "Content-Type": "application/json",
-            "X-Test-Session": session,
-          },
-          ...(body ? { body: JSON.stringify(body) } : {}),
-        });
-        const text = await response.text();
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch {
-          data = { error: text };
-        }
-        if (!response.ok) {
-          const errors = {
-            "Deze sessie heeft 40 runs; start een nieuwe testsessie.": "Je hebt in deze sessie 40 vragen gesteld. Open de demo in een nieuw tabblad om verder te gaan.",
-            "Testsessie bestaat niet meer; start een nieuwe sessie.": "Deze sessie is verlopen. Vernieuw de pagina om verder te gaan.",
-          };
-          throw new Error(errors[data.error] || data.error || "Verzoek mislukt.");
-        }
-        return data;
-      }
-      function setBusy(value) {
-        busy = value;
-        document
-          .querySelectorAll(".run-control")
-          .forEach((node) => (node.disabled = value));
-      }
-      function message(text, error = false) {
-        el("status").textContent = text;
-        el("status").className = error ? "error" : "";
-      }
-      function node(tag, text, className) {
-        const item = document.createElement(tag);
-        if (text !== undefined) item.textContent = text;
-        if (className) item.className = className;
-        return item;
-      }
-      function sourceTitle(id) { return source.sources.find(doc => doc.id === id)?.title || id; }
-      function failureMessage(error) {
-        if (error?.startsWith("tool:"))
-          return "De bronzoekfunctie is niet goed afgerond. Er is geen antwoord opgeslagen.";
-        if (error?.startsWith("output:"))
-          return "Het antwoord kon niet aan de gevonden bronpassages worden gekoppeld. Er is geen antwoord opgeslagen.";
-        return "Codex kon de vraag niet afronden. Controleer de aanmelding of probeer opnieuw.";
-      }
-      function quotedPassage(text, quotes) {
-        const block = node("blockquote");
-        const ranges = quotes.map(quote => ({start:text.indexOf(quote),end:text.indexOf(quote)+quote.length})).filter(range => range.start >= 0).sort((a,b) => a.start-b.start);
-        let cursor = 0;
-        for (const range of ranges) {
-          if (range.start < cursor) continue;
-          block.append(document.createTextNode(text.slice(cursor, range.start)), node("mark", text.slice(range.start, range.end)));
-          cursor = range.end;
-        }
-        block.append(document.createTextNode(text.slice(cursor)));
-        return block;
-      }
-      function showRun(run) {
-        el("result").hidden = false;
-        el("result-title").textContent =
-          run.status === "failed" ? "De uitvoering is mislukt" : "Het antwoord";
-        el("answer").textContent =
-          run.status === "failed"
-            ? failureMessage(run.error)
-            : run.result?.answer?.text || "Codex is nog bezig…";
-        el("answer").classList.toggle("error", run.status === "failed");
-        el("unknowns").replaceChildren();
-        if (run.result?.answer?.unknowns?.length) {
-          el("unknowns").append(node("h3", "Wat blijft onbekend?"));
-          const list = node("ul");
-          run.result.answer.unknowns.forEach((text) =>
-            list.append(node("li", text)),
-          );
-          el("unknowns").append(list);
-        }
-        const citations = run.result?.answer?.citations || [];
-        el("tools").replaceChildren();
-        (run.result?.tool_calls || []).forEach((call, index) => {
-          const item = node("article", undefined, "hit");
-          item.append(
-            node("h3", "Zoekactie " + (index + 1)), node("p", "Zoekopdracht van Codex: " + call.query),
-            node(
-              "small",
-              "Gevraagde passages: " + call.top_k + " · " + call.status,
-            ),
-          );
-          (call.result?.hits || []).forEach((hit) => {
-            const evidence = node("section", undefined, "retrieved");
-            evidence.append(
-              node("h3", sourceTitle(hit.section.source_id) + " · " + hit.section.id + " · " + hit.section.heading),
-              quotedPassage(hit.section.text, citations.filter(c => c.source_id === hit.section.source_id && c.source_date === hit.section.source_date && c.section_id === hit.section.id).map(c => c.quote)),
-              node(
-                "small",
-                hit.section.source_id +
-                  " · brondatum " +
-                  hit.section.source_date +
-                  " · referentie " +
-                  call.result.as_of,
-              ),
-              node(
-                "small",
-                "Cosinusovereenkomst: " +
-                  Number(hit.similarity).toFixed(4) +
-                  " — geen kans of zekerheid.",
-              ),
-            );
-            item.append(evidence);
-          });
-          if (call.error) item.append(node("p", call.error, "error"));
-          el("tools").append(item);
-        });
-        el("tool-details").hidden = run.status !== "completed";
-      }
-      async function watch(run) {
-        const version = ++pollVersion;
-        setBusy(true);
-        showRun(run);
-        message(
-          "Codex zoekt passages en maakt een antwoord. Dit duurt vaak ongeveer een minuut. Je kunt de bron blijven bekijken.",
-        );
-        try {
-          while (run.status === "pending") {
-            await new Promise((resolve) => setTimeout(resolve, 750));
-            run = await api("/api/runs/" + run.id);
-            if (version !== pollVersion) return;
-          }
-          showRun(run);
-          message(
-            run.status === "failed"
-              ? "Er is geen antwoord opgeslagen. Je kunt de uitvoering opnieuw proberen."
-              : "",
-            run.status === "failed",
-          );
-        } catch (error) {
-          message(error.message, true);
-        } finally {
-          if (version === pollVersion) setBusy(false);
-        }
-      }
-      async function begin(path, body) {
-        if (busy) return;
-        setBusy(true);
-        message("Uitvoering starten…");
-        try {
-          const run = await api(path, body || {});
-          await watch(run);
-        } catch (error) {
-          setBusy(false);
-          message(error.message, true);
-        }
-      }
-      el("form").addEventListener("submit", (event) => {
-        event.preventDefault();
-        begin("/api/runs", { question: el("question").value.trim(), top_k: 3 });
-      });
-      el("question").addEventListener("input", () => {
-        el("result").hidden = true;
-        message("");
-      });
-      async function createSession() {
-        const data = await api("/api/session", { seen_question_ids: [] });
-        session = data.session_id;
-        sessionStorage.setItem("coa-test-session", session);
-        return data.summary;
-      }
-      (async () => {
-        setBusy(true);
-        try {
-          source = await api("/api/source");
-          source.sources.forEach(doc => {
-            const document = node("details", undefined, "source-document");
-            document.name = "activity";
-            document.append(node("summary", doc.title), node("small", "Brondatum " + doc.date + " · referentie " + source.as_of));
-            doc.sections.forEach(section => {
-              const item = node("section", undefined, "source-section");
-              item.id = "source-" + doc.id + "-" + section.id;
-              item.append(node("h3", section.id + " · " + section.heading), node("p", section.text));
-              document.append(item);
-            });
-            el("source-sections").append(document);
-          });
-          session = sessionStorage.getItem("coa-test-session") || "";
-          let summary;
-          try {
-            if (!session) throw new Error();
-            summary = await api("/api/session");
-          } catch {
-            summary = await createSession();
-          }
-          setBusy(false);
-          el("question").value = "";
-          el("question").focus();
-          const pending = summary.runs.find((run) => run.status === "pending");
-          if (pending) {
-            el("question").value = pending.question;
-            await watch(pending);
-          } else if (!source.runtime_ready)
-            message(
-              "Codex is nog niet beschikbaar: " + source.runtime_error,
-              true,
-            );
-        } catch (error) {
-          message("De proef kon niet worden geladen: " + error.message, true);
-          setBusy(false);
-        }
-      })();
-    </script>
-  <footer class="site-footer">Eigen leerproject, geen intern COA-plan. Alle gegevens zijn verzonnen. Meedoen is vrijwillig; een medewerker bespreekt opties met de bewoner. De demo wijzigt geen dossiers, verstuurt geen berichten en meldt niemand aan. <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning">Bekijk de code</a>.</footer></body>
+
+  <footer class="site-footer"><span data-i18n="projectNotice">Eigen leerproject, geen intern COA-plan. Alle gegevens zijn verzonnen. Meedoen is vrijwillig; een medewerker bespreekt opties met de bewoner. De demo wijzigt geen dossiers, verstuurt geen berichten en meldt niemand aan.</span> <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning" data-i18n="code">Bekijk de code</a>.</footer></body>
 </html>

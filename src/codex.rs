@@ -67,12 +67,21 @@ pub struct IsolatedRun {
     pub usage: Option<crate::experiment::types::TokenUsage>,
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AnswerLanguage {
+    #[default]
+    Nl,
+    En,
+}
+
 pub(crate) struct SelectedMcpLaunch {
     pub arguments: Vec<String>,
     pub instructions: String,
     pub corpus: crate::corpus::CorpusId,
     /// Only selected lab sessions constrain the tool to one exact top-k.
     pub fixed_top_k: Option<usize>,
+    pub answer_language: Option<AnswerLanguage>,
 }
 
 fn usage_from_events(events: &str) -> Option<crate::experiment::types::TokenUsage> {
@@ -877,6 +886,29 @@ impl CodexRunner {
             instructions: "Use only the activity source corpus selected by the tool. Preserve document identity and source dates.".into(),
             corpus,
             fixed_top_k: None,
+            answer_language: None,
+        };
+        self.run_with_selected_retrieval(query, top_k, &launch, RUN_TIMEOUT)
+            .await
+    }
+
+    /// Web-only answer language; historical CLI and experiment entry points stay unchanged.
+    pub async fn run_for_corpus_in_language(
+        &self,
+        query: &str,
+        top_k: usize,
+        corpus: crate::corpus::CorpusId,
+        language: AnswerLanguage,
+    ) -> Result<CodexRun, String> {
+        if language == AnswerLanguage::Nl {
+            return self.run_for_corpus(query, top_k, corpus).await;
+        }
+        let launch = SelectedMcpLaunch {
+            arguments: vec!["mcp".into(), "--corpus".into(), corpus.id().into()],
+            instructions: "Use only the activity source corpus selected by the tool. Preserve document identity and source dates.".into(),
+            corpus,
+            fixed_top_k: None,
+            answer_language: Some(language),
         };
         self.run_with_selected_retrieval(query, top_k, &launch, RUN_TIMEOUT)
             .await
@@ -1111,7 +1143,11 @@ impl CodexRunner {
             Some(launch) => format!(
                 "{}\n\n{}",
                 launch.instructions,
-                generation_prompt_for_corpus(query, top_k, launch.corpus)
+                match launch.answer_language {
+                    Some(language) =>
+                        generation_prompt_for_answer_language(query, top_k, launch.corpus, language),
+                    None => generation_prompt_for_corpus(query, top_k, launch.corpus),
+                }
             ),
             None => generation_prompt(query, top_k),
         };
@@ -1161,8 +1197,61 @@ pub fn generation_prompt_for_corpus(
     }
 }
 
+fn generation_prompt_for_answer_language(
+    query: &str,
+    top_k: usize,
+    corpus: crate::corpus::CorpusId,
+    language: AnswerLanguage,
+) -> String {
+    let prompt = generation_prompt_for_corpus(query, top_k, corpus);
+    match language {
+        AnswerLanguage::Nl => prompt,
+        AnswerLanguage::En => prompt.replacen(
+            "Answer briefly in Dutch and address only the user question",
+            "Answer briefly in English (including unknowns); never translate citation quotes. Address only the user question",
+            1,
+        ),
+    }
+}
+
 #[cfg(test)]
 mod corpus_prompt_tests {
+    #[test]
+    fn web_language_changes_only_the_answer_instruction_and_preserves_legacy_prompts() {
+        use super::{
+            AnswerLanguage, generation_prompt_for_answer_language, generation_prompt_for_corpus,
+        };
+        for corpus in [
+            crate::corpus::CorpusId::BaselineFive,
+            crate::corpus::CorpusId::ExpandedTen,
+        ] {
+            let legacy = generation_prompt_for_corpus("When can I join?", 3, corpus);
+            assert_eq!(
+                generation_prompt_for_answer_language(
+                    "When can I join?",
+                    3,
+                    corpus,
+                    AnswerLanguage::Nl
+                ),
+                legacy
+            );
+            let english = generation_prompt_for_answer_language(
+                "When can I join?",
+                3,
+                corpus,
+                AnswerLanguage::En,
+            );
+            assert_eq!(english, legacy.replacen(
+                "Answer briefly in Dutch and address only the user question",
+                "Answer briefly in English (including unknowns); never translate citation quotes. Address only the user question", 1));
+            assert!(!english.contains("Answer briefly in Dutch"));
+            assert!(
+                english
+                    .contains("exact nonempty quote copied from that same returned source section")
+            );
+        }
+    }
+
     #[test]
     fn expanded_prompt_uses_ten_while_historical_prompt_bytes_are_preserved() {
         let baseline = super::generation_prompt("Wanneer?", 3);
@@ -2015,6 +2104,40 @@ mod tests {
                         && arg.contains("deny"))
             );
         }
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn english_web_runner_sends_english_prompt_and_keeps_original_citations() {
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let directory =
+            RunDirectory(std::env::temp_dir().join(format!("coa-english-prompt-{suffix}")));
+        let prompt_path = directory.0.join("received-prompt.txt");
+        let events = stream(good_answer(), true);
+        let script = format!(
+            "#!/bin/sh\ncat >'{}'\ncat <<'COA_EVENTS'\n{events}\nCOA_EVENTS\n",
+            prompt_path.display()
+        );
+        let runner = fake_runner(&directory.0, &script);
+        let result = runner
+            .run_for_corpus_in_language(
+                "When can I join?",
+                3,
+                crate::corpus::CorpusId::BaselineFive,
+                AnswerLanguage::En,
+            )
+            .await
+            .unwrap();
+        let prompt = std::fs::read_to_string(prompt_path).unwrap();
+        assert!(prompt.contains("Answer briefly in English (including unknowns)"));
+        assert!(!prompt.contains("Answer briefly in Dutch"));
+        assert_eq!(
+            result.answer.citations[0].quote,
+            good_answer()["citations"][0]["quote"].as_str().unwrap()
+        );
     }
 
     #[cfg(unix)]
