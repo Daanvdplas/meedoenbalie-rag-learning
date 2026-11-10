@@ -3,12 +3,12 @@
   const { t, current: language, activity, heading } = window.CoaLanguage;
   let session = "", source = { sources: [] }, currentRun = null, busy = false, pollVersion = 0, status = null;
   const errorKeys = {
-    "Deze sessie heeft 40 runs; start een nieuwe testsessie.": "sessionFull",
     "Testsessie bestaat niet meer; start een nieuwe sessie.": "sessionExpired",
     "Testsessie bestaat niet meer.": "sessionExpired",
     "Start eerst een testsessie.": "sessionExpired",
-    "Maximum van 16 lokale sessies bereikt; herstart de demo.": "sessionsFull",
-    "Er draait al een vraag. Wacht tot die uitvoering klaar is.": "runBusy",
+    "Er draait al een vraag in deze sessie. Wacht tot die klaar is.": "runBusy",
+    "Er worden al tien vragen verwerkt. Probeer het straks opnieuw.": "capacityFull",
+    "De demo is druk. Probeer het straks opnieuw.": "capacityFull",
     "Please enter a question of 1 to 1000 characters.": "questionInvalid",
     "Lokale opslag niet beschikbaar; herstart de demo.": "storageUnavailable",
   };
@@ -24,7 +24,7 @@
     } catch { throw requestError("networkFailed"); }
     let data;
     try { data = await response.json(); } catch { throw requestError("requestFailed"); }
-    if (!response.ok) throw requestError(errorKeys[data.error] || "requestFailed");
+    if (!response.ok) throw requestError(data.code === "capacity" ? "capacityFull" : errorKeys[data.error] || "requestFailed");
     return data;
   }
   function setBusy(value) {
@@ -32,7 +32,10 @@
     document.querySelectorAll(".run-control").forEach(item => { item.disabled = value; });
   }
   function renderStatus() {
-    el("status").textContent = status ? t(status.key, status.reason ? { reason: t(status.reason) } : {}) : "";
+    const parts = [];
+    if (source.model_configuration?.offline_mock) parts.push(t("offlineTest"));
+    if (status) parts.push(t(status.key, status.reason ? { reason: t(status.reason) } : {}));
+    el("status").textContent = parts.join(" ");
     el("status").className = status?.error ? "error" : "";
   }
   function message(key, error = false, reason) {
@@ -138,6 +141,7 @@
   }
   async function begin() {
     if (busy) return;
+    if (!source.runtime_ready) { message("runtimeUnavailable", true); return; }
     setBusy(true);
     message("starting");
     try {

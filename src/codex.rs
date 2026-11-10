@@ -563,6 +563,14 @@ fn parse_events(events: &str) -> Result<Value, String> {
     if !completed {
         return Err("runtime: Incomplete Codex turn".into());
     }
+    validate_retrieved_answer(calls, last_answer)
+}
+
+/// Shared evidence validation; the caller owns its actual transport and tool execution.
+pub(crate) fn validate_retrieved_answer(
+    calls: Vec<ToolCall>,
+    last_answer: Option<String>,
+) -> Result<Value, String> {
     let successful: Vec<&Value> = calls
         .iter()
         .filter_map(|call| call.result.as_ref())
@@ -1237,7 +1245,7 @@ pub fn generation_prompt_for_corpus(
     }
 }
 
-fn generation_prompt_for_answer_language(
+pub(crate) fn generation_prompt_for_answer_language(
     query: &str,
     top_k: usize,
     corpus: crate::corpus::CorpusId,

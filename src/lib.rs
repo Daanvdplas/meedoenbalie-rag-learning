@@ -4,6 +4,7 @@ pub mod experiment;
 pub mod manifest;
 pub mod mcp;
 pub mod ranking;
+pub mod responses;
 pub mod retrieval;
 pub mod retrieval_lab;
 pub mod runs;
