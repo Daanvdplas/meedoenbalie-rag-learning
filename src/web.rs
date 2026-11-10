@@ -304,11 +304,14 @@ mod tests {
                 .unwrap();
             let text = String::from_utf8(bytes.to_vec()).unwrap();
             if path.ends_with('/') {
+                let navigation = text.split("</nav>").next().unwrap();
                 assert!(
-                    text.contains("/demo/")
-                        && text.contains("/resultaten/")
-                        && text.contains("/techniek/"),
+                    navigation.contains("/demo/") && navigation.contains("/techniek/"),
                     "missing shared navigation in {path}"
+                );
+                assert!(
+                    !navigation.contains("/resultaten/"),
+                    "removed results link in navigation for {path}"
                 );
             }
             assert!(!text.contains("/private/tmp/"));

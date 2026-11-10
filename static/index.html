@@ -5,67 +5,55 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Wat wil je doen? · Activiteiten verkennen</title>
     <style>
-      :root { color-scheme:light; --paper:oklch(98% .008 90); --ink:oklch(27% .025 160); --muted:oklch(43% .02 160); --line:oklch(83% .02 160); --green:oklch(38% .065 155); --wash:oklch(94% .025 155); }
-      * { box-sizing:border-box; }
-      body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.5 "Avenir Next","Segoe UI",sans-serif; }
-      main { max-width:900px; margin:auto; padding:28px 24px; }
-      h1,h2 { font-family:"Iowan Old Style",Palatino,serif; font-weight:500; line-height:1.15; }
-      h1 { font-size:40px; letter-spacing:-.03em; margin:8px 0 22px; }
-      h2 { font-size:26px; margin:24px 0 10px; }
-      h3 { font-size:17px; margin:10px 0 6px; }
-      p { max-width:72ch; margin:0 0 10px; }
-      .muted,small { color:var(--muted); }
-      small,.small { font-size:13px; }
-      button,textarea,select { font:inherit; color:inherit; }
-      button { cursor:pointer; border:1px solid var(--line); background:var(--paper); padding:8px 14px; min-height:44px; border-radius:5px; }
-      button:hover,button[aria-pressed="true"] { background:var(--wash); border-color:var(--green); }
+      main { max-width:1040px; margin:auto; padding:40px 32px 48px; }
+      .demo-main h1 { font-size:2.25rem; margin:0 0 24px; }
+      .demo-main h2 { font-size:1.5rem; margin:32px 0 16px; }
+      .demo-main h3 { font-size:1rem; margin:16px 0 6px; }
+      .demo-main p { max-width:72ch; }
+      small { font-size:.8125rem; color:var(--muted); }
+      button,textarea { font:inherit; color:inherit; }
+      .demo-main button { min-height:48px; padding:10px 20px; }
       button:disabled { cursor:wait; opacity:.6; }
-      button.primary { background:var(--green); color:white; border-color:var(--green); }
-      :focus-visible { outline:3px solid var(--green); outline-offset:3px; }
-      label { display:block; font-size:14px; font-weight:650; margin-bottom:6px; }
-      textarea,select { width:100%; min-width:0; padding:10px 12px; background:white; border:1px solid var(--muted); border-radius:5px; margin-bottom:10px; }
-      textarea { resize:vertical; min-height:88px; }
-      select { min-height:44px; }
-      .toolbar,.questions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-      .questions { margin-top:10px; }
-      .questions button { text-align:left; font-size:14px; }
-      details { border-top:1px solid var(--line); padding:12px 0; margin:16px 0; }
-      summary { cursor:pointer; font-weight:600; }
-      .examples { border:0; padding:0; margin:10px 0; font-size:14px; }
-      #status { margin:12px 0; }
+      label { display:block; font-size:.9375rem; font-weight:650; margin-bottom:8px; }
+      textarea { display:block; width:100%; min-width:0; min-height:120px; resize:vertical; padding:14px 16px; background:var(--surface); border:1px solid var(--muted); border-radius:2px; margin-bottom:16px; }
+      textarea::placeholder { color:var(--muted); opacity:1; }
+      #status { margin:20px 0 0; font-size:.9375rem; }
       #status:empty { display:none; }
-      .answer-panel { background:white; border:1px solid var(--line); padding:16px 18px; margin:12px 0 18px; }
-      .answer { white-space:pre-wrap; overflow-wrap:anywhere; font-size:18px; margin:0; }
-      #unknowns:not(:empty) { margin-top:12px; }
+      #result { margin-top:40px; }
+      .answer-panel { background:var(--surface); border:1px solid var(--line); padding:24px; margin:0 0 20px; }
+      .answer { white-space:pre-wrap; overflow-wrap:anywhere; font-size:1.0625rem; line-height:1.65; margin:0; }
+      #unknowns:not(:empty) { margin-top:20px; }
+      #unknowns ul { margin:8px 0 0; padding-left:24px; }
       .hit small,.source-document>small { display:block; }
-      blockquote { margin:6px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
-      #source-sections { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; }
-      #source-heading { margin-top:0; }
-      .source-document { flex:1 1 140px; min-width:0; background:white; border:1px solid var(--line); border-radius:5px; padding:4px 10px; margin:0; }
-      .source-document summary { min-height:44px; display:flex; align-items:center; justify-content:space-between; gap:8px; overflow-wrap:anywhere; }
-      .source-document summary::after { content:"+"; flex-shrink:0; }
+      blockquote { margin:8px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+      #source { margin-bottom:40px; }
+      #source-sections { display:flex; flex-wrap:wrap; gap:8px; }
+      .demo-main #source-heading { color:var(--ink); font-size:1.125rem; margin:0 0 12px; }
+      .source-document { flex:1 1 170px; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:2px; padding:0 12px; margin:0; }
+      .source-document summary { min-height:48px; display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:.9375rem; font-weight:600; overflow-wrap:anywhere; cursor:pointer; list-style:none; }
+      .source-document summary::-webkit-details-marker { display:none; }
+      .source-document summary::after { content:"+"; flex-shrink:0; color:var(--accent); font-size:1.125rem; }
       .source-document[open]>summary::after { content:"−"; }
-      .source-document[open] { flex-basis:100%; order:1; }
-      .source-document>small { display:none; }
+      .source-document:hover { border-color:var(--muted); }
+      .source-document[open] { flex-basis:100%; order:1; padding-bottom:16px; }
+      .source-document>small { display:none; margin-top:4px; }
       .source-document[open]>small { display:block; }
-      mark { background:oklch(84% .09 90); color:var(--ink); }
-      .source-document>small { margin-top:6px; }
-      .source-section { border-top:1px solid color-mix(in oklch,var(--ink) 15%,transparent); margin-top:10px; padding-top:4px; }
-      .source-section p { white-space:pre-wrap; font-size:15px; }
-      #tool-details { padding:12px 14px; border:1px solid var(--line); border-radius:5px; }
-      .hit { margin-top:14px; }
-      .retrieved { padding:8px 12px; margin-top:8px; border-left:3px solid var(--line); font-size:14px; }
-      .retrieved h3 { font-size:15px; margin-top:0; }
-      .error { color:#913520; }
-      #metadata { font-size:13px; overflow-wrap:anywhere; }
-      footer { margin-top:24px; border-top:1px solid var(--line); padding-top:14px; font-size:12px; color:var(--muted); }
+      .source-section { border-top:1px solid var(--line); margin-top:16px; padding-top:4px; }
+      .source-section p { white-space:pre-wrap; font-size:.9375rem; margin-bottom:0; }
+      #tool-details { border-top:1px solid var(--line); padding:16px 0; }
+      #tool-details>summary { min-height:32px; cursor:pointer; font-weight:650; }
+      .demo-main .hit { margin-top:24px; border:0; padding:0; }
+      .demo-main .retrieved { padding:16px 0; margin-top:12px; border-top:1px solid var(--line); font-size:.9375rem; }
+      .retrieved h3 { margin-top:0; }
+      .error { color:var(--error); }
       [hidden] { display:none !important; }
-      @media(max-width:500px) { main { padding:22px 16px; } h1 { font-size:34px; } .answer-panel { padding:12px; } .source-document { padding:4px 10px; } }
+      @media(max-width:650px) { main { padding:28px 16px 32px; } .demo-main h1 { font-size:1.875rem; margin-bottom:20px; } #source { margin-bottom:32px; } .source-document { flex-basis:140px; } .answer-panel { padding:16px; } }
+      @media(max-width:360px) { .source-document { padding-inline:6px; } .source-document summary,.source-document summary::after { font-size:.875rem; } .source-document summary { gap:4px; } }
     </style>
 
-  <link rel="stylesheet" href="/assets/site.css?v=20261109">
+  <link rel="stylesheet" href="/assets/site.css?v=20261110">
 </head>
-  <body><nav class="site-nav" aria-label="Hoofdnavigatie"><a href="/" class="site-brand">Activiteiten verkennen</a><a href="/demo/" aria-current="page">Demo</a><a href="/resultaten/">Tests en resultaten</a><a href="/techniek/">Hoe het werkt</a></nav>
+  <body><nav class="site-nav" aria-label="Hoofdnavigatie"><a href="/" class="site-brand">Activiteiten verkennen</a><a href="/demo/" aria-current="page">Demo</a><a href="/techniek/">Hoe het werkt</a></nav>
     <main class="demo-main">
       <section id="source" aria-labelledby="source-heading">
         <h2 id="source-heading">Activiteiten</h2>
@@ -74,16 +62,11 @@
       <h1>Wat wil je doen?</h1>
       <form id="form">
         <label for="question">Stel je vraag over de activiteiten</label>
-        <textarea id="question" class="run-control" maxlength="1000" required placeholder="Bijvoorbeeld: welk werk is mogelijk op dinsdag?"></textarea>
+        <textarea id="question" class="run-control" maxlength="1000" required placeholder="Bijvoorbeeld: welke activiteiten zijn er op dinsdag?"></textarea>
         <div class="toolbar">
           <button class="primary run-control" type="submit">Zoek een antwoord</button>
-          <button id="new-question" class="run-control" type="button">Nieuwe vraag</button>
         </div>
       </form>
-      <details class="examples">
-        <summary>Een voorbeeldvraag gebruiken</summary>
-        <div id="questions" class="questions" aria-label="Voorbeeldvragen"></div>
-      </details>
       <p id="status" role="status"></p>
       <section id="result" hidden aria-label="Uitvoering en antwoord">
         <h2 id="result-title">Het antwoord</h2>
@@ -92,44 +75,12 @@
           <summary>Bekijk de resultaten</summary>
           <div id="tools"></div>
         </details>
-        <button
-          id="replay"
-          class="run-control"
-          type="button"
-          style="margin-top: 20px"
-        >
-          Voer opnieuw uit met dezelfde context
-        </button>
-        <p class="muted small">
-          Een nieuwe uitvoering krijgt een eigen run. De bron en instellingen
-          blijven gelijk; de nieuwe antwoordtekst kan verschillen.
-        </p>
-        <details>
-          <summary>Gegevens van deze uitvoering</summary>
-          <div id="metadata"></div>
-        </details>
       </section>
-      <details id="session-details">
-        <summary>Eerdere vragen</summary>
-        <p id="progress" class="muted small"></p>
-        <label for="history">Bekijk een eerdere uitvoering</label>
-        <select id="history"><option value="">Nog geen uitvoeringen</option></select>
-        <button id="new-session" class="run-control" type="button">Nieuwe sessie</button>
-        <p class="muted small" style="margin-top:10px">De geschiedenis staat alleen in het geheugen van deze lokale server en verdwijnt bij herstart.</p>
-      </details>
-      <footer>
-        Dit is een eigen leerproef, geen intern COA-plan. Alle brongegevens zijn
-        verzonnen. Meedoen is vrijwillig; een medewerker bespreekt opties met de
-        bewoner. De demo wijzigt geen dossiers, verstuurt geen berichten en
-        meldt niemand aan.
-      </footer>
     </main>
     <script>
       const el = (id) => document.getElementById(id);
       let session = "",
-        questions = [],
         source = {},
-        current = null,
         busy = false,
         pollVersion = 0;
       async function api(path, body, method) {
@@ -148,13 +99,19 @@
         } catch {
           data = { error: text };
         }
-        if (!response.ok) throw new Error(data.error || "Verzoek mislukt.");
+        if (!response.ok) {
+          const errors = {
+            "Deze sessie heeft 40 runs; start een nieuwe testsessie.": "Je hebt in deze sessie 40 vragen gesteld. Open de demo in een nieuw tabblad om verder te gaan.",
+            "Testsessie bestaat niet meer; start een nieuwe sessie.": "Deze sessie is verlopen. Vernieuw de pagina om verder te gaan.",
+          };
+          throw new Error(errors[data.error] || data.error || "Verzoek mislukt.");
+        }
         return data;
       }
       function setBusy(value) {
         busy = value;
         document
-          .querySelectorAll(".run-control,#history")
+          .querySelectorAll(".run-control")
           .forEach((node) => (node.disabled = value));
       }
       function message(text, error = false) {
@@ -168,34 +125,12 @@
         return item;
       }
       function sourceTitle(id) { return source.sources.find(doc => doc.id === id)?.title || id; }
-      function markQuestion() {
-        document
-          .querySelectorAll("[data-question]")
-          .forEach((button) =>
-            button.setAttribute(
-              "aria-pressed",
-              String(
-                button.dataset.text ===
-                  el("question").value.trim(),
-              ),
-            ),
-          );
-      }
-      function choose(question) {
-        if (busy) return;
-        el("question").value = question.text;
-        markQuestion();
-        el("result").hidden = true;
-        current = null;
-        el("history").value = "";
-        message("");
-      }
       function failureMessage(error) {
         if (error?.startsWith("tool:"))
           return "De bronzoekfunctie is niet goed afgerond. Er is geen antwoord opgeslagen.";
         if (error?.startsWith("output:"))
           return "Het antwoord kon niet aan de gevonden bronpassages worden gekoppeld. Er is geen antwoord opgeslagen.";
-        return "Codex kon de vraag niet afronden. Controleer de aanmelding of probeer opnieuw. De foutdetails staan bij de gegevens van deze uitvoering.";
+        return "Codex kon de vraag niet afronden. Controleer de aanmelding of probeer opnieuw.";
       }
       function quotedPassage(text, quotes) {
         const block = node("blockquote");
@@ -210,7 +145,6 @@
         return block;
       }
       function showRun(run) {
-        current = run;
         el("result").hidden = false;
         el("result-title").textContent =
           run.status === "failed" ? "De uitvoering is mislukt" : "Het antwoord";
@@ -265,43 +199,6 @@
           el("tools").append(item);
         });
         el("tool-details").hidden = run.status !== "completed";
-        el("metadata").replaceChildren();
-        [
-          "Status: " + run.status,
-          "Foutdetails: " + (run.error || "geen"),
-          "Bronnen: " +
-            source.sources.map(doc => doc.id + " (" + doc.date + ")").join(", ") +
-            " · referentie " +
-            source.as_of,
-          "Aangemaakt: " + new Date(run.created_at_ms).toLocaleString("nl-NL"),
-          "Antwoordmodel: " + (run.result?.model || "onbekend"),
-          "Codex-client: " + (run.result?.client_version || "onbekend"),
-          "Bronhash: " +
-            (run.context.retrieval_manifest?.source_sha256 || "onbekend"),
-          "Instellingen zoekmodel: " +
-            (run.context.retrieval_manifest?.settings_sha256 || "onbekend"),
-          "Promptversie: " +
-            (run.context.codex_configuration?.prompt_version || "onbekend"),
-        ].forEach((text) => el("metadata").append(node("p", text)));
-      }
-      async function refresh() {
-        const summary = await api("/api/session");
-        el("progress").textContent = summary.runs.length + " uitvoeringen in deze sessie.";
-        el("history").replaceChildren(node("option", "Kies een uitvoering"));
-        el("history").firstChild.value = "";
-        summary.runs
-          .slice()
-          .reverse()
-          .forEach((run) => {
-            const option = node(
-              "option",
-              run.question.slice(0, 65) + " · " + run.status,
-            );
-            option.value = run.id;
-            el("history").append(option);
-          });
-        if (current) el("history").value = current.id;
-        return summary;
       }
       async function watch(run) {
         const version = ++pollVersion;
@@ -323,7 +220,6 @@
               : "",
             run.status === "failed",
           );
-          await refresh();
         } catch (error) {
           message(error.message, true);
         } finally {
@@ -346,61 +242,20 @@
         event.preventDefault();
         begin("/api/runs", { question: el("question").value.trim(), top_k: 3 });
       });
-      el("new-question").addEventListener("click", () => {
-        el("question").value = "";
-        markQuestion();
-        current = null;
-        el("history").value = "";
-        el("result").hidden = true;
-        message("");
-        el("question").focus();
-      });
       el("question").addEventListener("input", () => {
-        markQuestion();
         el("result").hidden = true;
-        current = null;
-        el("history").value = "";
         message("");
       });
-      el("replay").addEventListener("click", () => {
-        if (current) begin("/api/runs/" + current.id + "/replay", {});
-      });
-      el("history").addEventListener("change", async () => {
-        if (!el("history").value) return;
-        try {
-          const run = await api("/api/runs/" + el("history").value);
-          el("question").value = run.question;
-          markQuestion();
-          if (run.status === "pending") await watch(run);
-          else showRun(run);
-        } catch (error) {
-          message(error.message, true);
-        }
-      });
-      async function createSession(announce = true) {
+      async function createSession() {
         const data = await api("/api/session", { seen_question_ids: [] });
         session = data.session_id;
         sessionStorage.setItem("coa-test-session", session);
-        current = null;
-        el("result").hidden = true;
-        await refresh();
-        if (announce) message("Nieuwe sessie gestart.");
+        return data.summary;
       }
-      el("new-session").addEventListener("click", async () => {
-        if (busy) return;
-        try {
-          await createSession();
-        } catch (error) {
-          message(error.message, true);
-        }
-      });
       (async () => {
         setBusy(true);
         try {
-          [source, questions] = await Promise.all([
-            api("/api/source"),
-            api("/api/questions"),
-          ]);
+          source = await api("/api/source");
           source.sources.forEach(doc => {
             const document = node("details", undefined, "source-document");
             document.name = "activity";
@@ -413,23 +268,13 @@
             });
             el("source-sections").append(document);
           });
-          const examples = [questions[0], {id:"tuesday",text:"Welk werk is mogelijk op dinsdag?"}, {id:"bicycle",text:"Kan ik zonder ervaring helpen met fietsen opknappen?"}];
-          examples.forEach(question => {
-            const button = node("button", question.text, "run-control");
-            button.type = "button";
-            button.dataset.question = question.id;
-            button.dataset.text = question.text;
-            button.addEventListener("click", () => { choose(question); el("question").focus(); });
-            el("questions").append(button);
-          });
           session = sessionStorage.getItem("coa-test-session") || "";
           let summary;
           try {
             if (!session) throw new Error();
-            summary = await refresh();
+            summary = await api("/api/session");
           } catch {
-            await createSession(false);
-            summary = await refresh();
+            summary = await createSession();
           }
           setBusy(false);
           el("question").value = "";
@@ -437,7 +282,6 @@
           const pending = summary.runs.find((run) => run.status === "pending");
           if (pending) {
             el("question").value = pending.question;
-            markQuestion();
             await watch(pending);
           } else if (!source.runtime_ready)
             message(
@@ -450,5 +294,5 @@
         }
       })();
     </script>
-  <footer class="site-footer">Eigen leerproject, geïnspireerd door de COA-use case. Alle activiteiten zijn verzonnen. <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning">Bekijk de code</a>.</footer></body>
+  <footer class="site-footer">Eigen leerproject, geen intern COA-plan. Alle gegevens zijn verzonnen. Meedoen is vrijwillig; een medewerker bespreekt opties met de bewoner. De demo wijzigt geen dossiers, verstuurt geen berichten en meldt niemand aan. <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning">Bekijk de code</a>.</footer></body>
 </html>

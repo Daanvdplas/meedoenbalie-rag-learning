@@ -1,11 +1,12 @@
 # Architectuurgids: de webdemo en de evaluatieresultaten
 
-Deze gids beschrijft de actuele weblaag en de grenzen tussen live uitvoering en opgeslagen evaluaties. De beschrijving is op 9 november 2026 aan de broncode gecontroleerd. De bestaande [README](../README.md), [Codex-uitleg](retrieval-codex.md), [evaluatiehandleiding](evaluation/reproduce.md) en [privacygrenzen](privacy-boundaries.md) geven verdere context. De oudere [interactieve code-tour](code-tour.html) is een historische vijfbronnenmomentopname; gebruik de getallen daarin niet als huidige corpusomvang.
+Deze gids beschrijft de actuele weblaag en de grenzen tussen live uitvoering en opgeslagen evaluaties. De beschrijving is op 10 november 2026 aan de broncode gecontroleerd. De bestaande [README](../README.md), [Codex-uitleg](retrieval-codex.md), [evaluatiehandleiding](evaluation/reproduce.md) en [privacygrenzen](privacy-boundaries.md) geven verdere context. De oudere [interactieve code-tour](code-tour.html) is een historische vijfbronnenmomentopname; gebruik de getallen daarin niet als huidige corpusomvang.
 
 ## Recente architectuurwijzigingen
 
 | Datum | Verandering | Implementatie |
 | --- | --- | --- |
+| 2026-11-10 | De live demo toont alleen activiteiten, vrije vraag, antwoord en zoekresultaten. De voorbeeldvragen, extra vraag-/herhaalknoppen, uitvoeringsmetadata en geschiedenis zijn uit de browser verwijderd; de bestaande API blijft beschikbaar. De navigatie toont geen resultatenlink en de demo heeft één projectdisclaimer. | [`static/index.html`](../static/index.html), [`static/site/`](../static/site/) |
 | 2026-11-09 | Eén webserver verbindt startpagina, bestaande live demo, opgeslagen modelvergelijking en technische uitleg. De live modeluitvoering blijft dezelfde. | [`web::router`](../src/web.rs), [`static/site/`](../static/site/) |
 | 2026-11-09 | Een aparte, controleerbare export maakt van de zestig vastgelegde sessies een openbare presentatieprojectie. Ruwe uitvoer en lokale bestandspaden worden niet geserveerd. | [`export_site_results.py`](../scripts/export_site_results.py) |
 
@@ -15,7 +16,7 @@ De executable start met `serve` of zonder argumenten. De CLI laadt eerst de bron
 
 | Route | Wat de bezoeker krijgt |
 | --- | --- |
-| `/` | De startpagina met toegang tot de drie onderdelen. |
+| `/` | De startpagina met toegang tot de demo en technische uitleg. |
 | `/demo/` | De bestaande vrije vraag, brondocumenten, antwoord en echte zoekacties. |
 | `/resultaten/` | Zestig opgeslagen sessies: tien vragen, twee modellen, drie herhalingen. |
 | `/techniek/` | Een leesbare samenvatting van de bestaande bron-, zoek-, Codex- en evaluatielogica. |
@@ -24,6 +25,8 @@ De executable start met `serve` of zonder argumenten. De CLI laadt eerst de bron
 Deze pagina's zijn `include_str!`-assets in de Rust-binary. Er is geen algemene fileserver die de checkout of experimentele outputmap ontsluit. Een gewijzigde asset vraagt opnieuw bouwen en starten. De webserver houdt zijn bestaande localhostbinding; deze wijziging voegt geen publieke hosting toe.
 
 ## De vrije demo blijft live
+
+De browser toont de brondocumenten, één vrij vraagveld, het antwoord en de openklapbare echte zoekacties met bron, datum en letterlijke citaten. Een wijziging in het vraagveld verbergt het vorige antwoord. Voorbeeldvragen, een losse knop voor een nieuwe vraag, herhalen, uitvoeringsmetadata en geschiedenis staan niet meer in de interface. De bestaande API-routes voor sessies, historie en herhalen blijven behouden. De browser bewaart het sessie-ID in `sessionStorage` en hervat een nog lopende uitvoering bij herladen. De gedeelde navigatie bevat start, demo en technische uitleg; `/resultaten/` blijft rechtstreeks bereikbaar. Eén footer in de demo bevat de projectgrenzen en de bestaande code-link.
 
 [`static/index.html`](../static/index.html) gebruikt absolute `/api/...`-routes. De verplaatsing naar `/demo/` verandert die requests daarom niet. `POST /api/session` maakt een begrensde sessie in [`RunStore`](../src/runs.rs). `POST /api/runs` legt een contextsnapshot vast, start een achtergrondtaak en geeft een pending run terug. De browser pollt daarna `GET /api/runs/{id}`.
 
