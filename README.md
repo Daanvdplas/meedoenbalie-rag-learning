@@ -1,4 +1,4 @@
-# Meedoenbalie: activiteiten verkennen
+# COA Assistent
 
 Een kleine Rust-leerproef met tien verzonnen activiteiten, echte lokale embeddings en Codex. Je stelt een vraag en kunt de gebruikte bronpassages controleren. Dit is een eigen prototype, geen intern COA-plan.
 
@@ -34,7 +34,7 @@ python3 -m unittest discover -s scripts -p 'test_export_site_results.py'
 ## Zelf testen
 
 1. Bovenaan staan tien compacte activiteiten, waaronder **Tuinieren**, **Fietsen opknappen**, **Creatief atelier** en **Parkonderhoud**. Klik een titel om het volledige fictieve document met bron en datum te lezen. Er staat steeds maximaal één activiteit open.
-2. Kies bovenaan **🇳🇱** (Nederlands) of **🇬🇧** (English) en schrijf één eigen vraag. Kies **Op betekenis** (de bestaande dense-zoekmethode) of **Op woorden**. De taalkeuze blijft bij vernieuwen bewaard. De interface en nieuwe antwoorden volgen de gekozen taal; de vraag die je al typt en bestaande antwoorden blijven staan. Alle documenten beschrijven vrijwillige activiteiten, geen betaalde banen.
+2. Open bovenaan de huidige vlag en kies **🇳🇱 Nederlands** of **🇬🇧 English**. Schrijf daarna één eigen vraag. Kies **Op betekenis** (de bestaande dense-zoekmethode) of **Op woorden**. De taalkeuze blijft bij vernieuwen bewaard. De interface en nieuwe antwoorden volgen de gekozen taal; de vraag die je al typt en bestaande antwoorden blijven staan. Alle documenten beschrijven vrijwillige activiteiten, geen betaalde banen.
 3. Codex maakt één direct antwoord zonder toegevoegde bronverwijzingen of aparte lijst met onbekende informatie. Bij een rechtstreeks onbeantwoordbare vraag blijft het antwoord eerlijk onbekend. Onder **Bekijk de resultaten** staat elke echte zoekactie afzonderlijk: de zoekvraag en de gevonden passages. De volgorde en eventuele herhaalde passages blijven behouden; dit zijn geen extra gebruikersvragen.
 4. Exact geciteerde tekst is gemarkeerd in de werkelijk gevonden passages. Activiteit, menselijk sectiekopje en één brondatum staan erbij; de volledige activiteiten blijven bovenaan leesbaar. Er is geen afzonderlijk bewijsblok of beoordelingsflow.
 5. Pas de vraag aan en zoek opnieuw. Het vorige antwoord verdwijnt zodra je typt; iedere ingediende vraag krijgt een eigen uitvoering. Voorbeeldvragen, losse knoppen voor nieuwe vragen of herhalen, technische uitvoeringsgegevens en geschiedenis worden niet getoond.
