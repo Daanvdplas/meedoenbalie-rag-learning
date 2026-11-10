@@ -3,10 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Wat wil je doen? · Activiteiten verkennen</title>
+    <title>Vind een activiteit die past</title>
     <style>
       main { max-width:1040px; margin:auto; padding:40px 32px 48px; }
-      .demo-main h1 { font-size:2.25rem; margin:0 0 24px; }
+      .site-nav.demo-nav { justify-content:flex-end; padding-block:12px; gap:8px 24px; }
+      .demo-main h1 { font-size:2.5rem; line-height:1.16; letter-spacing:-.025em; text-wrap:balance; margin:0 0 28px; }
       .demo-main h2 { font-size:1.5rem; margin:32px 0 16px; }
       .demo-main h3 { font-size:1rem; margin:16px 0 6px; }
       .demo-main p { max-width:72ch; }
@@ -17,8 +18,11 @@
       label { display:block; font-size:.9375rem; font-weight:650; margin-bottom:8px; }
       textarea { display:block; width:100%; min-width:0; min-height:120px; resize:vertical; padding:14px 16px; background:var(--surface); border:1px solid var(--muted); border-radius:2px; margin-bottom:16px; }
       textarea::placeholder { color:var(--muted); opacity:1; }
-      .method-field { margin-bottom:16px; }
-      .method-field select { min-width:220px; max-width:100%; background:var(--surface); border-color:var(--muted); border-radius:2px; }
+      .form-actions { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; }
+      .method-field { flex:0 1 240px; min-width:0; }
+      .method-field select { width:100%; min-height:48px; background:var(--surface); border-color:var(--muted); border-radius:2px; padding:10px 14px; }
+      .toolbar { display:flex; }
+      .toolbar button { white-space:nowrap; }
       .run-method { font-size:.875rem; margin:0 0 16px; }
       #status { margin:20px 0 0; font-size:.9375rem; }
       #status:empty { display:none; }
@@ -27,16 +31,16 @@
       .answer { white-space:pre-wrap; overflow-wrap:anywhere; font-size:1.0625rem; line-height:1.65; margin:0; }
       .retrieved small,.source-document>small { display:block; }
       blockquote { margin:8px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
-      #source { margin-bottom:40px; }
+      #source { margin-bottom:32px; }
       #source-sections { display:flex; flex-wrap:wrap; gap:8px; }
-      .demo-main #source-heading { color:var(--ink); font-size:1.125rem; margin:0 0 12px; }
-      .source-document { flex:1 1 170px; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:2px; padding:0 12px; margin:0; }
-      .source-document summary { min-height:48px; display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:.9375rem; font-weight:600; overflow-wrap:anywhere; cursor:pointer; list-style:none; }
+      .source-document { flex:1 1 170px; min-width:0; border:0; border-bottom:1px solid var(--line); padding:0 8px; margin:0; }
+      .source-document summary { min-height:48px; display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:.9375rem; font-weight:500; overflow-wrap:anywhere; cursor:pointer; list-style:none; }
       .source-document summary::-webkit-details-marker { display:none; }
       .source-document summary::after { content:"+"; flex-shrink:0; color:var(--accent); font-size:1.125rem; }
       .source-document[open]>summary::after { content:"−"; }
       .source-document:hover { border-color:var(--muted); }
-      .source-document[open] { flex-basis:100%; order:1; padding-bottom:16px; }
+      .source-document[open] { flex-basis:100%; order:1; background:var(--surface); border:1px solid var(--line); padding:0 16px 16px; }
+      .source-document[open]>summary { font-weight:650; }
       .source-document>small { display:none; margin-top:4px; }
       .source-document[open]>small { display:block; }
       .source-section { border-top:1px solid var(--line); margin-top:16px; padding-top:4px; }
@@ -52,33 +56,35 @@
       .retrieved small { margin-top:12px; }
       .error { color:var(--error); }
       [hidden] { display:none !important; }
-      @media(max-width:650px) { main { padding:28px 16px 32px; } .demo-main h1 { font-size:1.875rem; margin-bottom:20px; } #source { margin-bottom:32px; } .source-document { flex-basis:140px; } .answer-panel { padding:16px; } }
+      @media(max-width:650px) { main { padding:28px 16px 32px; } .site-nav.demo-nav { gap:8px 12px; } .demo-main h1 { font-size:2rem; margin-bottom:24px; } .source-document { flex-basis:140px; } .form-actions { display:grid; grid-template-columns:minmax(0,1fr); justify-content:stretch; gap:16px; } .toolbar button { width:100%; } .answer-panel { padding:16px; } }
       @media(max-width:360px) { .source-document { padding-inline:6px; } .source-document summary,.source-document summary::after { font-size:.875rem; } .source-document summary { gap:4px; } }
     </style>
 
-  <link rel="stylesheet" href="/assets/site.css?v=20261110-results">
-<script src="/assets/language.js?v=20261110-results" defer></script>
-<script src="/assets/demo.js?v=20261110-results" defer></script>
+  <link rel="stylesheet" href="/assets/site.css?v=20261110-top-design">
+<script src="/assets/language.js?v=20261110-top-design" defer></script>
+<script src="/assets/demo.js?v=20261110-top-design" defer></script>
 </head>
-  <body><nav class="site-nav" aria-label="Hoofdnavigatie"><span class="site-brand" data-i18n="brand">Activiteiten verkennen</span><a href="/" aria-current="page" data-i18n="demo">Demo</a><a href="/techniek/" data-i18n="technical">Hoe het werkt</a><div class="language-switch" role="group" aria-label="Taal"><button type="button" data-language="nl" lang="nl" aria-label="Nederlands" title="Nederlands" aria-pressed="true"><span aria-hidden="true">🇳🇱</span></button><button type="button" data-language="en" lang="en" aria-label="English" title="English" aria-pressed="false"><span aria-hidden="true">🇬🇧</span></button></div></nav>
+  <body><nav class="site-nav demo-nav" aria-label="Hoofdnavigatie"><a href="/" aria-current="page" data-i18n="demo">Demo</a><a href="/techniek/" data-i18n="technical">Hoe het werkt</a><div class="language-switch" role="group" aria-label="Taal"><button type="button" data-language="nl" lang="nl" aria-label="Nederlands" title="Nederlands" aria-pressed="true"><span aria-hidden="true">🇳🇱</span></button><button type="button" data-language="en" lang="en" aria-label="English" title="English" aria-pressed="false"><span aria-hidden="true">🇬🇧</span></button></div></nav>
     <main class="demo-main">
+      <h1 data-i18n="questionTitle">Vind een activiteit die past</h1>
       <section id="source" aria-labelledby="source-heading">
-        <h2 id="source-heading" data-i18n="activities">Activiteiten</h2>
+        <h2 id="source-heading" class="sr-only" data-i18n="activities">Activiteiten</h2>
         <div id="source-sections"></div>
       </section>
-      <h1 data-i18n="questionTitle">Wat wil je doen?</h1>
       <form id="form">
-        <label for="question" data-i18n="questionLabel">Stel je vraag over de activiteiten</label>
-        <textarea id="question" class="run-control" maxlength="1000" required placeholder="Bijvoorbeeld: welke activiteiten zijn er op dinsdag?"></textarea>
+        <label for="question" data-i18n="questionLabel">Je vraag</label>
+        <textarea id="question" class="run-control" maxlength="1000" required placeholder="Welke activiteiten zijn er op dinsdag?"></textarea>
+        <div class="form-actions">
         <div class="method-field">
           <label for="retrieval-method" data-i18n="retrievalMethod">Zoekmethode</label>
           <select id="retrieval-method">
             <option value="dense" data-i18n="methodDense">Op betekenis</option>
-            <option value="bm25" data-i18n="methodBm25">Op woorden (BM25)</option>
+            <option value="bm25" data-i18n="methodBm25">Op woorden</option>
           </select>
         </div>
         <div class="toolbar">
           <button class="primary run-control" type="submit" data-i18n="submit">Zoek een antwoord</button>
+        </div>
         </div>
       </form>
       <p id="status" role="status"></p>
