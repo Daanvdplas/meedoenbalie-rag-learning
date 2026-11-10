@@ -3,11 +3,20 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Vind een activiteit die past</title>
+    <title data-i18n="pageTitle">COA Assistent · Vind een activiteit die past</title>
     <style>
       main { max-width:1040px; margin:auto; padding:40px 32px 48px; }
-      .site-nav.demo-nav { justify-content:flex-end; padding-block:12px; gap:8px 24px; }
-      .demo-main h1 { font-size:2.5rem; line-height:1.16; letter-spacing:-.025em; text-wrap:balance; margin:0 0 28px; }
+      .site-nav.demo-nav { justify-content:flex-end; padding-block:12px; gap:8px 20px; }
+      .demo-nav .demo-name { margin-inline-end:auto; color:var(--ink); font-weight:650; }
+      main.demo-main>h1 { font-size:1.875rem; font-weight:600; line-height:1.2; letter-spacing:-.015em; text-wrap:balance; margin:0 0 16px; }
+      .demo-nav .language-switch { display:block; position:relative; }
+      .demo-nav .language-trigger { display:flex; align-items:center; justify-content:center; gap:4px; min-width:44px; min-height:44px; padding:0 6px; cursor:pointer; list-style:none; }
+      .demo-nav .language-trigger::-webkit-details-marker { display:none; }
+      .demo-nav .language-trigger::after { content:"⌄"; font-size:.75rem; color:var(--muted); }
+      .demo-nav .language-options { position:absolute; z-index:10; inset-inline-end:0; top:calc(100% + 6px); min-width:200px; padding:4px; border:1px solid var(--line); background:var(--surface); }
+      .demo-nav .language-options button { display:flex; align-items:center; gap:8px; width:100%; min-height:44px; padding:8px 12px; border:0; border-radius:0; text-align:start; text-decoration:none; font-weight:500; }
+      .demo-nav .language-options button[aria-pressed="true"] { font-weight:650; text-decoration:underline; text-underline-offset:4px; }
+      .demo-nav .language-options button:hover { background:var(--paper); }
       .demo-main h2 { font-size:1.5rem; margin:32px 0 16px; }
       .demo-main h3 { font-size:1rem; margin:16px 0 6px; }
       .demo-main p { max-width:72ch; }
@@ -31,20 +40,21 @@
       .answer { white-space:pre-wrap; overflow-wrap:anywhere; font-size:1.0625rem; line-height:1.65; margin:0; }
       .retrieved small,.source-document>small { display:block; }
       blockquote { margin:8px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
-      #source { margin-bottom:32px; }
-      #source-sections { display:flex; flex-wrap:wrap; gap:8px; }
-      .source-document { flex:1 1 170px; min-width:0; border:0; border-bottom:1px solid var(--line); padding:0 8px; margin:0; }
-      .source-document summary { min-height:48px; display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:.9375rem; font-weight:500; overflow-wrap:anywhere; cursor:pointer; list-style:none; }
-      .source-document summary::-webkit-details-marker { display:none; }
-      .source-document summary::after { content:"+"; flex-shrink:0; color:var(--accent); font-size:1.125rem; }
-      .source-document[open]>summary::after { content:"−"; }
-      .source-document:hover { border-color:var(--muted); }
-      .source-document[open] { flex-basis:100%; order:1; background:var(--surface); border:1px solid var(--line); padding:0 16px 16px; }
-      .source-document[open]>summary { font-weight:650; }
-      .source-document>small { display:none; margin-top:4px; }
-      .source-document[open]>small { display:block; }
-      .source-section { border-top:1px solid var(--line); margin-top:16px; padding-top:4px; }
-      .source-section p { white-space:pre-wrap; font-size:.9375rem; margin-bottom:0; }
+      #source { margin-bottom:24px; }
+      #source-heading { font-size:1rem; font-weight:650; line-height:1.4; margin:0 0 10px; }
+      #source-sections { display:flex; flex-wrap:wrap; gap:1px; border:1px solid var(--line); background:var(--line); }
+      #source .source-document { flex:1 1 calc(25% - 1px); min-width:min(100%,10.5rem); margin:0; padding:0; border:0; background:var(--surface); }
+      #source .source-document>summary { display:flex; align-items:center; justify-content:flex-start; gap:8px; min-height:44px; padding:0 14px; font-size:.9375rem; font-weight:500; overflow-wrap:anywhere; cursor:pointer; list-style:none; }
+      #source .source-document>summary::-webkit-details-marker { display:none; }
+      #source .source-document>summary::after { content:"+"; order:-1; flex-shrink:0; width:14px; font-size:1rem; color:var(--muted); }
+      #source .source-document[open]>summary::after { content:"−"; }
+      #source .source-document:not([open]):hover { background:var(--paper); }
+      #source .source-document[open] { flex-basis:100%; order:1; padding:0 16px 16px; }
+      #source .source-document[open]>summary { padding-inline:0; font-weight:650; }
+      #source .source-document>small { display:none; margin-top:4px; }
+      #source .source-document[open]>small { display:block; }
+      #source .source-section { border-top:1px solid var(--line); margin-top:16px; padding-top:4px; }
+      #source .source-section p { white-space:pre-wrap; font-size:.9375rem; margin-bottom:0; }
       #tool-details { border-top:1px solid var(--line); padding:16px 0; }
       #tool-details>summary { min-height:32px; cursor:pointer; font-weight:650; }
       .search-action { padding:28px 0 16px; }
@@ -58,21 +68,23 @@
       [hidden] { display:none !important; }
       @media(max-width:650px) { main { padding:28px 16px 32px; } .site-nav.demo-nav { gap:8px 12px; } .demo-main h1 { font-size:2rem; margin-bottom:24px; } .source-document { flex-basis:140px; } .form-actions { display:grid; grid-template-columns:minmax(0,1fr); justify-content:stretch; gap:16px; } .toolbar button { width:100%; } .answer-panel { padding:16px; } }
       @media(max-width:360px) { .source-document { padding-inline:6px; } .source-document summary,.source-document summary::after { font-size:.875rem; } .source-document summary { gap:4px; } }
+      @media(max-width:650px) { .demo-nav .demo-name { flex-basis:100%; } main.demo-main>h1 { font-size:1.75rem; margin-bottom:16px; } #source .source-document { flex-basis:calc(50% - 1px); min-width:min(100%,8rem); } #source .source-document>summary { min-height:48px; padding-inline:8px; gap:6px; } #source .source-document[open] { flex-basis:100%; } }
+      @media(max-width:360px) { #source .source-document>summary { font-size:.875rem; padding-inline:6px; gap:4px; } }
     </style>
 
-  <link rel="stylesheet" href="/assets/site.css?v=20261110-top-design">
-<script src="/assets/language.js?v=20261110-top-design" defer></script>
-<script src="/assets/demo.js?v=20261110-top-design" defer></script>
+  <link rel="stylesheet" href="/assets/site.css?v=20261110-grouped-header">
+<script src="/assets/language.js?v=20261110-grouped-header" defer></script>
+<script src="/assets/demo.js?v=20261110-grouped-header" defer></script>
 </head>
-  <body><nav class="site-nav demo-nav" aria-label="Hoofdnavigatie"><a href="/" aria-current="page" data-i18n="demo">Demo</a><a href="/techniek/" data-i18n="technical">Hoe het werkt</a><div class="language-switch" role="group" aria-label="Taal"><button type="button" data-language="nl" lang="nl" aria-label="Nederlands" title="Nederlands" aria-pressed="true"><span aria-hidden="true">🇳🇱</span></button><button type="button" data-language="en" lang="en" aria-label="English" title="English" aria-pressed="false"><span aria-hidden="true">🇬🇧</span></button></div></nav>
+  <body><nav class="site-nav demo-nav" aria-label="Hoofdnavigatie"><span class="demo-name" data-i18n="brand">COA Assistent</span><a href="/" aria-current="page" data-i18n="demo">Demo</a><a href="/techniek/" data-i18n="technical">Hoe het werkt</a><details class="language-switch" aria-label="Taal"><summary id="language-trigger" class="language-trigger" aria-label="Taal kiezen: Nederlands" title="Taal kiezen: Nederlands" aria-expanded="false" aria-controls="language-options"><span id="current-language-flag" aria-hidden="true">🇳🇱</span></summary><div id="language-options" class="language-options" role="group" aria-label="Taal"><button type="button" data-language="nl" lang="nl" aria-pressed="true"><span aria-hidden="true">🇳🇱</span> Nederlands</button><button type="button" data-language="en" lang="en" aria-pressed="false"><span aria-hidden="true">🇬🇧</span> English</button></div></details></nav>
     <main class="demo-main">
       <h1 data-i18n="questionTitle">Vind een activiteit die past</h1>
       <section id="source" aria-labelledby="source-heading">
-        <h2 id="source-heading" class="sr-only" data-i18n="activities">Activiteiten</h2>
+        <h2 id="source-heading" data-i18n="activities">Activiteiten</h2>
         <div id="source-sections"></div>
       </section>
       <form id="form">
-        <label for="question" data-i18n="questionLabel">Je vraag</label>
+        <label for="question" data-i18n="questionLabel">Stel de COA assistent een vraag</label>
         <textarea id="question" class="run-control" maxlength="1000" required placeholder="Welke activiteiten zijn er op dinsdag?"></textarea>
         <div class="form-actions">
         <div class="method-field">
