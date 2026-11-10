@@ -1,0 +1,207 @@
+(() => {
+  const el = (id) => document.getElementById(id);
+  const { t, current: language, activity, heading } = window.CoaLanguage;
+  let session = "", source = { sources: [] }, currentRun = null, busy = false, pollVersion = 0, status = null;
+  const errorKeys = {
+    "Deze sessie heeft 40 runs; start een nieuwe testsessie.": "sessionFull",
+    "Testsessie bestaat niet meer; start een nieuwe sessie.": "sessionExpired",
+    "Testsessie bestaat niet meer.": "sessionExpired",
+    "Start eerst een testsessie.": "sessionExpired",
+    "Maximum van 16 lokale sessies bereikt; herstart de demo.": "sessionsFull",
+    "Er draait al een vraag. Wacht tot die uitvoering klaar is.": "runBusy",
+    "Please enter a question of 1 to 1000 characters.": "questionInvalid",
+    "Lokale opslag niet beschikbaar; herstart de demo.": "storageUnavailable",
+  };
+  function requestError(key) { return Object.assign(new Error(key), { code: key }); }
+  async function api(path, body) {
+    let response;
+    try {
+      response = await fetch(path, {
+        method: body ? "POST" : "GET",
+        headers: { "Content-Type": "application/json", "X-Test-Session": session },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+    } catch { throw requestError("networkFailed"); }
+    let data;
+    try { data = await response.json(); } catch { throw requestError("requestFailed"); }
+    if (!response.ok) throw requestError(errorKeys[data.error] || "requestFailed");
+    return data;
+  }
+  function setBusy(value) {
+    busy = value;
+    document.querySelectorAll(".run-control").forEach(item => { item.disabled = value; });
+  }
+  function renderStatus() {
+    el("status").textContent = status ? t(status.key, status.reason ? { reason: t(status.reason) } : {}) : "";
+    el("status").className = status?.error ? "error" : "";
+  }
+  function message(key, error = false, reason) {
+    status = key ? { key, error, reason } : null;
+    renderStatus();
+  }
+  function node(tag, text, className) {
+    const item = document.createElement(tag);
+    if (text !== undefined) item.textContent = text;
+    if (className) item.className = className;
+    return item;
+  }
+  function sourceTitle(id) {
+    const doc = source.sources.find(doc => doc.id === id);
+    return activity(id, doc?.title || id);
+  }
+  function sourceDate(date, reference = source.as_of) { return t("sourceDate", { date, reference }); }
+  function failureKey(error) {
+    if (error?.startsWith("tool:")) return "toolFailure";
+    if (error?.startsWith("output:")) return "outputFailure";
+    return "runtimeFailure";
+  }
+  function quotedPassage(text, quotes) {
+    const block = node("blockquote");
+    block.lang = "nl";
+    const ranges = quotes.map(quote => ({ start: text.indexOf(quote), end: text.indexOf(quote) + quote.length }))
+      .filter(range => range.start >= 0).sort((a, b) => a.start - b.start);
+    let cursor = 0;
+    for (const range of ranges) {
+      if (range.start < cursor) continue;
+      block.append(document.createTextNode(text.slice(cursor, range.start)), node("mark", text.slice(range.start, range.end)));
+      cursor = range.end;
+    }
+    block.append(document.createTextNode(text.slice(cursor)));
+    return block;
+  }
+  function showRun(run) {
+    currentRun = run;
+    el("result").hidden = false;
+    el("result-title").textContent = t(run.status === "failed" ? "failedTitle" : "answer");
+    el("answer").textContent = run.status === "failed" ? t(failureKey(run.error)) : run.result?.answer?.text || t("pendingAnswer");
+    el("answer").lang = run.result?.answer?.text ? run.context?.answer_language || "nl" : language();
+    el("answer").classList.toggle("error", run.status === "failed");
+    el("unknowns").replaceChildren();
+    if (run.result?.answer?.unknowns?.length) {
+      el("unknowns").append(node("h3", t("unknowns")));
+      const list = node("ul");
+      list.lang = run.context?.answer_language || "nl";
+      run.result.answer.unknowns.forEach(text => list.append(node("li", text)));
+      el("unknowns").append(list);
+    }
+    const citations = run.result?.answer?.citations || [];
+    el("tools").replaceChildren();
+    (run.result?.tool_calls || []).forEach((call, index) => {
+      const item = node("article", undefined, "hit");
+      const callStatus = ["success", "completed", "failed", "pending"].includes(call.status) ? call.status : "unknown";
+      item.append(node("h3", t("searchAction", { number: index + 1 })),
+        node("p", t("searchQuery", { query: call.query })),
+        node("small", t("requestedPassages", { count: call.top_k, status: t(callStatus) })));
+      (call.result?.hits || []).forEach(hit => {
+        const evidence = node("section", undefined, "retrieved");
+        evidence.append(
+          node("h3", sourceTitle(hit.section.source_id) + " · " + hit.section.id + " · " + heading(hit.section.heading)),
+          quotedPassage(hit.section.text, citations.filter(c => c.source_id === hit.section.source_id && c.source_date === hit.section.source_date && c.section_id === hit.section.id).map(c => c.quote)),
+          node("small", hit.section.source_id + " · " + sourceDate(hit.section.source_date, call.result.as_of)),
+          node("small", t("similarity", { score: Number(hit.similarity).toLocaleString(language(), { minimumFractionDigits: 4, maximumFractionDigits: 4 }) })),
+        );
+        item.append(evidence);
+      });
+      if (call.error) item.append(node("p", t("toolFailure"), "error"));
+      el("tools").append(item);
+    });
+    el("tool-details").hidden = run.status !== "completed";
+  }
+  function renderSourceLabels() {
+    document.querySelectorAll(".source-document").forEach(item => {
+      const doc = source.sources.find(doc => doc.id === item.dataset.source);
+      item.querySelector("summary").textContent = sourceTitle(doc.id);
+      item.querySelector("small").textContent = sourceDate(doc.date);
+      item.querySelectorAll(".source-section h3").forEach((label, index) => {
+        const section = doc.sections[index];
+        label.textContent = section.id + " · " + heading(section.heading);
+      });
+    });
+  }
+  function renderLanguage() {
+    el("question").placeholder = t("questionPlaceholder");
+    el("result").setAttribute("aria-label", t("resultLabel"));
+    renderSourceLabels();
+    renderStatus();
+    if (currentRun) showRun(currentRun);
+  }
+  window.addEventListener("languagechange", renderLanguage);
+  async function watch(run) {
+    const version = ++pollVersion;
+    setBusy(true);
+    showRun(run);
+    message("searching");
+    try {
+      while (run.status === "pending") {
+        await new Promise(resolve => setTimeout(resolve, 750));
+        run = await api("/api/runs/" + run.id);
+        if (version !== pollVersion) return;
+      }
+      showRun(run);
+      message(run.status === "failed" ? "failedStatus" : null, run.status === "failed");
+    } catch (error) { message(error.code || "requestFailed", true); }
+    finally { if (version === pollVersion) setBusy(false); }
+  }
+  async function begin() {
+    if (busy) return;
+    setBusy(true);
+    message("starting");
+    try {
+      const run = await api("/api/runs", { question: el("question").value.trim(), top_k: 3, answer_language: language() });
+      await watch(run);
+    } catch (error) {
+      setBusy(false);
+      message(error.code || "requestFailed", true);
+    }
+  }
+  el("form").addEventListener("submit", event => { event.preventDefault(); begin(); });
+  el("question").addEventListener("input", () => {
+    el("result").hidden = true;
+    currentRun = null;
+    message(null);
+  });
+  async function createSession() {
+    const data = await api("/api/session", { seen_question_ids: [] });
+    session = data.session_id;
+    try { sessionStorage.setItem("coa-test-session", session); } catch {}
+    return data.summary;
+  }
+  renderLanguage();
+  (async () => {
+    setBusy(true);
+    try {
+      source = await api("/api/source");
+      source.sources.forEach(doc => {
+        const document = node("details", undefined, "source-document");
+        document.name = "activity";
+        document.dataset.source = doc.id;
+        document.append(node("summary", sourceTitle(doc.id)), node("small", sourceDate(doc.date)));
+        doc.sections.forEach(section => {
+          const item = node("section", undefined, "source-section");
+          item.id = "source-" + doc.id + "-" + section.id;
+          const text = node("p", section.text);
+          text.lang = "nl";
+          item.append(node("h3", section.id + " · " + heading(section.heading)), text);
+          document.append(item);
+        });
+        el("source-sections").append(document);
+      });
+      try { session = sessionStorage.getItem("coa-test-session") || ""; } catch { session = ""; }
+      let summary;
+      try {
+        if (!session) throw new Error();
+        summary = await api("/api/session");
+      } catch { summary = await createSession(); }
+      setBusy(false);
+      el("question").focus();
+      const pending = summary.runs.find(run => run.status === "pending");
+      if (pending) {
+        el("question").value = pending.question;
+        await watch(pending);
+      } else if (!source.runtime_ready) message("runtimeUnavailable", true);
+    } catch (error) {
+      message("loadFailed", true, error.code || "requestFailed");
+      setBusy(false);
+    }
+  })();
+})();
