@@ -36,12 +36,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .map_err(std::io::Error::other)?;
             return Ok(());
         }
-        "mcp" if args.is_empty() || (args.len() == 2 && args[0] == "--corpus") => {
-            let corpus = if args.is_empty() {
-                meedoen_retrieval::corpus::CorpusId::BaselineFive
-            } else {
-                serde_json::from_value(serde_json::Value::String(args[1].clone()))?
-            };
+        "mcp" => {
+            let corpus = parse_corpus(&mut args).map_err(std::io::Error::other)?;
+            let method = parse_mcp_method(&mut args).map_err(std::io::Error::other)?;
+            if !args.is_empty() {
+                return Err(
+                    "Usage: mcp [--corpus baseline-five|expanded-ten] [--method dense|bm25]".into(),
+                );
+            }
             let mut index: Option<Index> = None;
             meedoen_retrieval::mcp::serve_with_policy(
                 std::io::stdin().lock(),
@@ -50,10 +52,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     if index.is_none() {
                         index = Some(Index::load_for_corpus(corpus)?);
                     }
-                    let result = index.as_mut().unwrap().search_with_top_k(query, top_k)?;
-                    serde_json::to_value(result).map_err(|error| error.to_string())
+                    let index = index.as_mut().unwrap();
+                    match method {
+                        Some(method) => index.search_for_method(query, top_k, method),
+                        None => serde_json::to_value(index.search_with_top_k(query, top_k)?)
+                            .map_err(|error| error.to_string()),
+                    }
                 },
-                meedoen_retrieval::mcp::SearchPolicy::for_corpus(corpus),
+                match method {
+                    Some(method) => {
+                        meedoen_retrieval::mcp::SearchPolicy::for_demo_method(corpus, method)
+                    }
+                    None => meedoen_retrieval::mcp::SearchPolicy::for_corpus(corpus),
+                },
             )
             .map_err(std::io::Error::other)?;
             return Ok(());
@@ -125,6 +136,22 @@ fn parse_corpus(args: &mut Vec<String>) -> Result<meedoen_retrieval::corpus::Cor
         .map_err(|_| "Select --corpus baseline-five or expanded-ten")?;
     args.drain(position..=position + 1);
     Ok(corpus)
+}
+
+fn parse_mcp_method(
+    args: &mut Vec<String>,
+) -> Result<Option<meedoen_retrieval::DemoSearchMethod>, String> {
+    if args.iter().filter(|arg| arg.as_str() == "--method").count() > 1 {
+        return Err("Duplicate --method option".into());
+    }
+    let Some(position) = args.iter().position(|arg| arg == "--method") else {
+        return Ok(None);
+    };
+    let value = args.get(position + 1).ok_or("Missing --method value")?;
+    let method = serde_json::from_value(serde_json::Value::String(value.clone()))
+        .map_err(|_| "Select --method dense or bm25")?;
+    args.drain(position..=position + 1);
+    Ok(Some(method))
 }
 
 fn parse_top_k(args: &mut Vec<String>) -> Result<usize, String> {
