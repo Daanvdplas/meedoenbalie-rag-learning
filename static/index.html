@@ -17,14 +17,15 @@
       label { display:block; font-size:.9375rem; font-weight:650; margin-bottom:8px; }
       textarea { display:block; width:100%; min-width:0; min-height:120px; resize:vertical; padding:14px 16px; background:var(--surface); border:1px solid var(--muted); border-radius:2px; margin-bottom:16px; }
       textarea::placeholder { color:var(--muted); opacity:1; }
+      .method-field { margin-bottom:16px; }
+      .method-field select { min-width:220px; max-width:100%; background:var(--surface); border-color:var(--muted); border-radius:2px; }
+      .run-method { font-size:.875rem; margin:0 0 16px; }
       #status { margin:20px 0 0; font-size:.9375rem; }
       #status:empty { display:none; }
       #result { margin-top:40px; }
       .answer-panel { background:var(--surface); border:1px solid var(--line); padding:24px; margin:0 0 20px; }
       .answer { white-space:pre-wrap; overflow-wrap:anywhere; font-size:1.0625rem; line-height:1.65; margin:0; }
-      #unknowns:not(:empty) { margin-top:20px; }
-      #unknowns ul { margin:8px 0 0; padding-left:24px; }
-      .hit small,.source-document>small { display:block; }
+      .retrieved small,.source-document>small { display:block; }
       blockquote { margin:8px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
       #source { margin-bottom:40px; }
       #source-sections { display:flex; flex-wrap:wrap; gap:8px; }
@@ -42,20 +43,24 @@
       .source-section p { white-space:pre-wrap; font-size:.9375rem; margin-bottom:0; }
       #tool-details { border-top:1px solid var(--line); padding:16px 0; }
       #tool-details>summary { min-height:32px; cursor:pointer; font-weight:650; }
-      .demo-main .hit { margin-top:24px; border:0; padding:0; }
-      .demo-main .retrieved { padding:16px 0; margin-top:12px; border-top:1px solid var(--line); font-size:.9375rem; }
-      .retrieved h3 { margin-top:0; }
+      .search-action { padding:28px 0 16px; }
+      .search-action + .search-action { border-top:2px solid var(--line); margin-top:24px; }
+      .demo-main .search-action-heading { font-size:1.375rem; font-weight:700; margin:0 0 12px; }
+      .demo-main .search-query { font-size:1.125rem; font-weight:600; line-height:1.5; white-space:pre-wrap; overflow-wrap:anywhere; margin:0 0 24px; }
+      .retrieved { max-width:76ch; padding:16px 0; border-top:1px solid var(--line); font-size:.9375rem; }
+      .retrieved h4 { font-size:.9375rem; font-weight:650; line-height:1.4; margin:0 0 8px; }
+      .retrieved small { margin-top:12px; }
       .error { color:var(--error); }
       [hidden] { display:none !important; }
       @media(max-width:650px) { main { padding:28px 16px 32px; } .demo-main h1 { font-size:1.875rem; margin-bottom:20px; } #source { margin-bottom:32px; } .source-document { flex-basis:140px; } .answer-panel { padding:16px; } }
       @media(max-width:360px) { .source-document { padding-inline:6px; } .source-document summary,.source-document summary::after { font-size:.875rem; } .source-document summary { gap:4px; } }
     </style>
 
-  <link rel="stylesheet" href="/assets/site.css?v=20261110-language">
-<script src="/assets/language.js?v=20261110" defer></script>
-<script src="/assets/demo.js?v=20261110" defer></script>
+  <link rel="stylesheet" href="/assets/site.css?v=20261110-results">
+<script src="/assets/language.js?v=20261110-results" defer></script>
+<script src="/assets/demo.js?v=20261110-results" defer></script>
 </head>
-  <body><nav class="site-nav" aria-label="Hoofdnavigatie"><a href="/" class="site-brand" data-i18n="brand">Activiteiten verkennen</a><a href="/demo/" aria-current="page" data-i18n="demo">Demo</a><a href="/techniek/" data-i18n="technical">Hoe het werkt</a><div class="language-switch" role="group" aria-label="Taal"><button type="button" data-language="nl" lang="nl" aria-pressed="true"><span aria-hidden="true">🇳🇱</span> Nederlands</button><button type="button" data-language="en" lang="en" aria-pressed="false"><span aria-hidden="true">🇬🇧</span> English</button></div></nav>
+  <body><nav class="site-nav" aria-label="Hoofdnavigatie"><span class="site-brand" data-i18n="brand">Activiteiten verkennen</span><a href="/" aria-current="page" data-i18n="demo">Demo</a><a href="/techniek/" data-i18n="technical">Hoe het werkt</a><div class="language-switch" role="group" aria-label="Taal"><button type="button" data-language="nl" lang="nl" aria-label="Nederlands" title="Nederlands" aria-pressed="true"><span aria-hidden="true">🇳🇱</span></button><button type="button" data-language="en" lang="en" aria-label="English" title="English" aria-pressed="false"><span aria-hidden="true">🇬🇧</span></button></div></nav>
     <main class="demo-main">
       <section id="source" aria-labelledby="source-heading">
         <h2 id="source-heading" data-i18n="activities">Activiteiten</h2>
@@ -65,6 +70,13 @@
       <form id="form">
         <label for="question" data-i18n="questionLabel">Stel je vraag over de activiteiten</label>
         <textarea id="question" class="run-control" maxlength="1000" required placeholder="Bijvoorbeeld: welke activiteiten zijn er op dinsdag?"></textarea>
+        <div class="method-field">
+          <label for="retrieval-method" data-i18n="retrievalMethod">Zoekmethode</label>
+          <select id="retrieval-method">
+            <option value="dense" data-i18n="methodDense">Op betekenis</option>
+            <option value="bm25" data-i18n="methodBm25">Op woorden (BM25)</option>
+          </select>
+        </div>
         <div class="toolbar">
           <button class="primary run-control" type="submit" data-i18n="submit">Zoek een antwoord</button>
         </div>
@@ -72,7 +84,8 @@
       <p id="status" role="status"></p>
       <section id="result" hidden aria-label="Uitvoering en antwoord">
         <h2 id="result-title" data-i18n="answer">Het antwoord</h2>
-        <div class="answer-panel"><p id="answer" class="answer"></p><div id="unknowns"></div></div>
+        <p id="run-method" class="run-method muted" hidden></p>
+        <div class="answer-panel"><p id="answer" class="answer"></p></div>
         <details id="tool-details">
           <summary data-i18n="results">Bekijk de resultaten</summary>
           <div id="tools"></div>

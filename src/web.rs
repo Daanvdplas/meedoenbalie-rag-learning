@@ -2,11 +2,11 @@ use axum::{
     Json, Router,
     extract::{DefaultBodyLimit, Path, State},
     http::{HeaderMap, StatusCode, header},
-    response::{Html, IntoResponse},
+    response::{Html, IntoResponse, Redirect},
     routing::{get, post},
 };
 use meedoen_retrieval::{
-    Index,
+    DemoSearchMethod, Index,
     codex::{AnswerLanguage, CodexRunner},
     runs::{RunStore, Verdict},
 };
@@ -43,12 +43,10 @@ fn locked(app: &App) -> Result<std::sync::MutexGuard<'_, RunStore>, ApiError> {
         .lock()
         .map_err(|_| error("Lokale opslag niet beschikbaar; herstart de demo."))
 }
-fn context(app: &App, top_k: usize, language: AnswerLanguage) -> Value {
+fn context(app: &App, top_k: usize, language: AnswerLanguage, method: DemoSearchMethod) -> Value {
     let mut configuration = app.configuration.clone();
-    if language == AnswerLanguage::En {
-        configuration["prompt_version"] = json!("web-activity-english-v1");
-    }
-    json!({"web_version":"activity-demo-v5","answer_language":language,"sources":app.manifest["sources"],"as_of":app.manifest["as_of"],"retrieval_manifest":app.manifest,"codex_configuration":configuration,"top_k":top_k})
+    configuration["prompt_version"] = json!("web-activity-answer-only-v1");
+    json!({"web_version":"activity-demo-v7","answer_language":language,"retrieval_method":method,"sources":app.manifest["sources"],"as_of":app.manifest["as_of"],"retrieval_manifest":app.manifest,"codex_configuration":configuration,"top_k":top_k})
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -79,6 +77,8 @@ struct RunRequest {
     top_k: Option<usize>,
     #[serde(default)]
     answer_language: AnswerLanguage,
+    #[serde(default)]
+    retrieval_method: DemoSearchMethod,
 }
 fn start(
     app: App,
@@ -87,8 +87,9 @@ fn start(
     top_k: usize,
     parent: Option<String>,
     language: AnswerLanguage,
+    method: DemoSearchMethod,
 ) -> Result<Json<Value>, ApiError> {
-    let snapshot = context(&app, top_k, language);
+    let snapshot = context(&app, top_k, language, method);
     let run = locked(&app)?
         .begin(&session, &question, top_k, snapshot.clone(), parent)
         .map_err(error)?;
@@ -96,12 +97,30 @@ fn start(
     let id = run.id.clone();
     tokio::spawn(async move {
         let result = if let Some(runner) = &app.runner {
-            runner.run_for_corpus_in_language(&question,top_k,app.corpus,language).await.and_then(|result|{
-    let result=serde_json::to_value(result).map_err(|e|e.to_string())?;
-    for key in ["sources","as_of"] {if result[key]!=snapshot[key]{return Err("tool: Broncontext verschilt van de vastgelegde bron.".into());}}
-    if result["manifest"]!=snapshot["retrieval_manifest"]{return Err("tool: Zoekindex is veranderd; deze run kan niet als dezelfde context worden opgeslagen.".into());}
-    Ok(result)
-   })
+            runner
+                .run_for_corpus_with_method(&question, top_k, app.corpus, language, method)
+                .await
+                .and_then(|result| {
+                    let mut result = serde_json::to_value(result).map_err(|e| e.to_string())?;
+                    let actual = result["tool_calls"]
+                        .as_array()
+                        .and_then(|calls| calls.iter().find(|call| call["status"] == "completed"))
+                        .map(|call| call["result"]["retrieval_method"].clone())
+                        .ok_or("tool: Zoekmethode ontbreekt in het zoekresultaat")?;
+                    if actual != snapshot["retrieval_method"] {
+                        return Err("tool: Zoekmethode verschilt van de vastgelegde methode.".into());
+                    }
+                    result["retrieval_method"] = actual;
+                    for key in ["sources", "as_of"] {
+                        if result[key] != snapshot[key] {
+                            return Err("tool: Broncontext verschilt van de vastgelegde bron.".into());
+                        }
+                    }
+                    if result["manifest"] != snapshot["retrieval_manifest"] {
+                        return Err("tool: Zoekindex is veranderd; deze run kan niet als dezelfde context worden opgeslagen.".into());
+                    }
+                    Ok(result)
+                })
         } else {
             Err(app
                 .runner_error
@@ -126,6 +145,7 @@ async fn run(
         input.top_k.unwrap_or(3),
         None,
         input.answer_language,
+        input.retrieval_method,
     )
 }
 async fn get_run(
@@ -151,8 +171,14 @@ async fn replay(
     let original = locked(&app)?.get(&session, &id).map_err(error)?;
     let language = serde_json::from_value(original.context["answer_language"].clone())
         .unwrap_or(AnswerLanguage::Nl);
+    let method = serde_json::from_value(original.context["retrieval_method"].clone())
+        .unwrap_or(DemoSearchMethod::Dense);
     let original = locked(&app)?
-        .replay(&session, &id, &context(&app, original.top_k, language))
+        .replay(
+            &session,
+            &id,
+            &context(&app, original.top_k, language, method),
+        )
         .map_err(error)?;
     start(
         app,
@@ -161,6 +187,7 @@ async fn replay(
         original.top_k,
         Some(id),
         language,
+        method,
     )
 }
 #[derive(Deserialize)]
@@ -235,8 +262,9 @@ async fn report(State(app): State<App>, headers: HeaderMap) -> Result<impl IntoR
     ))
 }
 fn router(app: App) -> Router {
-    Router::new().route("/",get(||async{Html(include_str!("../static/site/home.html"))}))
- .route("/demo/",get(||async{Html(include_str!("../static/index.html"))}))
+    Router::new().route("/",get(||async{Html(include_str!("../static/index.html"))}))
+ .route("/demo",get(||async{Redirect::permanent("/")}))
+ .route("/demo/",get(||async{Redirect::permanent("/")}))
  .route("/resultaten/",get(||async{Html(include_str!("../static/site/results.html"))}))
  .route("/techniek/",get(||async{Html(include_str!("../static/site/technical.html"))}))
  .route("/assets/site.css",get(||async{([(header::CONTENT_TYPE,"text/css; charset=utf-8")],include_str!("../static/site/site.css"))}))
@@ -297,7 +325,6 @@ mod tests {
         });
         for path in [
             "/",
-            "/demo/",
             "/resultaten/",
             "/techniek/",
             "/assets/site.css",
@@ -327,7 +354,7 @@ mod tests {
             if path.ends_with('/') {
                 let navigation = text.split("</nav>").next().unwrap();
                 assert!(
-                    navigation.contains("/demo/") && navigation.contains("/techniek/"),
+                    navigation.contains("href=\"/\"") && navigation.contains("/techniek/"),
                     "missing shared navigation in {path}"
                 );
                 assert!(
@@ -335,8 +362,28 @@ mod tests {
                     "removed results link in navigation for {path}"
                 );
             }
+            if path == "/" {
+                assert!(
+                    text.contains("id=\"form\""),
+                    "root must render the demo directly"
+                );
+                assert!(!text.contains("home-intro"));
+            }
             assert!(!text.contains("/private/tmp/"));
             assert!(!text.contains("/Users/"));
+        }
+        for alias in ["/demo", "/demo/"] {
+            let response = router(app.clone())
+                .oneshot(
+                    axum::http::Request::builder()
+                        .uri(alias)
+                        .body(axum::body::Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::PERMANENT_REDIRECT);
+            assert_eq!(response.headers()[header::LOCATION], "/");
         }
         let response = router(app)
             .oneshot(
@@ -438,7 +485,7 @@ mod tests {
         let (session, ids) = {
             let mut store = app.store.lock().unwrap();
             let session = store.session(&[]).unwrap();
-            let snapshot = context(&app, 3, AnswerLanguage::Nl);
+            let snapshot = context(&app, 3, AnswerLanguage::Nl, DemoSearchMethod::Dense);
             // Legacy private metadata is not part of the exported CodexRun schema.
             let result: CodexRun = serde_json::from_value(json!({
                 "id":"synthetic-result", "status":"completed", "question":"Wanneer tuinieren?",
@@ -557,7 +604,7 @@ mod tests {
             if expected == AnswerLanguage::En {
                 assert_eq!(
                     run["context"]["codex_configuration"]["prompt_version"],
-                    "web-activity-english-v1"
+                    "web-activity-answer-only-v1"
                 );
             }
             let mut store = locked(&app).unwrap();
@@ -567,7 +614,11 @@ mod tests {
                 .unwrap();
             assert!(
                 store
-                    .replay(&session, id, &context(&app, 3, expected))
+                    .replay(
+                        &session,
+                        id,
+                        &context(&app, 3, expected, DemoSearchMethod::Dense)
+                    )
                     .is_ok()
             );
             let other = if expected == AnswerLanguage::En {
@@ -577,7 +628,11 @@ mod tests {
             };
             assert!(
                 store
-                    .replay(&session, id, &context(&app, 3, other))
+                    .replay(
+                        &session,
+                        id,
+                        &context(&app, 3, other, DemoSearchMethod::Dense)
+                    )
                     .is_err()
             );
         }
@@ -634,5 +689,72 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[tokio::test]
+    async fn demo_retrieval_method_is_validated_and_frozen_before_execution() {
+        use tower::ServiceExt;
+        for requested in [None, Some("dense"), Some("bm25"), Some("hybrid_rrf")] {
+            let app = Arc::new(WebState {
+                corpus: meedoen_retrieval::corpus::CorpusId::ExpandedTen,
+                store: Mutex::new(RunStore::new()),
+                runner: None,
+                runner_error: None,
+                manifest: json!({"sources":[],"as_of":"2026-11-05"}),
+                sources: json!([]),
+                configuration: json!({"prompt_version":"ten-activity-grounding-v1"}),
+            });
+            let session = locked(&app).unwrap().session(&[]).unwrap();
+            let mut body = json!({"question":"Wanneer tuinieren?","top_k":6});
+            if let Some(method) = requested {
+                body["retrieval_method"] = json!(method);
+            }
+            let response = router(app.clone())
+                .oneshot(
+                    axum::http::Request::builder()
+                        .method("POST")
+                        .uri("/api/runs")
+                        .header("content-type", "application/json")
+                        .header("x-test-session", &session)
+                        .body(axum::body::Body::from(body.to_string()))
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            if requested == Some("hybrid_rrf") {
+                assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+                assert!(
+                    locked(&app).unwrap().summary(&session).unwrap()["runs"]
+                        .as_array()
+                        .unwrap()
+                        .is_empty()
+                );
+                continue;
+            }
+            assert_eq!(response.status(), StatusCode::OK);
+            let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+                .await
+                .unwrap();
+            let run: Value = serde_json::from_slice(&bytes).unwrap();
+            assert_eq!(
+                run["context"]["retrieval_method"],
+                requested.unwrap_or("dense")
+            );
+            assert_eq!(run["context"]["top_k"], 6);
+            let mut store = locked(&app).unwrap();
+            let id = run["id"].as_str().unwrap();
+            store
+                .complete(&session, id, Err("runtime: test".into()))
+                .unwrap();
+            let frozen = run["context"].clone();
+            assert!(store.replay(&session, id, &frozen).is_ok());
+            let mut changed = frozen;
+            changed["retrieval_method"] = json!(if requested == Some("bm25") {
+                "dense"
+            } else {
+                "bm25"
+            });
+            assert!(store.replay(&session, id, &changed).is_err());
+        }
     }
 }

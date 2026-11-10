@@ -16,7 +16,7 @@ Benodigd: Rust 1.94.1 en een aangemelde Codex-client. De demo zoekt lokaal naar 
 cargo run --locked
 ```
 
-Open **http://127.0.0.1:8766/**. De startpagina verbindt de [live demo](http://127.0.0.1:8766/demo/) en [technische uitleg](http://127.0.0.1:8766/techniek/). De opgeslagen [tests en resultaten](http://127.0.0.1:8766/resultaten/) blijven rechtstreeks bereikbaar. De [architectuurgids](docs/CODEBASE_GUIDE.md) beschrijft de routes en de scheiding tussen live vragen en opgeslagen resultaten. De eerste start downloadt ongeveer 235 MB aan modelbestanden en aanvullende bestanden naar `.model-cache/`. Voor embeddings is geen API-sleutel nodig; Codex gebruikt je bestaande aanmelding. De server start nadat het lokale model is geladen.
+Open **http://127.0.0.1:8766/**. De [live demo](http://127.0.0.1:8766/) is direct de homepage; er is geen aparte startpagina. De oude paden `/demo` en `/demo/` verwijzen door naar `/`. De [technische uitleg](http://127.0.0.1:8766/techniek/) blijft via de navigatie bereikbaar. De opgeslagen [tests en resultaten](http://127.0.0.1:8766/resultaten/) blijven rechtstreeks bereikbaar. De [architectuurgids](docs/CODEBASE_GUIDE.md) beschrijft de routes en de scheiding tussen live vragen en opgeslagen resultaten. De eerste start downloadt ongeveer 235 MB aan modelbestanden en aanvullende bestanden naar `.model-cache/`. Voor embeddings is geen API-sleutel nodig; Codex gebruikt je bestaande aanmelding. De server start nadat het lokale model is geladen.
 
 Een andere lokale poort kan met `COA_PORT=8767 cargo run --locked`. `COA_CODEX_MODEL` kan het expliciet gekozen antwoordmodel veranderen; de gebruikte versie en instellingen worden per run vastgelegd.
 
@@ -34,14 +34,16 @@ python3 -m unittest discover -s scripts -p 'test_export_site_results.py'
 ## Zelf testen
 
 1. Bovenaan staan tien compacte activiteiten, waaronder **Tuinieren**, **Fietsen opknappen**, **Creatief atelier** en **Parkonderhoud**. Klik een titel om het volledige fictieve document met bron en datum te lezen. Er staat steeds maximaal één activiteit open.
-2. Kies bovenaan **🇳🇱 Nederlands** of **🇬🇧 English** en schrijf één eigen vraag. De keuze blijft bij vernieuwen bewaard. De interface en nieuwe antwoorden volgen de gekozen taal; de vraag die je al typt en bestaande antwoorden blijven staan. Alle documenten beschrijven vrijwillige activiteiten, geen betaalde banen.
-3. Codex maakt één antwoord. Onder **Bekijk de resultaten** staan de echte zoekacties van Codex. Codex kan meerdere keren zoeken om ontbrekende informatie voor dat ene antwoord te verzamelen; dit zijn geen extra gebruikersvragen.
-4. Exact geciteerde tekst is gemarkeerd in de werkelijk gevonden passages. Bron en datum staan erbij; de volledige activiteiten blijven bovenaan leesbaar. Er is geen afzonderlijk bewijsblok of beoordelingsflow.
+2. Kies bovenaan **🇳🇱** (Nederlands) of **🇬🇧** (English) en schrijf één eigen vraag. Kies boven de zoekknop **Op betekenis** (de bestaande dense-zoekmethode) of **Op woorden (BM25)**. De taalkeuze blijft bij vernieuwen bewaard. De interface en nieuwe antwoorden volgen de gekozen taal; de vraag die je al typt en bestaande antwoorden blijven staan. Alle documenten beschrijven vrijwillige activiteiten, geen betaalde banen.
+3. Codex maakt één direct antwoord zonder toegevoegde bronverwijzingen of aparte lijst met onbekende informatie. Bij een rechtstreeks onbeantwoordbare vraag blijft het antwoord eerlijk onbekend. Onder **Bekijk de resultaten** staat elke echte zoekactie afzonderlijk: de zoekvraag en de gevonden passages. De volgorde en eventuele herhaalde passages blijven behouden; dit zijn geen extra gebruikersvragen.
+4. Exact geciteerde tekst is gemarkeerd in de werkelijk gevonden passages. Activiteit, menselijk sectiekopje en één brondatum staan erbij; de volledige activiteiten blijven bovenaan leesbaar. Er is geen afzonderlijk bewijsblok of beoordelingsflow.
 5. Pas de vraag aan en zoek opnieuw. Het vorige antwoord verdwijnt zodra je typt; iedere ingediende vraag krijgt een eigen uitvoering. Voorbeeldvragen, losse knoppen voor nieuwe vragen of herhalen, technische uitvoeringsgegevens en geschiedenis worden niet getoond.
+
+Een wijziging van zoekmethode start geen uitvoering en verandert een bestaand antwoord niet. Bij het antwoord staat de werkelijk gebruikte methode uit de opgeslagen uitvoering; de huidige keuze in het veld bepaalt alleen de volgende vraag. Elke vervolgzoekactie voor dezelfde vraag gebruikt dezelfde vastgelegde methode.
 
 De activiteitnamen en sectiekoppen zijn vertaalde schermlabels. Originele bronparagrafen en letterlijke citaten blijven Nederlands, herkenbaar aan het bronlabel en de brondatum. Wisselen van taal start geen zoek- of modelaanroep en vertaalt een bestaand antwoord niet. De navigatie en footer volgen de voorkeur ook op de andere pagina’s; hun inhoud blijft voorlopig Nederlands.
 
-Een Codex-antwoord kan ongeveer een minuut duren; de bron blijft ondertussen leesbaar. Er kan één modeluitvoering tegelijk lopen. Fouten blijven zichtbaar. Uitvoeringen staan in begrensd servergeheugen en verdwijnen bij herstart; de demo toont geen geschiedenis. Er is geen beoordelings- of criteriaflow; cosinusovereenkomsten staan alleen bij de technische zoekresultaten.
+Een Codex-antwoord kan ongeveer een minuut duren; de bron blijft ondertussen leesbaar. Er kan één modeluitvoering tegelijk lopen. Fouten blijven zichtbaar. Uitvoeringen staan in begrensd servergeheugen en verdwijnen bij herstart; de demo toont geen geschiedenis. Er is geen beoordelings- of criteriaflow. IDs, referentiedatum, top-k, voltooide statussen en cosinusovereenkomsten zijn uit de zichtbare zoekresultaten verwijderd; de backend bewaart de oorspronkelijke zoekgegevens, citaten en onbekende informatie.
 
 ## Rust-zoekfunctie en evaluatie
 

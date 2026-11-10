@@ -372,6 +372,7 @@ where
                 options.session.config.retrieval.top_k
             ),
             answer_language: None,
+            retrieval_method: None,
         };
         let run = runner
             .run_with_selected_retrieval(

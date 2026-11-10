@@ -12,6 +12,20 @@ pub struct SearchPolicy {
 }
 
 impl SearchPolicy {
+    pub fn for_demo_method(
+        corpus: crate::corpus::CorpusId,
+        method: crate::DemoSearchMethod,
+    ) -> Self {
+        let mut policy = Self::for_corpus(corpus);
+        if method == crate::DemoSearchMethod::Bm25 {
+            policy.description = Some(format!(
+                "Search {} fictional Dutch voluntary-activity documents using BM25 word matching (k1=1.2, b=0.75; no stemming). Returned exact sections preserve source_id, source_date and source_title. Section IDs repeat across documents. BM25 scores are lexical ranking signals, not confidence. The method is fixed for this process; choose top_k from 1 to 6 and make at most four searches. Never infer current availability or transport from unrelated evidence.",
+                corpus.documents().len()
+            ));
+        }
+        policy
+    }
+
     pub fn for_corpus(corpus: crate::corpus::CorpusId) -> Self {
         if corpus.is_baseline() {
             return Self::default();

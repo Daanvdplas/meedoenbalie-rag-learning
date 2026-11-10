@@ -5,6 +5,40 @@ use std::{
 };
 
 #[test]
+fn demo_method_mcp_preserves_the_normal_variable_top_k_contract() {
+    for method in ["dense", "bm25"] {
+        let mut child = Command::new(env!("CARGO_BIN_EXE_meedoen-retrieval"))
+            .args(["mcp", "--corpus", "expanded-ten", "--method", method])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        writeln!(
+            child.stdin.take().unwrap(),
+            "{}",
+            json!({"jsonrpc":"2.0","id":1,"method":"tools/list"})
+        )
+        .unwrap();
+        let output = child.wait_with_output().unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let response: Value = serde_json::from_slice(&output.stdout).unwrap();
+        let tool = &response["result"]["tools"][0];
+        assert_eq!(tool["name"], "search_document");
+        let schema = &tool["inputSchema"]["properties"];
+        assert_eq!(schema["top_k"]["minimum"], 1);
+        assert_eq!(schema["top_k"]["maximum"], 6);
+        assert!(schema["top_k"].get("enum").is_none());
+        assert!(schema.get("retrieval_method").is_none());
+        assert!(!String::from_utf8_lossy(&output.stderr).contains("Loading local"));
+    }
+}
+
+#[test]
 fn mcp_cli_discovers_and_rejects_input_without_loading_a_model() {
     let mut child = Command::new(env!("CARGO_BIN_EXE_meedoen-retrieval"))
         .arg("mcp")

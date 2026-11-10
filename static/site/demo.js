@@ -49,7 +49,7 @@
     const doc = source.sources.find(doc => doc.id === id);
     return activity(id, doc?.title || id);
   }
-  function sourceDate(date, reference = source.as_of) { return t("sourceDate", { date, reference }); }
+  function sourceDate(date) { return t("sourceDate", { date }); }
   function failureKey(error) {
     if (error?.startsWith("tool:")) return "toolFailure";
     if (error?.startsWith("output:")) return "outputFailure";
@@ -76,36 +76,30 @@
     el("answer").textContent = run.status === "failed" ? t(failureKey(run.error)) : run.result?.answer?.text || t("pendingAnswer");
     el("answer").lang = run.result?.answer?.text ? run.context?.answer_language || "nl" : language();
     el("answer").classList.toggle("error", run.status === "failed");
-    el("unknowns").replaceChildren();
-    if (run.result?.answer?.unknowns?.length) {
-      el("unknowns").append(node("h3", t("unknowns")));
-      const list = node("ul");
-      list.lang = run.context?.answer_language || "nl";
-      run.result.answer.unknowns.forEach(text => list.append(node("li", text)));
-      el("unknowns").append(list);
-    }
+    const method = run.result?.retrieval_method;
+    const methodKey = { dense: "methodDense", bm25: "methodBm25" }[method];
+    el("run-method").hidden = !methodKey;
+    el("run-method").textContent = methodKey ? t("runMethod", { method: t(methodKey) }) : "";
     const citations = run.result?.answer?.citations || [];
     el("tools").replaceChildren();
     (run.result?.tool_calls || []).forEach((call, index) => {
-      const item = node("article", undefined, "hit");
-      const callStatus = ["success", "completed", "failed", "pending"].includes(call.status) ? call.status : "unknown";
-      item.append(node("h3", t("searchAction", { number: index + 1 })),
-        node("p", t("searchQuery", { query: call.query })),
-        node("small", t("requestedPassages", { count: call.top_k, status: t(callStatus) })));
+      const item = node("article", undefined, "search-action");
+      item.append(node("h3", t("searchAction", { number: index + 1 }), "search-action-heading"),
+        node("p", call.query, "search-query"));
       (call.result?.hits || []).forEach(hit => {
         const evidence = node("section", undefined, "retrieved");
         evidence.append(
-          node("h3", sourceTitle(hit.section.source_id) + " · " + hit.section.id + " · " + heading(hit.section.heading)),
+          node("h4", sourceTitle(hit.section.source_id) + " · " + heading(hit.section.heading)),
           quotedPassage(hit.section.text, citations.filter(c => c.source_id === hit.section.source_id && c.source_date === hit.section.source_date && c.section_id === hit.section.id).map(c => c.quote)),
-          node("small", hit.section.source_id + " · " + sourceDate(hit.section.source_date, call.result.as_of)),
-          node("small", t("similarity", { score: Number(hit.similarity).toLocaleString(language(), { minimumFractionDigits: 4, maximumFractionDigits: 4 }) })),
+          node("small", t("published", { date: hit.section.source_date })),
         );
         item.append(evidence);
       });
-      if (call.error) item.append(node("p", t("toolFailure"), "error"));
+      if (call.error || call.status === "failed") item.append(node("p", t("searchFailed"), "error"));
+      else if (call.status !== "completed") item.append(node("p", t("searchPending"), "muted"));
       el("tools").append(item);
     });
-    el("tool-details").hidden = run.status !== "completed";
+    el("tool-details").hidden = !run.result?.tool_calls?.length;
   }
   function renderSourceLabels() {
     document.querySelectorAll(".source-document").forEach(item => {
@@ -147,7 +141,7 @@
     setBusy(true);
     message("starting");
     try {
-      const run = await api("/api/runs", { question: el("question").value.trim(), top_k: 3, answer_language: language() });
+      const run = await api("/api/runs", { question: el("question").value.trim(), top_k: 3, answer_language: language(), retrieval_method: el("retrieval-method").value });
       await watch(run);
     } catch (error) {
       setBusy(false);

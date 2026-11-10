@@ -408,7 +408,7 @@ fn tokens(text: &str) -> Vec<String> {
         .collect()
 }
 
-fn bm25_scores(sections: &[Section], query: &str) -> Vec<f32> {
+pub(crate) fn bm25_scores(sections: &[Section], query: &str) -> Vec<f32> {
     let documents: Vec<_> = sections
         .iter()
         .map(|section| tokens(&super::embedding_input(section)))
