@@ -167,8 +167,8 @@ fn catalog() -> Result<Vec<(QuestionSet, LabelSet)>, String> {
     Ok(vec![
         dataset::validate_bundled()?,
         dataset::parse(
-            include_str!("../../fixtures/experiments/heldout-questions.json"),
-            include_str!("../../fixtures/experiments/heldout-expectations.json"),
+            include_str!("../../shared/datasets/legacy/heldout-questions.json"),
+            include_str!("../../shared/datasets/legacy/heldout-expectations.json"),
         )?,
     ])
 }
@@ -415,7 +415,7 @@ fn render(records: &[ExperimentRecord]) -> Result<String, String> {
         render_question(&mut body, item, index);
     }
     body.push_str("</div></section><details class=method><summary>Hoe lees je deze resultaten?</summary><p>Bewijsdekking telt benodigde feiten met een geldige broncombinatie. Een float zoals 0,50 kan één van twee feiten betekenen; het is geen kans dat een antwoord klopt. Geen passend bronbewijs geeft N.v.t., geen nul.</p><p>Een AI-oordeel gaat over het antwoord. De harde controles gaan over bronidentiteit, citaten en uitvoering. Goed vereist beide en blijft voorlopig zonder menselijke ijking. Voorbeelden krijgen geen positief live kwaliteitsoordeel.</p><p>De zes apart gehouden vragen zijn nieuwe combinaties van bekende bronfeiten. Dit is een kleine verkennende vergelijking, geen algemene betrouwbaarheidstest.</p><p>Tijd omvat voorbereiding per vraag, lokale retrieval en generatie. Gedeelde indexopbouw valt erbuiten; opstart van MCP binnen de agentsessie telt wel mee. Geen uniforme cold-startbenchmark. Modelsessies zijn geen telling van verborgen providerrequests.</p></details><footer>Zelfstandig lokaal rapport · openen, filteren en uitklappen doet geen model- of netwerkverzoeken.</footer>");
-    Ok(include_str!("../../static/evaluation-report.html").replace("<!-- REPORT -->", &body))
+    Ok(include_str!("../assets/evaluation-report.html").replace("<!-- REPORT -->", &body))
 }
 
 fn paired_delta(agent: &Prepared<'_>, baseline: &Prepared<'_>) -> Option<f64> {
@@ -1042,7 +1042,7 @@ mod tests {
     use super::*;
 
     fn examples() -> Vec<ExperimentRecord> {
-        include_str!("../../fixtures/experiments/report-example.jsonl")
+        include_str!("../fixtures/report-example.jsonl")
             .lines()
             .map(|line| serde_json::from_str(line).unwrap())
             .collect()
@@ -1134,7 +1134,7 @@ mod tests {
         let dir = directory();
         let input = dir.join("example.jsonl");
         let output = dir.join("report.html");
-        let fixture = include_str!("../../fixtures/experiments/report-example.jsonl");
+        let fixture = include_str!("../fixtures/report-example.jsonl");
         std::fs::write(&input, fixture).unwrap();
         assert_eq!(
             write_report(std::slice::from_ref(&input), &output).unwrap(),
@@ -1162,11 +1162,7 @@ mod tests {
         let dir = directory();
         let input = dir.join("example.jsonl");
         let output = dir.join("report.html");
-        std::fs::write(
-            &input,
-            include_str!("../../fixtures/experiments/report-example.jsonl"),
-        )
-        .unwrap();
+        std::fs::write(&input, include_str!("../fixtures/report-example.jsonl")).unwrap();
         let temp = dir.join(format!(".evaluation-report-{}.tmp", std::process::id()));
         std::fs::write(&temp, "belongs to another write").unwrap();
         assert!(write_report(&[input], &output).is_err());

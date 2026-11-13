@@ -117,8 +117,8 @@ pub fn parse_for_corpus(
 
 pub fn validate_bundled() -> Result<(QuestionSet, LabelSet), String> {
     parse(
-        include_str!("../../fixtures/experiments/questions.json"),
-        include_str!("../../fixtures/experiments/expectations.json"),
+        include_str!("../../shared/datasets/legacy/questions.json"),
+        include_str!("../../shared/datasets/legacy/expectations.json"),
     )
 }
 
@@ -423,8 +423,7 @@ mod tests {
     #[test]
     fn human_worksheet_has_eight_unlabelled_candidates_and_separate_sets() {
         let value: serde_json::Value =
-            serde_json::from_str(include_str!("../../fixtures/experiments/human-review.json"))
-                .unwrap();
+            serde_json::from_str(include_str!("../fixtures/human-review.json")).unwrap();
         let cases = value["cases"].as_array().unwrap();
         assert_eq!(cases.len(), 8);
         assert!(cases.iter().all(|case| case["human_label"].is_null()));
@@ -442,7 +441,7 @@ mod tests {
                 .count(),
             4
         );
-        let html = include_str!("../../docs/evaluation/human-review.html");
+        let html = include_str!("../docs/human-review.html");
         assert!(!html.contains("checked="));
         assert!(!html.contains("https://"));
         assert!(html.contains("Kopieer beoordelingen"));

@@ -123,7 +123,7 @@ fn renders_a_local_report_without_authentication_or_model_calls() {
             "--input",
             concat!(
                 env!("CARGO_MANIFEST_DIR"),
-                "/fixtures/experiments/report-example.jsonl"
+                "/evals/coa-assistent/fixtures/report-example.jsonl"
             ),
             "--output",
         ])

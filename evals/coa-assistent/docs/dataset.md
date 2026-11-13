@@ -1,6 +1,6 @@
 # Meetlat voor de activiteitenproef
 
-De twaalf gevallen in `fixtures/experiments/questions.json` zijn een instrumentpilot op vijf fictieve documenten, geen bewijs voor algemene RAG-kwaliteit. P01–P06 zijn al bekende ontwikkelgevallen. P07–P12 verbreden de pilot over fietsen, taal, koken, wandelen en ontbrekend aanbod. Er zijn nog geen ongeziene uitvoeringen of menselijke referentieoordelen vastgelegd.
+De twaalf gevallen in `evals/shared/datasets/legacy/questions.json` zijn een instrumentpilot op vijf fictieve documenten, geen bewijs voor algemene RAG-kwaliteit. P01–P06 zijn al bekende ontwikkelgevallen. P07–P12 verbreden de pilot over fietsen, taal, koken, wandelen en ontbrekend aanbod. Er zijn nog geen ongeziene uitvoeringen of menselijke referentieoordelen vastgelegd.
 
 ## Input en verwachtingen
 

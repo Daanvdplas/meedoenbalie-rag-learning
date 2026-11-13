@@ -27,8 +27,8 @@ impl ExpectationsContext {
             (
                 dataset::QUESTION_INPUTS.to_vec(),
                 vec![
-                    include_str!("../../fixtures/experiments/expectations.json"),
-                    include_str!("../../fixtures/experiments/heldout-expectations.json"),
+                    include_str!("../../shared/datasets/legacy/expectations.json"),
+                    include_str!("../../shared/datasets/legacy/heldout-expectations.json"),
                 ],
             )
         } else if id == dataset::EXPANDED_ID {
@@ -64,9 +64,7 @@ impl ExpectationsContext {
             } else if id == dataset::STRENGTHENED_ID {
                 dataset::STRENGTHENED_DETAILS
             } else {
-                include_str!(
-                    "../../fixtures/experiments/independent-20261103/reference-details.json"
-                )
+                include_str!("../../shared/datasets/independent-20261103/reference-details.json")
             };
             if dataset::ten_source_dataset_id(id).is_some() {
                 dataset::verify_ten_source_artifact(id, "expectations.json", labels[0])?;

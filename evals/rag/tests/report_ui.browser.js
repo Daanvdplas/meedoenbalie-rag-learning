@@ -1,5 +1,5 @@
 // Synthetic contract fixtures only; do not count these browser actions as human review.
-// Build tests/report_ui_fixture.py first; serve its output on 127.0.0.1:8794.
+// Build evals/rag/tests/report_ui_fixture.py first; serve its output on 127.0.0.1:8794.
 const page = await browser.getPage("rag-quality-ui-qa");
 await page.setViewportSize({ width: 1280, height: 900 });
 await page.goto("http://127.0.0.1:8794/fixture.html");

@@ -57,7 +57,7 @@ fn now() -> u128 {
 }
 fn prepared_id(question: &str) -> Option<String> {
     let questions: Vec<Value> =
-        serde_json::from_str(include_str!("../fixtures/questions.json")).ok()?;
+        serde_json::from_str(include_str!("../evals/rag/datasets/garden/questions.json")).ok()?;
     questions
         .iter()
         .find(|item| item["text"].as_str() == Some(question))
@@ -281,8 +281,10 @@ impl RunStore {
             .question_id
             .as_ref()
             .ok_or("Voor een eigen vraag zijn geen voorbereide criteria.")?;
-        let expected: Value = serde_json::from_str(include_str!("../fixtures/expectations.json"))
-            .map_err(|e| e.to_string())?;
+        let expected: Value = serde_json::from_str(include_str!(
+            "../evals/rag/datasets/garden/expectations.json"
+        ))
+        .map_err(|e| e.to_string())?;
         let case = expected["cases"]
             .as_array()
             .and_then(|cases| {

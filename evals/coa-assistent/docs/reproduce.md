@@ -10,17 +10,17 @@ Voer dit vanuit de repository uit. Rust en de afhankelijkheden zijn nodig; Cargo
 cargo test --locked
 cargo clippy --locked --all-targets -- -D warnings
 cargo run --locked -- experiment validate
-cargo run --locked -- experiment validate --questions fixtures/experiments/heldout-questions.json --expectations fixtures/experiments/heldout-expectations.json
+cargo run --locked -- experiment validate --questions evals/shared/datasets/legacy/heldout-questions.json --expectations evals/shared/datasets/legacy/heldout-expectations.json
 
 mkdir -p /tmp/coa-rag-preview
-cargo run --locked -- experiment report --input fixtures/experiments/report-example.jsonl --output /tmp/coa-rag-preview/voorbeeld.html
+cargo run --locked -- experiment report --input evals/coa-assistent/fixtures/report-example.jsonl --output /tmp/coa-rag-preview/voorbeeld.html
 ```
 
 Open `voorbeeld.html` in je browser. Deze zes handgemaakte rendererchecks blijven als **voorbeelden** gemarkeerd. Filteren en uitklappen werken rechtstreeks vanaf schijf, zonder netwerk of modellen. De bestaande demo blijft apart.
 
 ## 2. Controleer de keten met twee bekende vragen
 
-Hiervoor zijn een aangemelde, compatibele Codex-runtime en de lokale embeddingbestanden nodig; zie de [startinstructies](../../README.md#starten). MiniLM maakt embeddings lokaal. Antwoorden en afzonderlijke beoordelingen gebruiken OpenAI via Codex en kunnen usage verbruiken. `--live` is daarom verplicht.
+Hiervoor zijn een aangemelde, compatibele Codex-runtime en de lokale embeddingbestanden nodig; zie de [startinstructies](../../../README.md#starten). MiniLM maakt embeddings lokaal. Antwoorden en afzonderlijke beoordelingen gebruiken OpenAI via Codex en kunnen usage verbruiken. `--live` is daarom verplicht.
 
 Voor een nieuw zelfstandig traject kies je een eigen map. Bij hervatten gebruik je de **bestaande map en hetzelfde ledger**; dat is de budgetregistratie. Uitvoerbestanden krijgen een nieuwe naam en worden niet overschreven.
 
@@ -33,7 +33,7 @@ cargo run --locked -- experiment run --live --cases P01,P06 --arms agentic_dense
 
 Dit is de gedeelde smoke: twee bekende vragen met Codex en directe context, maximaal vier generaties. Iedere poging reserveert vooraf een sessie. Eén gezamenlijk ledger begrenst het traject op 40 generaties, 56 beoordelingen en een venster van vier uur; mislukte pogingen tellen mee. Er loopt één sessie tegelijk, maximaal 120 seconden. Een modelsessie kan intern meerdere providerrequests bevatten. De afzonderlijke MCP-zoekcalls staan wel in de trace.
 
-Een verlopen venster stopt het werk. Vernieuw het ledger niet om de tellers te omzeilen. Alleen een expliciet toegestane voortzetting mag het bestaande venster verlengen; de [audit en sessieplafonds blijven behouden](../../README.md#reproduceerbare-experimenten).
+Een verlopen venster stopt het werk. Vernieuw het ledger niet om de tellers te omzeilen. Alleen een expliciet toegestane voortzetting mag het bestaande venster verlengen; de [audit en sessieplafonds blijven behouden](../../../README.md#reproduceerbare-experimenten).
 
 ## 3. Rond de pilot af en vergelijk daarna zes vragen
 
@@ -46,7 +46,7 @@ cargo run --locked -- experiment run --live --cases P02,P03,P04,P05,P07,P08,P09,
 Controleer de pilot en zet prompt, brondata, criteria en instellingen vast vóór de eerste uitvoering op deze zes vragen. Zij zijn nieuwe combinaties van bekende bronfeiten. Pas de generator niet op de uitkomsten aan en noem een volgende afgestemde uitvoering dan opnieuw ontwikkeling.
 
 ```sh
-cargo run --locked -- experiment run --live --questions fixtures/experiments/heldout-questions.json --expectations fixtures/experiments/heldout-expectations.json --cases T01,T02,T03,T04,T05,T06 --arms agentic_dense,full_context,dense_once,bm25 --output "$COA_EVAL_DIR/heldout-generation.jsonl" --ledger "$COA_EVAL_DIR/ledger.json" --max-cases 6 --max-generations 24 --max-judgements 0 --max-seconds 3600
+cargo run --locked -- experiment run --live --questions evals/shared/datasets/legacy/heldout-questions.json --expectations evals/shared/datasets/legacy/heldout-expectations.json --cases T01,T02,T03,T04,T05,T06 --arms agentic_dense,full_context,dense_once,bm25 --output "$COA_EVAL_DIR/heldout-generation.jsonl" --ledger "$COA_EVAL_DIR/ledger.json" --max-cases 6 --max-generations 24 --max-judgements 0 --max-seconds 3600
 ```
 
 De aanpakken zijn Codex met vervolgzoeken, alle documenten vooraf, één MiniLM-zoekactie en één BM25-zoekactie. De vaste bron- en vraaghashes, modelbestanden, programma-identiteit, werkelijke context en fouten blijven in het artifact staan. Modelaliassen en provideruitvoering beperken exacte herhaalbaarheid.
@@ -62,7 +62,7 @@ cargo run --locked -- experiment grade --live --input "$COA_EVAL_DIR/smoke-gener
 
 cargo run --locked -- experiment grade --live --input "$COA_EVAL_DIR/pilot-generation.jsonl" --output "$COA_EVAL_DIR/pilot-graded.jsonl" --ledger "$COA_EVAL_DIR/ledger.json" --max-judgements 10 --max-seconds 1800
 
-cargo run --locked -- experiment grade --live --questions fixtures/experiments/heldout-questions.json --expectations fixtures/experiments/heldout-expectations.json --input "$COA_EVAL_DIR/heldout-generation.jsonl" --output "$COA_EVAL_DIR/heldout-graded.jsonl" --ledger "$COA_EVAL_DIR/ledger.json" --max-judgements 24 --max-seconds 3600
+cargo run --locked -- experiment grade --live --questions evals/shared/datasets/legacy/heldout-questions.json --expectations evals/shared/datasets/legacy/heldout-expectations.json --input "$COA_EVAL_DIR/heldout-generation.jsonl" --output "$COA_EVAL_DIR/heldout-graded.jsonl" --ledger "$COA_EVAL_DIR/ledger.json" --max-judgements 24 --max-seconds 3600
 ```
 
 Ongeldige uitvoer, een time-out en een onbeslist criterium leveren geen positieve kwaliteitsclaim op. Een hoge AI-score heft een harde fout niet op. Een beoordeling opnieuw uitvoeren krijgt een nieuw outputbestand en gebruikt hetzelfde resterende budget.
@@ -85,6 +85,6 @@ cargo run --locked -- experiment calibrate --live --output "$COA_EVAL_DIR/ai-ref
 
 Deze optionele controle vergelijkt acht vaste kandidaatantwoorden met een apart beoordeelde **AI-referentie**. Ontwikkel- en controlegroepen blijven gescheiden; referentielabels gaan niet naar de beoordelaar. `human_calibration: false` blijft zichtbaar. De menselijke labels blijven leeg; er hoeft nu niemand labels aan te leveren. Overeenstemming met deze kleine AI-set bewijst geen betrouwbare beoordelaar voor andere onderwerpen.
 
-Gebruik uitsluitend de fictieve data. Lokale embeddings betekenen niet dat alle inhoud lokaal blijft: geselecteerde passages, of alle dertig secties bij de directe-contextaanpak, gaan voor generatie via Codex naar OpenAI. De afzonderlijke beoordelaar ontvangt ook criteria en referentiepassages. Aanmelding blijft buiten de gedeelde artifacts; fouten worden begrensd en geschoond vastgelegd. Lees de [privacygrenzen](../privacy-boundaries.md) vóór uitbreiding of publicatie.
+Gebruik uitsluitend de fictieve data. Lokale embeddings betekenen niet dat alle inhoud lokaal blijft: geselecteerde passages, of alle dertig secties bij de directe-contextaanpak, gaan voor generatie via Codex naar OpenAI. De afzonderlijke beoordelaar ontvangt ook criteria en referentiepassages. Aanmelding blijft buiten de gedeelde artifacts; fouten worden begrensd en geschoond vastgelegd. Lees de [privacygrenzen](../../../docs/privacy-boundaries.md) vóór uitbreiding of publicatie.
 
 Serveer alleen `/tmp/coa-rag-preview` als je een lokale websitepreview wilt. Houd JSONL, diagnostiek, ledger en aanmeldgegevens buiten die map. Publiek delen heeft een afzonderlijke vrijgave; deze handleiding publiceert niets.
