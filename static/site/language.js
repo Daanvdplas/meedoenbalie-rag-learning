@@ -2,7 +2,8 @@
   const messages = {
     navigation: ["Hoofdnavigatie", "Main navigation"],
     language: ["Taal", "Language"],
-    brand: ["Activiteiten verkennen", "Explore activities"],
+    chooseLanguage: ["Taal kiezen: {language}", "Choose language: {language}"],
+    brand: ["COA Assistent", "COA Assistant"],
     demo: ["Demo", "Demo"],
     technical: ["Hoe het werkt", "How it works"],
     code: ["Bekijk de code", "View the code"],
@@ -14,10 +15,12 @@
       "Eigen leerproject, geïnspireerd door de COA-use case. Alle activiteiten zijn verzonnen.",
       "An independent learning project inspired by the COA use case. All activities are fictional."
     ],
-    pageTitle: ["Vind een activiteit die past", "Find an activity that fits"],
+    pageTitle: ["COA Assistent · Vind een activiteit die past", "COA Assistant · Find an activity that fits"],
+    technicalPageTitle: ["Hoe het werkt · COA Assistent", "How it works · COA Assistant"],
+    resultsPageTitle: ["Tests en resultaten · COA Assistent", "Tests and results · COA Assistant"],
     activities: ["Activiteiten", "Activities"],
     questionTitle: ["Vind een activiteit die past", "Find an activity that fits"],
-    questionLabel: ["Je vraag", "Your question"],
+    questionLabel: ["Stel de COA assistent een vraag", "Ask the COA assistant a question"],
     questionPlaceholder: ["Welke activiteiten zijn er op dinsdag?", "Which activities are there on Tuesday?"],
     retrievalMethod: ["Zoekmethode", "Search method"],
     methodDense: ["Op betekenis", "By meaning"],
@@ -89,6 +92,14 @@
     document.querySelector(".site-nav")?.setAttribute("aria-label", t("navigation"));
     document.querySelector(".language-switch")?.setAttribute("aria-label", t("language"));
     document.querySelectorAll("[data-language]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.language === language)));
+    const trigger = document.getElementById("language-trigger");
+    if (trigger) {
+      const label = t("chooseLanguage", { language: language === "nl" ? "Nederlands" : "English" });
+      trigger.setAttribute("aria-label", label);
+      trigger.title = label;
+      document.getElementById("current-language-flag").textContent = language === "nl" ? "🇳🇱" : "🇬🇧";
+      document.getElementById("language-options").setAttribute("aria-label", t("language"));
+    }
     if (document.querySelector("#form")) document.title = t("pageTitle");
   }
   function select(next) {
@@ -104,6 +115,27 @@
     activity: (id, fallback) => activityKeys[id] ? t(activityKeys[id]) : fallback,
     heading: (heading) => headingKeys[heading] ? t(headingKeys[heading]) : heading,
   };
-  document.querySelectorAll("[data-language]").forEach(button => button.addEventListener("click", () => select(button.dataset.language)));
+  const picker = document.querySelector("details.language-switch");
+  const trigger = document.getElementById("language-trigger");
+  function closePicker(restoreFocus = false) {
+    if (!picker) return;
+    picker.open = false;
+    trigger.setAttribute("aria-expanded", "false");
+    if (restoreFocus) trigger.focus();
+  }
+  picker?.addEventListener("toggle", () => trigger.setAttribute("aria-expanded", String(picker.open)));
+  document.querySelectorAll("[data-language]").forEach(button => button.addEventListener("click", () => {
+    select(button.dataset.language);
+    closePicker(true);
+  }));
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && picker?.open) {
+      event.preventDefault();
+      closePicker(true);
+    }
+  });
+  document.addEventListener("click", event => {
+    if (picker?.open && !picker.contains(event.target)) closePicker();
+  });
   render();
 })();
