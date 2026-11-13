@@ -33,10 +33,16 @@ pub struct Run {
     pub diagnosis: Option<String>,
 }
 use std::collections::{HashMap, HashSet};
-#[derive(Default)]
+use std::time::{Duration, Instant};
+
+const MAX_SESSIONS: usize = 256;
+const MAX_RUNS: usize = 256;
+const MAX_RUN_BYTES: usize = 256 * 1024;
+const SESSION_TTL: Duration = Duration::from_secs(30 * 60);
 struct Session {
     runs: Vec<Run>,
     seen: HashSet<String>,
+    last_active: Instant,
 }
 #[derive(Default)]
 pub struct RunStore {
@@ -62,10 +68,37 @@ impl RunStore {
     pub fn new() -> Self {
         Self::default()
     }
-    pub fn session(&mut self, seen: &[String]) -> Result<String, String> {
-        if self.sessions.len() >= 16 {
-            return Err("Maximum van 16 lokale sessies bereikt; herstart de demo.".into());
+    /// Called on HTTP access and admission; active runs are never expired or evicted.
+    pub fn cleanup(&mut self) {
+        self.sessions.retain(|_, session| {
+            session.last_active.elapsed() < SESSION_TTL
+                || session.runs.iter().any(|run| run.status == "pending")
+        });
+    }
+    fn remove_oldest_completed(&mut self) -> bool {
+        let oldest = self
+            .sessions
+            .iter()
+            .flat_map(|(session_id, session)| {
+                session
+                    .runs
+                    .iter()
+                    .filter(|run| run.status != "pending")
+                    .map(move |run| (session_id.clone(), run.id.clone(), run.created_at_ms))
+            })
+            .min_by_key(|(_, _, at)| *at);
+        if let Some((session_id, id, _)) = oldest {
+            self.sessions
+                .get_mut(&session_id)
+                .unwrap()
+                .runs
+                .retain(|run| run.id != id);
+            true
+        } else {
+            false
         }
+    }
+    pub fn session(&mut self, seen: &[String]) -> Result<String, String> {
         if seen.len() > 5
             || seen
                 .iter()
@@ -73,13 +106,26 @@ impl RunStore {
         {
             return Err("Ongeldige lijst met eerder bekeken vragen.".into());
         }
-        self.sequence += 1;
-        let id = format!("s-{}-{}", now(), self.sequence);
+        let mut entropy = [0u8; 32];
+        getrandom::fill(&mut entropy).map_err(|_| "Veilige sessie niet beschikbaar.")?;
+        let id: String = entropy.iter().map(|byte| format!("{byte:02x}")).collect();
+        self.cleanup();
+        if self.sessions.len() >= MAX_SESSIONS {
+            let oldest = self
+                .sessions
+                .iter()
+                .filter(|(_, session)| !session.runs.iter().any(|run| run.status == "pending"))
+                .min_by_key(|(_, session)| session.last_active)
+                .map(|(id, _)| id.clone())
+                .ok_or("De demo is druk. Probeer het straks opnieuw.")?;
+            self.sessions.remove(&oldest);
+        }
         self.sessions.insert(
             id.clone(),
             Session {
                 runs: vec![],
                 seen: seen.iter().cloned().collect(),
+                last_active: Instant::now(),
             },
         );
         Ok(id)
@@ -94,21 +140,14 @@ impl RunStore {
     ) -> Result<Run, String> {
         let question = crate::validate_query(question)?;
         crate::ranking::validate_top_k(top_k)?;
-        if self
-            .sessions
-            .values()
-            .any(|session| session.runs.iter().any(|run| run.status == "pending"))
-        {
-            return Err("Er draait al een vraag. Wacht tot die uitvoering klaar is.".into());
-        }
+        self.cleanup();
         let state = self
             .sessions
-            .get_mut(session)
+            .get(session)
             .ok_or("Testsessie bestaat niet meer; start een nieuwe sessie.")?;
-        if state.runs.len() >= 40 {
-            return Err("Deze sessie heeft 40 runs; start een nieuwe testsessie.".into());
+        if state.runs.iter().any(|run| run.status == "pending") {
+            return Err("Er draait al een vraag in deze sessie. Wacht tot die klaar is.".into());
         }
-        self.sequence += 1;
         let question_id = prepared_id(&question);
         let informed_context = parent.is_some()
             || state
@@ -119,7 +158,7 @@ impl RunStore {
                 .as_ref()
                 .is_some_and(|id| state.seen.contains(id));
         let run = Run {
-            id: format!("r-{}-{}", now(), self.sequence),
+            id: format!("r-{}-{}", now(), self.sequence + 1),
             question_id,
             question,
             top_k,
@@ -136,6 +175,31 @@ impl RunStore {
             parent_id: parent,
             diagnosis: None,
         };
+        if serde_json::to_vec(&run)
+            .map_err(|_| "Uitvoering kon niet worden opgeslagen.")?
+            .len()
+            > MAX_RUN_BYTES / 2
+        {
+            return Err("Uitvoering bevat te veel gegevens.".into());
+        }
+        // No eviction or sequence mutation happens for a rejected request.
+        if self.sessions[session].runs.len() >= 40 {
+            self.sessions.get_mut(session).unwrap().runs.remove(0);
+        }
+        while self
+            .sessions
+            .values()
+            .map(|session| session.runs.len())
+            .sum::<usize>()
+            >= MAX_RUNS
+        {
+            if !self.remove_oldest_completed() {
+                return Err("De demo is druk. Probeer het straks opnieuw.".into());
+            }
+        }
+        self.sequence += 1;
+        let state = self.sessions.get_mut(session).unwrap();
+        state.last_active = Instant::now();
         state.runs.push(run.clone());
         Ok(run)
     }
@@ -166,6 +230,11 @@ impl RunStore {
             }
         }
         run.completed_at_ms = Some(now());
+        if serde_json::to_vec(&run).map_or(true, |bytes| bytes.len() > MAX_RUN_BYTES - 16 * 1024) {
+            run.result = None;
+            run.status = "failed".into();
+            run.error = Some("output: Het antwoord bevat te veel gegevens.".into());
+        }
         Ok(run.clone())
     }
     pub fn get(&self, session: &str, id: &str) -> Result<Run, String> {
@@ -319,6 +388,129 @@ mod tests {
             )
             .unwrap();
         (store, session, run)
+    }
+    #[test]
+    fn rejected_requests_cannot_evict_another_visitors_history() {
+        let mut store = RunStore::new();
+        let mut sessions = Vec::new();
+        for n in 0..MAX_SESSIONS {
+            let session = store.session(&[]).unwrap();
+            let run = store
+                .begin(&session, &format!("Question {n}"), 3, json!({}), None)
+                .unwrap();
+            store.complete(&session, &run.id, Ok(json!({}))).unwrap();
+            sessions.push(session);
+        }
+        let before: HashSet<_> = store.sessions.keys().cloned().collect();
+        assert!(store.session(&["INVALID".into()]).is_err());
+        assert!(store.sessions.keys().cloned().collect::<HashSet<_>>() == before);
+        let before_runs: Vec<_> = sessions
+            .iter()
+            .map(|id| store.summary(id).unwrap()["runs"].clone())
+            .collect();
+        assert!(
+            store
+                .begin("missing-session", "Valid question", 3, json!({}), None)
+                .is_err()
+        );
+        assert!(
+            store
+                .begin(
+                    &sessions[0],
+                    "Valid question",
+                    3,
+                    json!({"oversized":"x".repeat(MAX_RUN_BYTES)}),
+                    None
+                )
+                .is_err()
+        );
+        let after_runs: Vec<_> = sessions
+            .iter()
+            .map(|id| store.summary(id).unwrap()["runs"].clone())
+            .collect();
+        assert_eq!(after_runs, before_runs);
+    }
+    #[test]
+    fn expired_idle_sessions_are_removed_but_active_runs_survive_cleanup() {
+        let mut store = RunStore::new();
+        let idle = store.session(&[]).unwrap();
+        let active = store.session(&[]).unwrap();
+        let run = store
+            .begin(&active, "Active question", 3, json!({}), None)
+            .unwrap();
+        for session in store.sessions.values_mut() {
+            session.last_active = Instant::now() - SESSION_TTL - Duration::from_secs(1);
+        }
+        store.cleanup();
+        assert!(store.summary(&idle).is_err());
+        assert_eq!(store.get(&active, &run.id).unwrap().status, "pending");
+        store
+            .complete(&active, &run.id, Err("runtime: deadline".into()))
+            .unwrap();
+        store.cleanup();
+        assert!(store.summary(&active).is_err());
+    }
+    #[test]
+    fn global_history_and_result_payloads_remain_bounded() {
+        let mut store = RunStore::new();
+        for n in 0..300 {
+            let session = store.session(&[]).unwrap();
+            let run = store
+                .begin(&session, &format!("Question {n}"), 3, json!({}), None)
+                .unwrap();
+            let result = store
+                .complete(
+                    &session,
+                    &run.id,
+                    Ok(json!({"oversized":"x".repeat(MAX_RUN_BYTES)})),
+                )
+                .unwrap();
+            assert_eq!(result.status, "failed");
+            assert!(result.result.is_none());
+        }
+        assert!(store.sessions.len() <= MAX_SESSIONS);
+        assert!(store.sessions.values().map(|s| s.runs.len()).sum::<usize>() <= MAX_RUNS);
+    }
+    #[test]
+    fn different_visitors_can_start_ten_independent_runs() {
+        let mut store = RunStore::new();
+        for n in 0..10 {
+            let session = store.session(&[]).unwrap();
+            assert!(
+                store
+                    .begin(&session, &format!("Visitor {n}"), 3, json!({}), None)
+                    .is_ok(),
+                "another visitor must not block admission"
+            );
+        }
+    }
+    #[test]
+    fn sessions_are_unguessable_and_do_not_stop_after_sixteen_visitors() {
+        let mut store = RunStore::new();
+        let mut ids = HashSet::new();
+        for _ in 0..32 {
+            let id = store
+                .session(&[])
+                .expect("the seventeenth visitor must still be admitted");
+            assert_eq!(id.len(), 64, "session tokens need 256 bits, not timestamps");
+            assert!(id.bytes().all(|b| b.is_ascii_hexdigit()));
+            assert!(ids.insert(id));
+        }
+    }
+    #[test]
+    fn completed_history_rolls_forward_instead_of_stranding_a_visitor() {
+        let mut store = RunStore::new();
+        let session = store.session(&[]).unwrap();
+        for n in 0..45 {
+            let run = store
+                .begin(&session, &format!("Question {n}"), 3, json!({}), None)
+                .expect("bounded history must roll forward");
+            store.complete(&session, &run.id, Ok(json!({}))).unwrap();
+        }
+        let summary = store.summary(&session).unwrap();
+        let runs = summary["runs"].as_array().unwrap();
+        assert_eq!(runs.len(), 40);
+        assert_eq!(runs.last().unwrap()["question"], "Question 44");
     }
     #[test]
     fn review_does_not_count_another_documents_section_as_gardening_evidence() {

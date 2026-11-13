@@ -1,5 +1,8 @@
 # Gegevens bewaren en wissen in de lokale proef
 
+**Webupdate 10 november 2026:** de demo gebruikt nu de directe OpenAI Responses API; Codex/MCP hieronder blijft de CLI-/evaluatieroute en historische verificatie. Zie de [actuele architectuurgids](CODEBASE_GUIDE.md) voor sleutelbeheer, tien gelijktijdige vragen, sessieverval, geheugenlimieten en de grenzen van `store: false`. De nieuwe API-route is uitsluitend lokaal met mocks getest, niet met tien echte Sol-calls.
+
+
 Gecontroleerd op **21 oktober 2026**. Dit beschrijft de huidige code en grenzen; het is geen toestemming voor echte interne gegevens of een garantie dat alle kopieën verwijderd zijn. Gebruik uitsluitend verzonnen vragen en activiteiten.
 
 ## Wat wordt bewaard?

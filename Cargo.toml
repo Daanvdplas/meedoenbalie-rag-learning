@@ -16,9 +16,12 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "proces
 
 sha2 = "0.10"
 libc = "0.2"
+getrandom = "=0.3.4"
+reqwest = { version = "=0.12.28", default-features = false, features = ["json", "native-tls"] }
 rusqlite = { version = "=0.41.1", optional = true, default-features = false, features = ["bundled"] }
 
 [dev-dependencies]
+futures-util = "0.3"
 tower = { version = "0.5", features = ["util"] }
 
 # Keep source/runtime SHA-256 checks fast in debug builds without changing their

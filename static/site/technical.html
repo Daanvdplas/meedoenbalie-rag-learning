@@ -1,4 +1,4 @@
-<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hoe het werkt · Activiteiten verkennen</title><link rel="stylesheet" href="/assets/site.css?v=20261109"></head><body><nav class="site-nav" aria-label="Hoofdnavigatie"><a href="/" class="site-brand">Activiteiten verkennen</a><a href="/demo/">Demo</a><a href="/resultaten/">Tests en resultaten</a><a href="/techniek/" aria-current="page">Hoe het werkt</a></nav><main class="site-main"><article class="technical-summary">
+<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hoe het werkt · Activiteiten verkennen</title><link rel="stylesheet" href="/assets/site.css?v=20261110-results"><script src="/assets/language.js?v=20261110-results" defer></script></head><body><nav class="site-nav" aria-label="Hoofdnavigatie"><span class="site-brand" data-i18n="brand">Activiteiten verkennen</span><a href="/" data-i18n="demo">Demo</a><a href="/techniek/" aria-current="page" data-i18n="technical">Hoe het werkt</a></nav><main class="site-main" lang="nl"><article class="technical-summary">
   <header>
     <h1>Zo werkt de assistent</h1>
     <p>De assistent zoekt informatie op voordat hij een antwoord maakt. Hier lees je wat de onderdelen doen, welke gegevens ze gebruiken en wat we al testen.</p>
@@ -9,8 +9,8 @@
     <ol>
       <li><strong>De bronnen worden voorbereid.</strong> Tien verzonnen activiteitendocumenten zijn verdeeld in zestig tekststukjes. Elk stukje behoudt de activiteit, de sectie en de eigen brondatum.</li>
       <li><strong>De tekst wordt doorzoekbaar.</strong> Een lokaal MiniLM-model maakt van ieder stukje een lijst getallen: een <em>embedding</em>. De titel, tussenkop en tekst tellen mee. Woorden met een vergelijkbare betekenis kunnen zo bij elkaar uitkomen.</li>
-      <li><strong>Codex doet een zoekopdracht.</strong> Codex krijgt jouw vraag en kan onze zoekfunctie aanroepen. Voor zoeken op betekenis maakt het lokale model ook een embedding van die zoekopdracht. Rust vergelijkt die met de opgeslagen documentvectoren en kiest de meest gelijkende stukjes.</li>
-      <li><strong>Codex krijgt gewone tekst terug.</strong> Het model ontvangt de gevonden passages met hun bron en datum, niet de vectoren. Het kan gerichter verderzoeken als bijvoorbeeld een tijdstip of adres ontbreekt.</li>
+      <li><strong>Sol doet een zoekopdracht.</strong> Het model krijgt jouw vraag en kan onze zoekfunctie aanroepen. Voor zoeken op betekenis maakt het lokale model ook een embedding van die zoekopdracht. Rust vergelijkt die met de opgeslagen documentvectoren en kiest de meest gelijkende stukjes.</li>
+      <li><strong>Sol krijgt gewone tekst terug.</strong> Het model ontvangt de gevonden passages met hun bron en datum, niet de vectoren. Het kan gerichter verderzoeken als bijvoorbeeld een tijdstip of adres ontbreekt.</li>
       <li><strong>Het antwoord wordt getoond.</strong> De applicatie controleert of citaten letterlijk voorkomen in de werkelijk aangeboden passages van de juiste bron. De demo laat ook de echte zoekopdrachten en gevonden tekst zien.</li>
     </ol>
     <p>Dit heet <em>retrieval-augmented generation</em>, afgekort RAG: informatie ophalen en gebruiken om een antwoord te maken. Een geldig citaat bewijst de herkomst. Het bewijst nog niet dat iedere conclusie in het antwoord klopt.</p>
@@ -18,8 +18,8 @@
       <summary>Waar staat dit in de code?</summary>
       <ul>
         <li><a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/d8080540b7a97c2fe6f4fd939b83ccc345b2576d/src/lib.rs#L109">Lokale index: teksten voorbereiden, embeddings maken en zoeken</a></li>
-        <li><a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/d8080540b7a97c2fe6f4fd939b83ccc345b2576d/src/mcp.rs#L39">De read-only zoektool waarmee Codex passages opvraagt</a></li>
-        <li><a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/d8080540b7a97c2fe6f4fd939b83ccc345b2576d/docs/retrieval-codex.md">Bestaande uitleg van de verbinding met Codex en de controles</a></li>
+        <li><a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/feature/sol-api-concurrency/src/responses.rs">De Responses API-loop met alleen onze lokale zoektool</a></li>
+        <li><a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/d8080540b7a97c2fe6f4fd939b83ccc345b2576d/docs/retrieval-codex.md">Historische Codex-verbinding voor CLI en evaluaties</a></li>
       </ul>
     </details>
   </section>
@@ -58,6 +58,7 @@
     <h2 id="tech-evals">Wat controleren de tests?</h2>
     <p>Per testvraag ligt vooraf vast welke bronstukjes nodig zijn. Bijvoorbeeld de tijd én de locatie van één passende activiteit. Als meerdere activiteiten geldig zijn, blijven die alternatieven toegestaan; losse stukjes van verschillende activiteiten vormen niet zomaar één compleet antwoord.</p>
     <p>Na een sessie controleert vaste code welke verwachte stukjes daadwerkelijk aan het model zijn aangeboden. Die verwachtingen sturen de zoekvragen of het stoppen van de agent niet. We tellen ook de uitgevoerde zoekacties. Minder zoeken is pas nuttig als de benodigde informatie gevonden wordt.</p>
+    <p>De opgeslagen vergelijking gebruikte de eerdere Codex-route, niet de nieuwe Responses API-route. Die nieuwe route is lokaal met een HTTP-testprovider op tien gelijktijdige vragen gecontroleerd; tien echte Sol-aanvragen zijn nog niet gemeten.</p>
     <p>De laatste vergelijking gebruikte tien vragen, twee modellen en drie herhalingen: zestig sessies. Beide modellen gebruikten zoeken op betekenis met dezelfde instellingen. Deze proef vergelijkt dus niet tegelijk alle zoekmethodes. <a href="/resultaten/">Bekijk de resultaten en de drie herhalingen per vraag</a>.</p>
     <p>De inhoudelijke kwaliteit van de geschreven antwoorden is nog niet beoordeeld. Scores voor ruis en rangorde zijn hier evenmin actief: daarvoor moeten we vollediger vastleggen welke overige bronstukjes relevant zijn.</p>
     <details>
@@ -70,9 +71,9 @@
 
   <section aria-labelledby="tech-boundaries">
     <h2 id="tech-boundaries">Wat blijft lokaal?</h2>
-    <p>MiniLM draait lokaal via fastembed 7.1.2. De vraag en geselecteerde bronpassages gaan via Codex naar de modeldienst. Lokale embeddings betekenen dus niet dat de hele verwerking lokaal blijft.</p>
+    <p>MiniLM draait lokaal via fastembed 7.1.2. De vraag en geselecteerde bronpassages gaan via de OpenAI Responses API naar Sol. De huidige webdemo start hiervoor geen Codex-processen. Lokale embeddings betekenen dus niet dat de hele verwerking lokaal blijft.</p>
     <p>Alle activiteitendata in dit prototype zijn verzonnen. De assistent schrijft niets naar dossiers, verstuurt geen berichten en meldt niemand aan. Het is een onafhankelijk leerproject, geen intern COA-systeem. De medewerker en bewoner houden de keuze over deelname.</p>
-    <p><a href="/demo/">Probeer de demo</a> of <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning">bekijk de broncode en bestaande documentatie</a>.</p>
+    <p><a href="/">Probeer de demo</a> of <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning">bekijk de broncode en bestaande documentatie</a>.</p>
   </section>
 </article>
-</main><footer class="site-footer">Eigen leerproject, geïnspireerd door de COA-use case. Alle activiteiten zijn verzonnen. <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning">Bekijk de code</a>.</footer></body></html>
+</main><footer class="site-footer"><span data-i18n="projectShortNotice">Eigen leerproject, geïnspireerd door de COA-use case. Alle activiteiten zijn verzonnen.</span> <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning" data-i18n="code">Bekijk de code</a>.</footer></body></html>

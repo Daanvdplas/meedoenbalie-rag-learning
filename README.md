@@ -1,6 +1,6 @@
 # Meedoenbalie: activiteiten verkennen
 
-Een kleine Rust-leerproef met tien verzonnen activiteiten, echte lokale embeddings en Codex. Je stelt een vraag en kunt de gebruikte bronpassages controleren. Dit is een eigen prototype, geen intern COA-plan.
+Een kleine Rust-leerproef met tien verzonnen activiteiten, echte lokale embeddings en OpenAI Sol via de Responses API. De CLI- en evaluatieroutes blijven Codex gebruiken. Je stelt een vraag en kunt de gebruikte bronpassages controleren. Dit is een eigen prototype, geen intern COA-plan.
 
 Bekijk de [interactieve codegids](docs/code-tour.html) voor het systeemoverzicht, de route van één vraag en verwijzingen naar de echte functies. De HTML werkt ook lokaal zonder CDN.
 
@@ -10,15 +10,29 @@ De [vastgelegde echte evaluatie van 23–26 oktober 2026](docs/evaluation/result
 
 ## Starten
 
-Benodigd: Rust 1.94.1 en een aangemelde Codex-client. De demo zoekt lokaal naar de bij de Codex-app horende runtime. Een losse CLI moet een bijpassende `codex-code-mode-host` hebben. Zo nodig kun je het juiste uitvoerbare bestand instellen met `COA_CODEX_BIN`; bestaande aanmeldgegevens blijven buiten de runverslagen.
+Benodigd: Rust 1.94.1. De webdemo gebruikt rechtstreeks `gpt-6.1-sol` via de OpenAI Responses API met reasoning `low`. Hiervoor is een **OpenAI API-sleutel** nodig; een Codex-aanmelding wordt door de webdemo niet gebruikt.
 
 ```sh
 cargo run --locked
 ```
 
-Open **http://127.0.0.1:8766/**. De startpagina verbindt de [live demo](http://127.0.0.1:8766/demo/), [tests en resultaten](http://127.0.0.1:8766/resultaten/) en [technische uitleg](http://127.0.0.1:8766/techniek/). De [architectuurgids](docs/CODEBASE_GUIDE.md) beschrijft de routes en de scheiding tussen live vragen en opgeslagen resultaten. De eerste start downloadt ongeveer 235 MB aan modelbestanden en aanvullende bestanden naar `.model-cache/`. Voor embeddings is geen API-sleutel nodig; Codex gebruikt je bestaande aanmelding. De server start nadat het lokale model is geladen.
+Open **http://127.0.0.1:8766/**. Zonder sleutel starten de website en de tien fictieve bronnen wel; het vraagveld meldt dat de antwoordservice nog niet is ingesteld. Er worden dan geen modelcalls gestart en er is geen Codex-fallback. `/demo` en `/demo/` verwijzen door naar `/`; [technische uitleg](http://127.0.0.1:8766/techniek/) en de opgeslagen [tests en resultaten](http://127.0.0.1:8766/resultaten/) blijven bereikbaar.
 
-Een andere lokale poort kan met `COA_PORT=8767 cargo run --locked`. `COA_CODEX_MODEL` kan het expliciet gekozen antwoordmodel veranderen; de gebruikte versie en instellingen worden per run vastgelegd.
+Voor antwoorden: gebruik `OPENAI_API_KEY` in de serveromgeving, of zet de sleutel zelf in een **extern** bestand, bijvoorbeeld `~/.config/coa/openai-api-key`. Dat moet een regulier bestand van de huidige gebruiker zijn met rechten `0600`, zonder symlink of hardlink. Plak geen sleutel in chat, broncode, opdrachtargumenten of rapporten. De applicatie leest geen `.env` automatisch.
+
+```sh
+COA_OPENAI_API_KEY_FILE="$HOME/.config/coa/openai-api-key" cargo run --locked
+```
+
+De creditclaimdialoog, gecontroleerd op 10 november 2026, waarschuwt dat activering van het Pro-API-voordeel Codex via API-keys van de gekozen organisatie uitschakelt, ook bij gekocht tegoed. Gewone Responses API-calls en Codex via het abonnement blijven volgens die dialoog werken. Dit project gebruikt de gewone API; activatie en saldo zijn niet door deze implementatie gecontroleerd.
+
+Een andere lokale poort kan met `COA_PORT=8767`. De eerste start downloadt ongeveer 235 MB modelbestanden naar `.model-cache/` in de werkmap; de server start nadat MiniLM is geladen. Embeddings en beide zoekmethoden draaien lokaal. De vraag en gevonden passages gaan voor het antwoord naar OpenAI. `store: false` schakelt Responses-opslag uit, maar is geen belofte van Zero Data Retention of afwezigheid van veiligheidslogs. Gebruik alleen verzonnen gegevens.
+
+De webdemo laat **tien verschillende bezoekers werkelijk tegelijk** een modelvraag verwerken. Per sessie kan één vraag lopen. Een elfde gelijktijdige vraag krijgt HTTP 429 met een korte melding; er is geen verborgen seriële wachtrij. Een hele uitvoering duurt maximaal 120 seconden en bevat maximaal vier zoekacties en vijf API-requests, zonder automatische retries. Een API-request mag maximaal 4096 outputtokens bevatten, inclusief reasoning. Een provider kan daarnaast eigen limieten opleggen.
+
+Sessie-ID's bevatten 256 willekeurige bits. Sessies vervallen 30 minuten na aanmaken of de laatste gestarte vraag, bij een volgende API-toegang; lopende vragen worden beschermd. Maximaal 256 sessies, 40 runs per sessie en 256 runs in totaal blijven in RAM. De oudste inactieve sessies en afgeronde runs schuiven op als de grens bereikt is. Een run is begrensd op 256 KiB geserialiseerde gegevens, met ruimte voor beoordelingsmetadata. Herstart wist dit RAM, geen reeds gedownloade of externe kopieën. API-antwoorden krijgen `Cache-Control: no-store`.
+
+De CLI-opdracht `ask` en de bestaande lab-/experimentroutes gebruiken hun oorspronkelijke Codex-client en aanmelding. Alleen daarvoor blijven een passende `codex-code-mode-host`, `COA_CODEX_BIN` en `COA_CODEX_MODEL` relevant. De huidige webdemo kiest vast Sol; historische modelvergelijkingen en traces worden niet herschreven.
 
 ## De website en opgeslagen vergelijking
 
@@ -34,12 +48,30 @@ python3 -m unittest discover -s scripts -p 'test_export_site_results.py'
 ## Zelf testen
 
 1. Bovenaan staan tien compacte activiteiten, waaronder **Tuinieren**, **Fietsen opknappen**, **Creatief atelier** en **Parkonderhoud**. Klik een titel om het volledige fictieve document met bron en datum te lezen. Er staat steeds maximaal één activiteit open.
-2. Schrijf één eigen vraag, of kies een optioneel voorbeeld. Alle documenten beschrijven vrijwillige activiteiten, geen betaalde banen.
-3. Codex maakt één antwoord. Onder **Bekijk de resultaten** staan de echte zoekacties van Codex. Codex kan meerdere keren zoeken om ontbrekende informatie voor dat ene antwoord te verzamelen; dit zijn geen extra gebruikersvragen.
-4. Exact geciteerde tekst is gemarkeerd in de werkelijk gevonden passages. Bron en datum staan erbij; de volledige activiteiten blijven bovenaan leesbaar. Er is geen afzonderlijk bewijsblok of beoordelingsflow.
-5. Stel direct een nieuwe vraag, bekijk een eerdere uitvoering of voer die opnieuw uit. Een nieuwe generatie krijgt een eigen run; gewijzigde bron/runtime-instellingen worden niet stilzwijgend hergebruikt.
+2. Kies bovenaan **🇳🇱** (Nederlands) of **🇬🇧** (English) en schrijf één eigen vraag. Kies **Op betekenis** (de bestaande dense-zoekmethode) of **Op woorden**. De taalkeuze blijft bij vernieuwen bewaard. De interface en nieuwe antwoorden volgen de gekozen taal; de vraag die je al typt en bestaande antwoorden blijven staan. Alle documenten beschrijven vrijwillige activiteiten, geen betaalde banen.
+3. Sol maakt één direct antwoord zonder toegevoegde bronverwijzingen of aparte lijst met onbekende informatie. Bij een rechtstreeks onbeantwoordbare vraag blijft het antwoord eerlijk onbekend. Onder **Bekijk de resultaten** staat elke echte zoekactie afzonderlijk: de zoekvraag en de gevonden passages. De volgorde en eventuele herhaalde passages blijven behouden; dit zijn geen extra gebruikersvragen.
+4. Exact geciteerde tekst is gemarkeerd in de werkelijk gevonden passages. Activiteit, menselijk sectiekopje en één brondatum staan erbij; de volledige activiteiten blijven bovenaan leesbaar. Er is geen afzonderlijk bewijsblok of beoordelingsflow.
+5. Pas de vraag aan en zoek opnieuw. Het vorige antwoord verdwijnt zodra je typt; iedere ingediende vraag krijgt een eigen uitvoering. Voorbeeldvragen, losse knoppen voor nieuwe vragen of herhalen, technische uitvoeringsgegevens en geschiedenis worden niet getoond.
 
-Een Codex-antwoord kan ongeveer een minuut duren; de bron blijft ondertussen leesbaar. Er kan één modeluitvoering tegelijk lopen. Fouten blijven zichtbaar. Vraaggeschiedenis staat in begrensd servergeheugen en verdwijnt bij herstart. Er is geen beoordelings- of criteriaflow; cosinusovereenkomsten staan alleen bij de technische zoekresultaten.
+Een wijziging van zoekmethode start geen uitvoering en verandert een bestaand antwoord niet. Bij het antwoord staat de werkelijk gebruikte methode uit de opgeslagen uitvoering; de huidige keuze in het veld bepaalt alleen de volgende vraag. Elke vervolgzoekactie voor dezelfde vraag gebruikt dezelfde vastgelegde methode.
+
+De activiteitnamen en sectiekoppen zijn vertaalde schermlabels. Originele bronparagrafen en letterlijke citaten blijven Nederlands, herkenbaar aan het bronlabel en de brondatum. Wisselen van taal start geen zoek- of modelaanroep en vertaalt een bestaand antwoord niet. De navigatie en footer volgen de voorkeur ook op de andere pagina’s; hun inhoud blijft voorlopig Nederlands.
+
+De bron blijft leesbaar terwijl een antwoord wordt gemaakt. Tien vragen uit verschillende sessies kunnen tegelijk lopen. Fouten blijven zichtbaar. Uitvoeringen staan in begrensd servergeheugen en verdwijnen bij herstart; de demo toont geen geschiedenis. Er is geen beoordelings- of criteriaflow. IDs, referentiedatum, top-k, voltooide statussen en cosinusovereenkomsten zijn uit de zichtbare zoekresultaten verwijderd; de backend bewaart de oorspronkelijke zoekgegevens, citaten en onbekende informatie.
+
+## De nieuwe API-route controleren
+
+```sh
+cargo test --locked responses::tests
+cargo test --locked ten_provider_requests_overlap
+cargo test --locked runs::tests
+```
+
+Dit zijn lokale HTTP-mocktests, zonder OpenAI-sleutel of betaalde calls. De overlaptest houdt de eerste tien providerrequests vast totdat alle tien zijn aangekomen en controleert daarna sessiescheiding, zoektraces, weigering van nummer elf en vrijgave van capaciteit. Extra tests controleren twee stateless toolrondes met encrypted reasoning en assistant phases, providerfouten, bodygrenzen, time-outs en behoud van geheugen bij afgewezen requests. CLI-/lab-/evaluatietests blijven afzonderlijk bestaan.
+
+Voor een expliciete offline browsertest kan een **debugbuild** `COA_RESPONSES_TEST_URL=http://127.0.0.1:8891/v1/responses` gebruiken, eventueel met `COA_RESPONSES_TEST_TIMEOUT_MS` (1–120000). Alleen loopback is toegestaan, redirects staan uit en uitsluitend de vaste testsleutel `coa-local-test-key` wordt verstuurd; echte sleutelinstellingen worden in deze mode niet gelezen. De interface en `/api/source` markeren dit als lokale mock. Een releasebuild weigert deze override. Laat een mockpreview niet als echte modeldemo achter.
+
+Er is nog **geen nieuwe echte tien-Sol-proef** uitgevoerd: daarvoor ontbreken de sleutel en bevestigde activatie. De lokale mock bewijst onze gelijktijdige aansturing, geen beschikbaarheid, snelheid of quota bij OpenAI. De zestig historische Codex-runs blijven retrievalbewijs voor hun eigen harness, geen kwaliteitsmeting van deze nieuwe API-route. Usage op geslaagde API-runs telt alle providerrequests op; fouten na een modelronde kunnen ook kosten veroorzaken en ontbreken in dat succesoverzicht. Dit is geen facturatieledger of hard dollarbudget. Een lokale time-out geeft de bezoekersplek vrij, maar garandeert niet dat de provider geen werk of kosten meer maakt.
 
 ## Rust-zoekfunctie en evaluatie
 
@@ -73,7 +105,7 @@ De tien activiteitendocumenten:
 | `fixtures/expanded-10-20261105/activity-009.md` | Muziekgroep | 2026-11-05 | zaterdag 10–11.30 |
 | `fixtures/expanded-10-20261105/activity-010.md` | Digitale hulp | 2026-11-05 | maandag 15–16 |
 
-De parser accepteert maximaal tien documenten. De secties van de gekozen corpusversie krijgen lokale meertalige MiniLM-embeddings via fastembed 7.1.2: documenttitel, sectiekop en exacte tekst. CLI en MCP delen dezelfde Rust-zoekfunctie. Iedere hit en ieder citaat behouden document-ID, sectie-ID en eigen brondatum. De manifest bevat per-documenthashes, corpus- en embeddinginvoerhashes. Standaard top-k is 3, instelbaar van 1 tot 6 per zoekactie; Codex kan maximaal vier gerichte zoekacties doen. Dit garandeert geen volledige lijst of volledig antwoord. Cosinusovereenkomst is geen zekerheid; een grens voor “geen match” is niet gekalibreerd.
+De parser accepteert maximaal tien documenten. De secties van de gekozen corpusversie krijgen lokale meertalige MiniLM-embeddings via fastembed 7.1.2: documenttitel, sectiekop en exacte tekst. CLI en MCP delen dezelfde Rust-zoekfunctie. Iedere hit en ieder citaat behouden document-ID, sectie-ID en eigen brondatum. De manifest bevat per-documenthashes, corpus- en embeddinginvoerhashes. Standaard top-k is 3, instelbaar van 1 tot 6 per zoekactie; de webassistent en de Codex-CLI kunnen maximaal vier gerichte zoekacties doen. Dit garandeert geen volledige lijst of volledig antwoord. Cosinusovereenkomst is geen zekerheid; een grens voor “geen match” is niet gekalibreerd.
 
 De oudere [zoekevaluatie met vijf activiteiten](reports/five-activity-eval.json) vergelijkt echte embeddings met woordoverlap op dezelfde titel/kop/tekst. De vijf vaste tuinvragen en beschermde verwachtingen blijven uitsluitend intern beschikbaar voor regressie en menselijke evaluatie via `fixtures/questions.json`, `fixtures/expectations.json` en de bestaande server-API. De demo toont deze reeks niet. Gold wordt nooit geïndexeerd of naar Codex/zoekresultaten gestuurd. Gemiddelde bronsectiedekking op de vier gelabelde tuinvragen is in dit snapshot 0,625 voor beide methoden. Dit is geen antwoordnauwkeurigheid; actuele plekken en ontbrekend vervoer blijven onbekend.
 

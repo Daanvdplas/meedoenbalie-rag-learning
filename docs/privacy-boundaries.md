@@ -1,5 +1,8 @@
 # Privacygrenzen van de lokale proef
 
+**Webupdate 10 november 2026:** de demo gebruikt nu de directe OpenAI Responses API; Codex/MCP hieronder blijft de CLI-/evaluatieroute en historische verificatie. Zie de [actuele architectuurgids](CODEBASE_GUIDE.md) voor sleutelbeheer, tien gelijktijdige vragen, sessieverval, geheugenlimieten en de grenzen van `store: false`. De nieuwe API-route is uitsluitend lokaal met mocks getest, niet met tien echte Sol-calls.
+
+
 **Besluit nu: uitsluitend fictieve activiteiten en fictieve vragen.** Lokale embeddings houden de tekst voor het antwoord niet lokaal: de vraag en gevonden passages gaan via Codex naar OpenAI. Echte bewonersgegevens en interne COA-documenten zijn niet toegestaan. Dit eigen prototype is geen intern COA-plan of privacycertificering.
 
 Code-inventaris op **21 oktober 2026**, oorspronkelijke basis `68fcc77ec52e8628ba29d1f234f074d5d77ed7ee`, bijgewerkt voor de beperkte outputverharding in [PR #35](https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/35). Dit is een controle van de repository, geen audit van de actieve provideraccount, netwerkverkeer, bestandsrechten, schijfversleuteling of backups. De lopende demo is hiervoor niet gewijzigd. [#20](https://github.com/Daanvdplas/meedoenbalie-rag-learning/issues/20) blijft open voor een organisatiebesluit; [#22](https://github.com/Daanvdplas/meedoenbalie-rag-learning/issues/22) beschrijft opslag-, transport- en geheimengrenzen.
