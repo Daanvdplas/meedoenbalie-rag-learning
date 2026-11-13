@@ -1,5 +1,7 @@
 # Gegevens bewaren en wissen in de lokale proef
 
+**Webupdate 13 november 2026:** de server gebruikt tijdelijke netwerkadres- en sessietellers om herhaald gebruik te begrenzen: tien modelvragen per uur per adres, dertig nieuwe sessies per tien minuten en vijf seconden tussen starts in dezelfde sessie. IPv6 telt per /64. De tabel bevat maximaal 4096 adressen, staat alleen in RAM en wordt niet naar runrecords, rapporten of logs geschreven. Verlopen gebeurtenissen worden bij een volgende limietcontrole opgeruimd; herstart wist de tabel. Alleen een expliciet vertrouwde proxy mag het echte bezoekersadres doorgeven. Zie de [architectuurgids](CODEBASE_GUIDE.md) voor de precieze route en beperkingen.
+
 **Webupdate 10 november 2026:** de demo gebruikt nu de directe OpenAI Responses API; Codex/MCP hieronder blijft de CLI-/evaluatieroute en historische verificatie. Zie de [actuele architectuurgids](CODEBASE_GUIDE.md) voor sleutelbeheer, tien gelijktijdige vragen, sessieverval, geheugenlimieten en de grenzen van `store: false`. De nieuwe API-route is uitsluitend lokaal met mocks getest, niet met tien echte Sol-calls.
 
 

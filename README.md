@@ -30,6 +30,22 @@ Een andere lokale poort kan met `COA_PORT=8767`. De eerste start downloadt ongev
 
 De webdemo laat **tien verschillende bezoekers werkelijk tegelijk** een modelvraag verwerken. Per sessie kan één vraag lopen. Een elfde gelijktijdige vraag krijgt HTTP 429 met een korte melding; er is geen verborgen seriële wachtrij. Een hele uitvoering duurt maximaal 120 seconden en bevat maximaal vier zoekacties en vijf API-requests, zonder automatische retries. Een API-request mag maximaal 4096 outputtokens bevatten, inclusief reasoning. Een provider kan daarnaast eigen limieten opleggen.
 
+### Bescherming tegen herhaald gebruik
+
+Eén netwerkadres kan maximaal **tien modelvragen per uur** starten, ook via nieuwe tabbladen of nieuwe sessies. Per sessie geldt daarnaast vijf seconden tussen starts en maximaal één lopende vraag. Nieuwe sessies aanmaken is beperkt tot dertig per tien minuten per adres. Een weigering geeft HTTP 429 en `Retry-After`; die start geen modelcall. Mensen op dezelfde wifi delen deze limiet. IPv6-adressen binnen hetzelfde /64-netwerk delen de teller.
+
+De teller gebruikt het echte verbindingsadres. Doorgestuurde headers worden standaard genegeerd. Bij latere hosting achter een lokale reverse proxy moet de beheerder `COA_TRUSTED_PROXY_IP` instellen op het exacte proxyadres en de proxy `X-Real-IP` laten **overschrijven** met het verbindingsadres van de bezoeker. Bij een lokale Caddy-proxy is dat bijvoorbeeld:
+
+```caddyfile
+reverse_proxy 127.0.0.1:8766 {
+    header_up X-Real-IP {remote_host}
+}
+```
+
+Start de app dan met `COA_TRUSTED_PROXY_IP=127.0.0.1` als dat inderdaad het verbindingsadres van die proxy is. Zonder die instelling delen bezoekers via de proxy één teller. Een onjuist of ontbrekend bezoekersadres van de vertrouwde proxy wordt geweigerd. Dit configureert of publiceert zelf geen server; de applicatie blijft op localhost luisteren.
+
+De begrensde tellers staan alleen in RAM, worden niet gelogd en verdwijnen bij herstart of nadat hun venster is verlopen en de volgende controle opruimt. Dit remt herhaald gebruik vanaf hetzelfde netwerk; het is geen gebruikersaccount of bescherming tegen verspreide aanvallen en geen totaalbudget voor API-kosten.
+
 Sessie-ID's bevatten 256 willekeurige bits. Sessies vervallen 30 minuten na aanmaken of de laatste gestarte vraag, bij een volgende API-toegang; lopende vragen worden beschermd. Maximaal 256 sessies, 40 runs per sessie en 256 runs in totaal blijven in RAM. De oudste inactieve sessies en afgeronde runs schuiven op als de grens bereikt is. Een run is begrensd op 256 KiB geserialiseerde gegevens, met ruimte voor beoordelingsmetadata. Herstart wist dit RAM, geen reeds gedownloade of externe kopieën. API-antwoorden krijgen `Cache-Control: no-store`.
 
 De CLI-opdracht `ask` en de bestaande lab-/experimentroutes gebruiken hun oorspronkelijke Codex-client en aanmelding. Alleen daarvoor blijven een passende `codex-code-mode-host`, `COA_CODEX_BIN` en `COA_CODEX_MODEL` relevant. De huidige webdemo kiest vast Sol; historische modelvergelijkingen en traces worden niet herschreven.
@@ -65,6 +81,7 @@ De bron blijft leesbaar terwijl een antwoord wordt gemaakt. Tien vragen uit vers
 cargo test --locked responses::tests
 cargo test --locked ten_provider_requests_overlap
 cargo test --locked runs::tests
+cargo test --locked demo_limits::tests
 ```
 
 Dit zijn lokale HTTP-mocktests, zonder OpenAI-sleutel of betaalde calls. De overlaptest houdt de eerste tien providerrequests vast totdat alle tien zijn aangekomen en controleert daarna sessiescheiding, zoektraces, weigering van nummer elf en vrijgave van capaciteit. Extra tests controleren twee stateless toolrondes met encrypted reasoning en assistant phases, providerfouten, bodygrenzen, time-outs en behoud van geheugen bij afgewezen requests. CLI-/lab-/evaluatietests blijven afzonderlijk bestaan.

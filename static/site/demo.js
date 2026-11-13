@@ -12,6 +12,12 @@
     "Please enter a question of 1 to 1000 characters.": "questionInvalid",
     "Lokale opslag niet beschikbaar; herstart de demo.": "storageUnavailable",
   };
+  const errorCodes = {
+    capacity: "capacityFull",
+    rate_limit: "rateLimited",
+    session_cooldown: "sessionCooldown",
+    session_limit: "sessionLimited",
+  };
   function requestError(key) { return Object.assign(new Error(key), { code: key }); }
   async function api(path, body) {
     let response;
@@ -24,7 +30,7 @@
     } catch { throw requestError("networkFailed"); }
     let data;
     try { data = await response.json(); } catch { throw requestError("requestFailed"); }
-    if (!response.ok) throw requestError(data.code === "capacity" ? "capacityFull" : errorKeys[data.error] || "requestFailed");
+    if (!response.ok) throw requestError(errorCodes[data.code] || errorKeys[data.error] || "requestFailed");
     return data;
   }
   function setBusy(value) {
