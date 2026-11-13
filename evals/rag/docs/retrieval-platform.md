@@ -1,5 +1,7 @@
 # Retrieval lab: implementation contract
 
+**Actuele runner:** [promptfoo](../README.md) bestuurt de RAG-proeven. De native commando’s hieronder beschrijven de behouden uitvoeringsonderlaag of historische rapportage, niet een tweede actuele benchmark/scorer.
+
 Approved scope, 2 November 2026. This is an independent experiment with five fictional activities, thirty unchanged source sections and eighteen existing development/regression questions. It is not a production COA system or a new held-out benchmark.
 
 ## What can be compared

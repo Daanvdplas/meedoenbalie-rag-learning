@@ -187,7 +187,65 @@ fn report_assessments(
 }
 
 pub fn cli(args: &[String]) -> Result<serde_json::Value, String> {
+    if matches!(
+        args.first().map(String::as_str),
+        Some("assess" | "agent-assess")
+    ) {
+        eprintln!(
+            "Historical native assessment reader. Run new RAG evaluations with npm run eval:rag."
+        );
+    }
     match args.first().map(String::as_str) {
+        Some("compact-project") => {
+            let values = flags(&args[1..], &["--input"])?;
+            let path = Path::new(required(&values, "--input")?);
+            let stored = records::read_records(path)?;
+            if stored.len() != 1 { return Err("Compact projection requires exactly one native retrieval record".into()); }
+            let record = &stored[0].record;
+            if record.execution_status != super::types::ExecutionStatus::Completed { return Err("Compact projection requires completed canonical retrieval".into()); }
+            let outcome = record.outcome.as_ref().ok_or("Compact projection needs completed evidence")?;
+            let corpus = if record.dataset.corpus_sha256 == crate::corpus::CorpusId::BaselineFive.sha256() {
+                crate::corpus::CorpusId::BaselineFive
+            } else if record.dataset.corpus_sha256 == crate::corpus::CorpusId::ExpandedTen.sha256() {
+                crate::corpus::CorpusId::ExpandedTen
+            } else { return Err("Unknown projection source corpus".into()); };
+            let sources: Vec<_> = corpus.sources()?.into_iter().map(|source|
+                serde_json::json!({"id":source.id,"title":source.title,"date":source.date})).collect();
+            let full = serde_json::json!({"schema_version":1,"question":record.question,"top_k":record.config.retrieval.top_k,
+                "sources":sources,"as_of":record.dataset.as_of,"manifest":{"schema_version":1,"config_id":record.config_id,
+                "config":record.config,"filters":record.request_filters,"score_kind":record.config.retrieval.method,"corpus_identity":outcome.corpus_identity},
+                "hits":outcome.hits,"outcome":outcome,"preparation":record.preparation,"timings":record.timings});
+            let compact = super::mcp_trace::project_for_comparison(full.clone(), super::mcp_trace::PayloadMode::Compact, "promptfoo-replay", 1)?;
+            Ok(serde_json::json!({"schema_version":1,"status":"completed","execution_mode":"offline_projection_replay",
+                "input_sha256":crate::manifest::hash(&std::fs::read(path).map_err(|_|"Cannot read canonical compact input")?),"full_payload_bytes":serde_json::to_vec(&full).map_err(|_|"Invalid full payload")?.len(),
+                "compact_payload_bytes":serde_json::to_vec(&compact).map_err(|_|"Invalid compact payload")?.len(),
+                "full_response_json":serde_json::to_string(&full).map_err(|_|"Invalid full JSON")?,
+                "compact_response_json":serde_json::to_string(&compact).map_err(|_|"Invalid compact JSON")?,
+                "full_response":full,"compact_response":compact}))
+        }
+        Some("garden-search") => {
+            let values = flags(&args[1..], &["--question", "--method", "--top-k"])?;
+            let question = crate::validate_query(required(&values, "--question")?)?;
+            let method = required(&values, "--method")?;
+            if !matches!(method, "dense" | "keyword_overlap") {
+                return Err("Garden method must be dense or keyword_overlap".into());
+            }
+            let top_k = required(&values, "--top-k")?.parse().map_err(|_| "Invalid top-k")?;
+            crate::ranking::validate_top_k(top_k)?;
+            let corpus = crate::corpus::CorpusId::BaselineFive;
+            let sources = corpus.sources()?;
+            let hits = if method == "dense" {
+                crate::Index::load()?.search_with_top_k(&question, top_k)?.hits
+            } else {
+                crate::keyword_search(&sources, &question, top_k)?
+            };
+            let fingerprints: Vec<_> = sources.iter().zip(corpus.documents()).map(|(source, text)| serde_json::json!({
+                "id":source.id,"title":source.title,"date":source.date,"sha256":crate::manifest::hash(text.as_bytes())
+            })).collect();
+            Ok(serde_json::json!({"schema_version":1,"status":"completed","question":question,"method":method,"top_k":top_k,
+                "score_kind":if method=="dense"{"cosine"}else{"jaccard_overlap"},"hits":hits,
+                "source_manifest":{"corpus_id":corpus.id(),"corpus_sha256":corpus.sha256(),"as_of":corpus.as_of(),"sources":fingerprints}}))
+        }
         Some("agent-plan") => super::agent_run::plan_cli(&args[1..]),
         Some("agent-assess"|"agent-report") => {
             let values=flags(&args[1..],&["--input","--output","--assessments"])?;
@@ -255,6 +313,75 @@ pub fn cli(args: &[String]) -> Result<serde_json::Value, String> {
 
 #[cfg(test)]
 mod agentic_plan_tests {
+    #[test]
+    fn compact_provider_replays_canonical_sections_without_a_model() {
+        let file = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("evals/rag/fixtures/regressions/t02-dense-search.json");
+        let result = super::cli(&[
+            "compact-project".into(),
+            "--input".into(),
+            file.display().to_string(),
+        ])
+        .unwrap();
+        assert_eq!(result["status"], "completed");
+        assert_eq!(
+            result["input_sha256"],
+            crate::manifest::hash(&std::fs::read(file).unwrap())
+        );
+        let full: Vec<_> = result["full_response"]["hits"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|hit| hit["section"].clone())
+            .collect();
+        let compact: Vec<_> = result["compact_response"]["hits"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|hit| hit["section"].clone())
+            .collect();
+        assert_eq!(full, compact);
+        assert!(
+            result["compact_payload_bytes"].as_u64().unwrap()
+                < result["full_payload_bytes"].as_u64().unwrap()
+        );
+    }
+
+    #[test]
+    fn garden_provider_returns_only_raw_canonical_evidence_without_labels() {
+        let output = super::cli(&[
+            "garden-search".into(),
+            "--question".into(),
+            "tuinieren".into(),
+            "--method".into(),
+            "keyword_overlap".into(),
+            "--top-k".into(),
+            "3".into(),
+        ])
+        .unwrap();
+        assert_eq!(output["status"], "completed");
+        assert_eq!(output["score_kind"], "jaccard_overlap");
+        assert_eq!(output["source_manifest"]["corpus_id"], "baseline-five");
+        assert!(output["hits"].as_array().unwrap().iter().all(|hit| {
+            hit["section"]["source_id"].as_str().is_some()
+                && hit["section"]["source_date"].as_str().is_some()
+                && hit["section"]["text"].as_str().is_some()
+        }));
+        assert!(output.get("expected").is_none() && output.get("score").is_none());
+        assert!(
+            super::cli(&[
+                "garden-search".into(),
+                "--question".into(),
+                "tuinieren".into(),
+                "--method".into(),
+                "unknown".into(),
+                "--top-k".into(),
+                "3".into()
+            ])
+            .is_err()
+        );
+    }
+
     #[test]
     fn agentic_plan_binds_ten_questions_to_forty_fixed_treatments_without_gold() {
         let plan = super::cli(&["agent-plan".into()])

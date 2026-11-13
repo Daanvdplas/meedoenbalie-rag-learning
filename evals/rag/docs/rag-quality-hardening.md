@@ -1,5 +1,7 @@
 # RAG quality: evidence first, answers separately
 
+**Actuele runner:** [promptfoo](../README.md) bestuurt de RAG-proeven. De native commando’s hieronder beschrijven de behouden uitvoeringsonderlaag of historische rapportage, niet een tweede actuele benchmark/scorer.
+
 Implementation tracking: [epic #84](https://github.com/Daanvdplas/meedoenbalie-rag-learning/issues/84).
 
 ## What the comparison means

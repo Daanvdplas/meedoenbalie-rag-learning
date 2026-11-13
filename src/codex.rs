@@ -2321,7 +2321,11 @@ mod tests {
                     )
                     .await;
                 if actual.is_none() {
-                    assert!(result.unwrap_err().contains("selected retrieval method"));
+                    let error = result.unwrap_err();
+                    assert!(
+                        error.contains("selected retrieval method"),
+                        "Unexpected {method:?} rejection: {error}"
+                    );
                     continue;
                 }
                 let result = result.unwrap();

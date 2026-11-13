@@ -83,6 +83,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Ok(());
         }
         "search" | "eval" => {
+            if command == "eval" {
+                eprintln!(
+                    "Legacy evaluator for historical compatibility. Run new RAG evaluations with npm run eval:rag -- --suite garden."
+                );
+            }
             let corpus = if command == "search" {
                 parse_corpus(&mut args).map_err(std::io::Error::other)?
             } else {

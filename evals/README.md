@@ -2,7 +2,7 @@
 
 Alle evaluatiecode, vraagsets, handleidingen en bewaarde resultaten staan hier. De indeling volgt wat een proef meet:
 
-- [RAG](rag/README.md): vinden we de benodigde bronnen, met welke zoekstrategie en hoeveel zoekwerk?
+- [RAG met promptfoo](rag/README.md): vinden we de benodigde bronnen, met welke zoekstrategie en hoeveel zoekwerk?
 - [COA-assistent](coa-assistent/README.md): klopt het uiteindelijke antwoord, gebruikt het de bronnen goed en blijven onbekende feiten onbekend?
 - [Gedeelde vraagsets](shared/README.md): dezelfde vastgelegde vragen en verwachtingen worden door beide soorten evaluaties gebruikt.
 

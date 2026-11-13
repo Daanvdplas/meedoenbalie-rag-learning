@@ -1,4 +1,6 @@
-"""One preregistered 60-session comparison, using the existing Rust runner.
+"""Historical model-trial readers and shared process cancellation utilities.
+
+New RAG model execution and scoring are controlled by promptfoo.
 
 No generations are made by ``plan`` or ``assess``. Execution requires ``run --live``.
 An uncertain reserved attempt is never retried automatically.
@@ -139,8 +141,8 @@ def descendant_processes(parent):
         owned = expanded
 
 
-def run_cancellable(command, env, timeout):
-    process = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+def run_cancellable(command, env, timeout, cwd=None):
+    process = subprocess.Popen(command, env=env, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
     try:
         stdout, stderr = process.communicate(timeout=timeout)
         return subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
@@ -370,6 +372,8 @@ def main():
     assess = commands.add_parser("assess")
     assess.add_argument("--directory", required=True)
     args = parser.parse_args()
+    if args.command == "run":
+        parser.error("RAG model execution is now controlled by promptfoo: npm run eval:rag:live -- --suite models --ledger <new.json> --max-generations <cap> --max-seconds <cap>. Historical plan/assess readers remain available.")
     {"plan": make_plan, "run": run_phase, "assess": assess_cohorts}[args.command](args)
 
 

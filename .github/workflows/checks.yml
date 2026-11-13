@@ -36,3 +36,43 @@ jobs:
         run: cargo +1.97.1 build --locked ${{ matrix.flags }}
       - name: Python budget and public-export checks (no model calls)
         run: python3 -m unittest discover -s evals/rag/scripts -p 'test_*.py'
+  promptfoo:
+    name: Promptfoo contracts and native retrieval smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PROMPTFOO_DISABLE_TELEMETRY: '1'
+      PROMPTFOO_DISABLE_SHARING: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6, updated 2026-07-14
+        with:
+          node-version: '22.22.0'
+          cache: npm
+      - name: Install Rust
+        run: rustup toolchain install 1.97.1 --profile minimal
+      - name: Build execution-only runtime
+        run: cargo +1.97.1 build --locked
+      - name: Install pinned promptfoo
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Provider, assertion, matrix and public-export contracts
+        run: COA_RAG_BINARY="$PWD/target/debug/meedoen-retrieval" npm run test:rag
+      - name: Real local retrieval with an expected source failure and an N/A case
+        shell: bash
+        run: |
+          set +e
+          npm run eval:rag -- --suite retrieval --dataset legacy --cases T05,P05 --methods bm25 --profiles documents_sections --output-dir evals/rag/results/local/ci
+          result=$?
+          set -e
+          test "$result" -eq 100
+          node - <<'JS'
+          const fs = require('node:fs');
+          const data = JSON.parse(fs.readFileSync('evals/rag/site/promptfoo-results.json'));
+          const run = data.evaluations[0];
+          if (run.rows.length !== 2 || run.statuses.error !== 0) throw new Error('Native execution failed');
+          const target = run.rows.find(row => row.case_id === 'T05');
+          const unknown = run.rows.find(row => row.case_id === 'P05');
+          if (target.status !== 'failed' || target.source_complete !== false || unknown.source_complete !== null) throw new Error('Quality failure or N/A was lost');
+          JS
