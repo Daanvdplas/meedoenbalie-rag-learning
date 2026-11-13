@@ -447,7 +447,10 @@ def get_assert(output, context):
 
 def get_model_assert(output, context):
     """Retain verified model defects as failed outcomes with unknown source quality."""
-    envelope=json.loads(output) if isinstance(output,str) else output
+    try:
+        envelope=json.loads(output) if isinstance(output,str) else output
+    except (TypeError,json.JSONDecodeError):
+        return get_assert(output,context)
     if not isinstance(envelope,dict) or envelope.get('status')=='completed':
         return get_assert(output,context)
     try:
