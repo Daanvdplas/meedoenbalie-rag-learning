@@ -1,3 +1,4 @@
+#[path = "../evals/rag/src/legacy.rs"]
 mod evaluation;
 mod web;
 use meedoen_retrieval::Index;

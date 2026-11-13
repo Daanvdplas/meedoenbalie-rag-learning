@@ -17,7 +17,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-const SELECTION: &str = include_str!("../../fixtures/experiments/presentation-selection.json");
+const SELECTION: &str = include_str!("../datasets/presentation-selection.json");
 pub const EXECUTION_KIND: &str = "agentic_search_comparison";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

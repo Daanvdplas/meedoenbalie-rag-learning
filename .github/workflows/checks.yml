@@ -35,4 +35,4 @@ jobs:
       - name: Build
         run: cargo +1.97.1 build --locked ${{ matrix.flags }}
       - name: Python budget and public-export checks (no model calls)
-        run: python3 -m unittest discover -s scripts -p 'test_*.py'
+        run: python3 -m unittest discover -s evals/rag/scripts -p 'test_*.py'

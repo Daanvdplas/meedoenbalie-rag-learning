@@ -1,15 +1,15 @@
 """Build explicitly synthetic browser fixtures; no model, labels or timing claims.
 
-python3 tests/report_ui_fixture.py /tmp/coa-report-ui
+python3 evals/rag/tests/report_ui_fixture.py /tmp/coa-report-ui
 python3 -m http.server 8794 --bind 127.0.0.1 --directory /tmp/coa-report-ui
-Run tests/report_ui.browser.js with dev-browser against that fixture server.
+Use a Playwright/CDP browser harness for evals/rag/tests/report_ui.browser.js against that fixture server.
 """
 
 import json
 from pathlib import Path
 import sys
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 output = Path(sys.argv[1])
 output.mkdir(parents=True, exist_ok=True)
 unsafe = "</script><script>window.reportInjected=true</script>&\u2028"
@@ -228,10 +228,10 @@ data = dict(
     rows=rows,
 )
 html = (
-    (ROOT / "src/retrieval_lab/report.html")
+    (ROOT / "evals/rag/src/report.html")
     .read_text()
-    .replace("__REPORT_STYLE__", (ROOT / "src/retrieval_lab/report.css").read_text())
-    .replace("__REPORT_SCRIPT__", (ROOT / "src/retrieval_lab/report.js").read_text())
+    .replace("__REPORT_STYLE__", (ROOT / "evals/rag/src/report.css").read_text())
+    .replace("__REPORT_SCRIPT__", (ROOT / "evals/rag/src/report.js").read_text())
 )
 payload = (
     json.dumps(data, ensure_ascii=True)

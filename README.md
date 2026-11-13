@@ -4,9 +4,9 @@ Een kleine Rust-leerproef met twaalf verzonnen activiteiten, echte lokale embedd
 
 Bekijk de [interactieve codegids](docs/code-tour.html) voor het systeemoverzicht, de route van één vraag en verwijzingen naar de echte functies. De HTML werkt ook lokaal zonder CDN.
 
-Wil je de RAG zelf evalueren? Volg de [korte reproduceerhandleiding](docs/evaluation/reproduce.md): technische tests en een voorbeeldrapport zonder modelcalls, daarna optioneel begrensde generaties, afzonderlijke beoordelingen en een lokaal HTML-rapport. Bewijsdekking, voorlopige AI-oordelen en efficiëntie blijven apart; menselijke ijking is nog niet uitgevoerd.
+Alle evaluaties staan onder [evals/](evals/README.md): [RAG](evals/rag/README.md) en [de COA-assistent als geheel](evals/coa-assistent/README.md), met één gedeelde plek voor vraagsets. Wil je zelf evalueren? Volg de [korte reproduceerhandleiding](evals/coa-assistent/docs/reproduce.md): technische tests en een voorbeeldrapport zonder modelcalls, daarna optioneel begrensde generaties, afzonderlijke beoordelingen en een lokaal HTML-rapport. Bewijsdekking, voorlopige AI-oordelen en efficiëntie blijven apart; menselijke ijking is nog niet uitgevoerd.
 
-De [vastgelegde echte evaluatie van 23–26 oktober 2026](docs/evaluation/results/2026-10-26/README.md) bevat de bewaarde pogingen, voorlopige uitkomsten, fouten en reproduceercommando’s. Die kleine synthetische vergelijking is geen menselijke kwaliteitsvalidatie.
+De [vastgelegde echte evaluatie van 23–26 oktober 2026](evals/coa-assistent/results/2026-10-26/README.md) bevat de bewaarde pogingen, voorlopige uitkomsten, fouten en reproduceercommando’s. Die kleine synthetische vergelijking is geen menselijke kwaliteitsvalidatie.
 
 ## Starten
 
@@ -59,8 +59,8 @@ De resultatenpagina toont de zestig vastgelegde sessies van 6 november 2026: tie
 De gepubliceerde presentatie is een beperkte export van de werkelijke brontraces. Ruwe logs, reasoning, aanmeldgegevens en lokale paden worden niet door de webserver aangeboden. Opnieuw exporteren uit een bestaande, bevroren proefmap kan zonder modelcalls:
 
 ```sh
-python3 scripts/export_site_results.py --experiment-dir /pad/naar/de/proef
-python3 -m unittest discover -s scripts -p 'test_export_site_results.py'
+python3 evals/rag/scripts/export_site_results.py --experiment-dir /pad/naar/de/proef
+python3 -m unittest discover -s evals/rag/scripts -p 'test_export_site_results.py'
 ```
 
 ## Zelf testen
@@ -130,9 +130,9 @@ De twaalf activiteitendocumenten:
 
 De parser accepteert maximaal twaalf documenten. De secties van de gekozen corpusversie krijgen lokale meertalige MiniLM-embeddings via fastembed 7.1.2: documenttitel, sectiekop en exacte tekst. CLI en MCP delen dezelfde Rust-zoekfunctie. Iedere hit en ieder citaat behouden document-ID, sectie-ID en eigen brondatum. De manifest bevat per-documenthashes, corpus- en embeddinginvoerhashes. Standaard top-k is 3, instelbaar van 1 tot 6 per zoekactie; de webassistent en de Codex-CLI kunnen maximaal vier gerichte zoekacties doen. Dit garandeert geen volledige lijst of volledig antwoord. Cosinusovereenkomst is geen zekerheid; een grens voor “geen match” is niet gekalibreerd.
 
-De oudere [zoekevaluatie met vijf activiteiten](reports/five-activity-eval.json) vergelijkt echte embeddings met woordoverlap op dezelfde titel/kop/tekst. De vijf vaste tuinvragen en beschermde verwachtingen blijven uitsluitend intern beschikbaar voor regressie en menselijke evaluatie via `fixtures/questions.json`, `fixtures/expectations.json` en de bestaande server-API. De demo toont deze reeks niet. Gold wordt nooit geïndexeerd of naar Codex/zoekresultaten gestuurd. Gemiddelde bronsectiedekking op de vier gelabelde tuinvragen is in dit snapshot 0,625 voor beide methoden. Dit is geen antwoordnauwkeurigheid; actuele plekken en ontbrekend vervoer blijven onbekend.
+De oudere [zoekevaluatie met vijf activiteiten](evals/rag/results/legacy/five-activity-eval.json) vergelijkt echte embeddings met woordoverlap op dezelfde titel/kop/tekst. De vijf vaste tuinvragen en beschermde verwachtingen blijven uitsluitend intern beschikbaar voor regressie en menselijke evaluatie via `evals/rag/datasets/garden/questions.json`, `evals/rag/datasets/garden/expectations.json` en de bestaande server-API. De demo toont deze reeks niet. Gold wordt nooit geïndexeerd of naar Codex/zoekresultaten gestuurd. Gemiddelde bronsectiedekking op de vier gelabelde tuinvragen is in dit snapshot 0,625 voor beide methoden. Dit is geen antwoordnauwkeurigheid; actuele plekken en ontbrekend vervoer blijven onbekend.
 
-De rapporten voor [één document](reports/one-document-eval.json) en [twee documenten](reports/two-document-eval.json), inclusief de [oude titelcontextvergelijking](reports/two-document-context-comparison.json), zijn historische snapshots. Documenttitels en corpus zijn nu gewijzigd; vergelijk die scores niet alsof alleen één zoekinstelling veranderde. De [vijf verkennende zoekvragen](reports/five-activity-searches.json) tonen ook echte missers: bij “waar en wanneer tuinieren” ontbreken tijd en locatie in de eerste zes hits. Codex kan gericht verderzoeken, maar een volledig antwoord is niet gegarandeerd. Er wordt geen rangschikking op vaste vragen afgedwongen.
+De rapporten voor [één document](evals/rag/results/legacy/one-document-eval.json) en [twee documenten](evals/rag/results/legacy/two-document-eval.json), inclusief de [oude titelcontextvergelijking](evals/rag/results/legacy/two-document-context-comparison.json), zijn historische snapshots. Documenttitels en corpus zijn nu gewijzigd; vergelijk die scores niet alsof alleen één zoekinstelling veranderde. De [vijf verkennende zoekvragen](evals/rag/results/legacy/five-activity-searches.json) tonen ook echte missers: bij “waar en wanneer tuinieren” ontbreken tijd en locatie in de eerste zes hits. Codex kan gericht verderzoeken, maar een volledig antwoord is niet gegarandeerd. Er wordt geen rangschikking op vaste vragen afgedwongen.
 
 CI controleert formattering, clippy, deterministische tests en build zonder modelaanroepen. Live checks: `cargo test --locked live_report_retains -- --ignored` en `cargo test --locked live_five_activity -- --ignored --nocapture`. De laatste schrijft een kleine titelcontextvergelijking naar de tijdelijke systeemmap, geen grotere benchmark. Zie [besluiten](decisions.md) voor instellingen en beperkingen.
 
@@ -160,9 +160,9 @@ Alle vier zoekmethoden en de bestaande document-/SQLite-structuren kunnen dezelf
 
 De aparte ontwikkelset `strengthened-10-20261106` bevat tien brongebaseerde vragen op hetzelfde corpus. Vier vragen zijn behouden en zes zijn nieuw of aangescherpt. De oude datasets en resultaten blijven afzonderlijk beschikbaar; een score op deze nieuwe vragen is geen verbetering ten opzichte van de eerdere 35/40-meting.
 
-`scripts/model_trials.py` voert een vooraf vastgelegde proef uit met `gpt-6.1-sol` en `gpt-6-luna`, de bestaande standaardzoekmethode `dense`, tien vragen en drie herhalingen: zestig pogingen. Modelvolgorde wisselt per vraag/herhaling. Beide gebruiken dezelfde gepinde runtime, bron- en embeddingidentiteit, `low` reasoning, top-3, contextlimiet 1200, maximaal vier zoekpogingen en 120 seconden per sessie. Dezelfde reasoningnaam betekent geen gegarandeerd gelijk rekenwerk.
+`evals/rag/scripts/model_trials.py` voert een vooraf vastgelegde proef uit met `gpt-6.1-sol` en `gpt-6-luna`, de bestaande standaardzoekmethode `dense`, tien vragen en drie herhalingen: zestig pogingen. Modelvolgorde wisselt per vraag/herhaling. Beide gebruiken dezelfde gepinde runtime, bron- en embeddingidentiteit, `low` reasoning, top-3, contextlimiet 1200, maximaal vier zoekpogingen en 120 seconden per sessie. Dezelfde reasoningnaam betekent geen gegarandeerd gelijk rekenwerk.
 
-Het script heeft drie stappen: `plan` schrijft de volledige volgorde en hashes zonder modelcalls; `run --live --phase pilot` voert eerst vier vastgelegde pogingen uit; `run --live --phase remaining` vereist een onafhankelijke, hashgebonden `PILOT_APPROVED.json`. `assess` herberekent daarna zes afzonderlijke model/herhalingcohorten met de bestaande Rust-beoordeling. Gebruik `python3 scripts/model_trials.py --help` en de subcommando's voor alle expliciete paden. De globale limiet is zestig pogingen en 7200 seconden, met twee begrensde modelledgers van elk dertig; er zijn geen automatische herhalingen of alternatieve modellen bij fouten.
+Het script heeft drie stappen: `plan` schrijft de volledige volgorde en hashes zonder modelcalls; `run --live --phase pilot` voert eerst vier vastgelegde pogingen uit; `run --live --phase remaining` vereist een onafhankelijke, hashgebonden `PILOT_APPROVED.json`. `assess` herberekent daarna zes afzonderlijke model/herhalingcohorten met de bestaande Rust-beoordeling. Gebruik `python3 evals/rag/scripts/model_trials.py --help` en de subcommando's voor alle expliciete paden. De globale limiet is zestig pogingen en 7200 seconden, met twee begrensde modelledgers van elk dertig; er zijn geen automatische herhalingen of alternatieve modellen bij fouten.
 
 Een volledig ontvangen maar aantoonbaar ongeldig eindantwoord wordt bewaard als modelmislukking. Een specifieke ontvangen toolactie buiten het vaste contract kan eveneens een modelafwijking aantonen, ook zonder volledig eindantwoord. Brondekking blijft bij zulke mislukte uitvoeringen onbekend. Alleen begrensde veilige diagnostiek wordt bewaard: stage, exitstatus, terminaleventtypen, vaste reden- en toolcategorieën; geen rawreasoning, toolargumenten of modelteksten. Netwerk-, authenticatie-, runtime-, hash- en onduidelijke parserfouten stoppen de proef. Vrije antwoordkwaliteit wordt niet door een AI-beoordelaar geëvalueerd. Een kleiner model is niet vooraf beter of slechter: de vergelijking meet het model samen met deze harness.
 
@@ -171,7 +171,7 @@ De gerepareerde proef gebruikt een nieuw ledger en verbindt de eerdere zes afgeb
 De budget-/volgorde-/annuleringschecks draaien zonder modelcalls:
 
 ```sh
-python3 -m unittest discover -s scripts -p 'test_model_trials.py'
+python3 -m unittest discover -s evals/rag/scripts -p 'test_model_trials.py'
 ```
 
 ## Grenzen en werkwijze

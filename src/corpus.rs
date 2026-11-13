@@ -87,7 +87,7 @@ mod tests {
         let historical = CorpusId::ExpandedTen;
         assert_eq!(&live.documents()[..10], historical.documents());
         let freeze: serde_json::Value = serde_json::from_str(include_str!(
-            "../fixtures/experiments/expanded-10-20261105/FROZEN.json"
+            "../evals/shared/datasets/expanded-10-20261105/FROZEN.json"
         ))
         .unwrap();
         assert_eq!(historical.sha256(), freeze["integrity"]["corpus_sha256"]);

@@ -1,11 +1,12 @@
 # Architectuurgids: de webdemo en de evaluatieresultaten
 
-Deze gids beschrijft de actuele weblaag en de grenzen tussen live uitvoering en opgeslagen evaluaties. De geïntegreerde webroute en de bescherming tegen herhaald gebruik zijn op 13 november 2026 aan de broncode gecontroleerd. De bestaande [README](../README.md), [Codex-uitleg](retrieval-codex.md), [evaluatiehandleiding](evaluation/reproduce.md) en [privacygrenzen](privacy-boundaries.md) geven verdere context. De [interactieve code-tour](code-tour.html) volgt de actuele Rig-webroute; de oorspronkelijke vijfbronnen-Codex/MCP-diagrammen daarin blijven expliciet als historische momentopname bewaard.
+Deze gids beschrijft de actuele weblaag en de grenzen tussen live uitvoering en opgeslagen evaluaties. De geïntegreerde webroute en de bescherming tegen herhaald gebruik zijn op 13 november 2026 aan de broncode gecontroleerd. De bestaande [README](../README.md), [Codex-uitleg](retrieval-codex.md), [evaluatiehandleiding](../evals/coa-assistent/docs/reproduce.md) en [privacygrenzen](privacy-boundaries.md) geven verdere context. De [interactieve code-tour](code-tour.html) volgt de actuele Rig-webroute; de oorspronkelijke vijfbronnen-Codex/MCP-diagrammen daarin blijven expliciet als historische momentopname bewaard.
 
 ## Recente architectuurwijzigingen
 
 | Datum | Verandering | Implementatie |
 | --- | --- | --- |
+| 2026-11-13 | Evaluatiecode, datasets, scripts, rapportassets en bewaarde resultaten staan fysiek onder `evals/rag/`, `evals/coa-assistent/` en de noodzakelijke gedeelde vraagsets. Rust-modulepaden behouden bestaande CLI/API-namen; de webserver embedt dezelfde resultaatassets vanaf hun nieuwe plek. Historische artifacts en hashes blijven gelijk. | [Evaluatieoverzicht](../evals/README.md), [`lib.rs`](../src/lib.rs), [`main.rs`](../src/main.rs), [`web.rs`](../src/web.rs) |
 | 2026-11-13 | De live demo kiest `demo-twelve`: de bestaande tien bronnen plus Schaken en Naaicafé, samen 72 secties. Het bestaande raster toont daarmee drie volle rijen van vier. `expanded-ten` en alle bevroren evaluatiebronnen blijven ongewijzigd. | [`corpus.rs`](../src/corpus.rs), [`main.rs`](../src/main.rs), [`source.rs`](../src/source.rs), [`language.js`](../static/site/language.js) |
 | 2026-11-13 | De demo-, taal-, resultaat-, finale header- en API-wijzigingen zijn samengebracht. De server begrenst modelvragen en nieuwe sessies per verbindingsadres; een expliciete proxy-instelling bepaalt of `X-Real-IP` mag worden gebruikt. | [`demo_limits.rs`](../src/demo_limits.rs), [`web.rs`](../src/web.rs), [`demo.js`](../static/site/demo.js) |
 | 2026-11-13 | Rig 0.46.0 neemt de web-agentlus, typed tool-dispatch en Responses-history over. COA behoudt begrensd HTTP-transport, broncontrole en bezoekersbeleid; CLI/Codex-evaluaties blijven apart. Rust is gepind op 1.97.1. | [`rig_runtime.rs`](../src/responses/rig_runtime.rs), [`transport.rs`](../src/responses/transport.rs), [`rust-toolchain.toml`](../rust-toolchain.toml) |
@@ -16,7 +17,7 @@ Deze gids beschrijft de actuele weblaag en de grenzen tussen live uitvoering en 
 | 2026-11-10 | Een Nederlandse/Engelse taalkeuze vertaalt de demo-interface en kiest de taal van nieuwe antwoorden. De taal staat in de runcontext; originele broninhoud en citaten blijven ongewijzigd. Historische CLI- en experimentprompts blijven gelijk. | [`language.js`](../static/site/language.js), [`demo.js`](../static/site/demo.js), [`web::run`](../src/web.rs), [`CodexRunner::run_for_corpus_in_language`](../src/codex.rs) |
 | 2026-11-10 | De live demo toont alleen activiteiten, vrije vraag, antwoord en zoekresultaten. De voorbeeldvragen, extra vraag-/herhaalknoppen, uitvoeringsmetadata en geschiedenis zijn uit de browser verwijderd; de bestaande API blijft beschikbaar. De navigatie toont geen resultatenlink en de demo heeft één projectdisclaimer. | [`static/index.html`](../static/index.html), [`static/site/`](../static/site/) |
 | 2026-11-09 | Eén webserver verbindt startpagina, bestaande live demo, opgeslagen modelvergelijking en technische uitleg. De live modeluitvoering blijft dezelfde. | [`web::router`](../src/web.rs), [`static/site/`](../static/site/) |
-| 2026-11-09 | Een aparte, controleerbare export maakt van de zestig vastgelegde sessies een openbare presentatieprojectie. Ruwe uitvoer en lokale bestandspaden worden niet geserveerd. | [`export_site_results.py`](../scripts/export_site_results.py) |
+| 2026-11-09 | Een aparte, controleerbare export maakt van de zestig vastgelegde sessies een openbare presentatieprojectie. Ruwe uitvoer en lokale bestandspaden worden niet geserveerd. | [`export_site_results.py`](../evals/rag/scripts/export_site_results.py) |
 
 ## Eén origin, drie onderdelen
 
@@ -80,7 +81,7 @@ De resultatenpagina selecteert alleen bewaarde gegevens. Een ander model of een 
 
 De weergegeven proef gebruikt de dataset `strengthened-10-20261106`, twee modellen en drie herhalingen. Beide modellen gebruikten de methode `dense` op dezelfde zestig secties. Deze pagina vergelijkt dus geen vier zoekmethoden onder beide modellen. De zes eerdere afgebroken pogingen blijven buiten de zestig vergelijkingssessies en worden als afzonderlijke geschiedenis vermeld. De geschreven antwoorden hebben geen inhoudelijke kwaliteitsscore.
 
-[`export_site_results.py`](../scripts/export_site_results.py) controleert de verzegelde bronartefacten, de recordhashes en de native beoordelingen. Vervolgens schrijft het uitsluitend:
+[`export_site_results.py`](../evals/rag/scripts/export_site_results.py) controleert de verzegelde bronartefacten, de recordhashes en de native beoordelingen. Vervolgens schrijft het uitsluitend:
 
 - tien vraagteksten en de volledige geldige combinaties van verwachte bronstukjes;
 - de tien fictieve documenten, hun datums en zestig exacte secties;
@@ -96,8 +97,8 @@ De browser haalt de kleine, gecureerde `results.json` op. Alle bronquotes versch
 Vanaf een eigen bestaande experimentmap:
 
 ```sh
-python3 scripts/export_site_results.py --experiment-dir /pad/naar/de/bevroren/proef
-python3 -m unittest discover -s scripts -p 'test_export_site_results.py'
+python3 evals/rag/scripts/export_site_results.py --experiment-dir /pad/naar/de/bevroren/proef
+python3 -m unittest discover -s evals/rag/scripts -p 'test_export_site_results.py'
 cargo test --locked learning_site_routes_share_navigation
 ```
 
@@ -110,3 +111,7 @@ Providercontract: [function calling](https://developers.openai.com/api/docs/guid
 Rig-basis: [stabiele release 0.46.0](https://github.com/0xPlaygrounds/rig/releases/tag/v0.46.0), gepubliceerd **31 oktober 2026**. Alleen de agentlibrary is gekoppeld; de Rig-terminalagent, shelltools, geheugenopslag en embeddingadapter zijn niet ingeschakeld. De bestaande FastEmbed 7.1.2-index blijft behouden.
 
 De Rig-migratie is vervolgens op **13 november 2026** gecontroleerd met 64 onafhankelijke lokale browser-/HTTP-checks, inclusief tien werkelijk overlappende mock-providerrequests en weigering van de elfde run. Drie echte fictieve vragen op de twaalf bronnen voltooiden daarna met samen tien providerrequests: dense/Nederlands (vier zoekacties, vijf requests), BM25/Engels (twee/drie) en onbekende actuele beschikbaarheid (één/twee). De onafhankelijke livecontrole omvatte 38 checks op runtime, broncitaten, taal, methode, usage en limieten. De dense-tuinvraag vond de locatiepassage niet en liet het precieze adres onbekend, hoewel de bron het vermeldt. Dit is een tijdens de rookproef waargenomen kwaliteitsbeperking. De proef bevestigt runtimecompatibiliteit, maar bevat geen vergelijkende kwaliteitsmeting vóór en na de migratie en geen capaciteitsgarantie.
+
+## Waar de evaluaties staan
+
+[`evals/rag/`](../evals/rag/README.md) bevat lokale retrieval, agentisch vervolgzoeken en de Sol/Luna-bronvergelijking. [`evals/coa-assistent/`](../evals/coa-assistent/README.md) bevat gegenereerde antwoorden, judge en kalibratie. Beiden hergebruiken de bytevast verplaatste [vraagsets](../evals/shared/README.md). De modules blijven in dezelfde crate: `experiment` en `retrieval_lab` verwijzen via `#[path]` naar de nieuwe code, en de CLI-opdracht `eval` gebruikt de verplaatste tuinregressie. Productzoekcode, Codex-runtime en fictieve activiteitbronnen blijven in `src/` en `fixtures/`. De bestaande web-URL’s en modelroutes veranderen niet.
