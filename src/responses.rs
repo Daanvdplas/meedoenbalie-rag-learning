@@ -1,5 +1,7 @@
-//! The web demo's bounded, stateless Responses API tool loop.
+//! The web demo's Rig agent, with a bounded, stateless Responses API transport.
 //! CLI and experiment entry points continue to use the separate Codex runner.
+mod rig_runtime;
+mod transport;
 use crate::{
     DemoSearchMethod,
     codex::{AnswerLanguage, ToolCall},
@@ -12,13 +14,7 @@ use reqwest::{
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::{
-    collections::HashSet,
-    io::Read,
-    path::Path,
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::{io::Read, path::Path, sync::Arc, time::Duration};
 
 const ENDPOINT: &str = "https://api.openai.com/v1/responses";
 const MODEL: &str = "gpt-6.1-sol";
@@ -33,6 +29,7 @@ pub type Search = Arc<dyn Fn(&str, usize, DemoSearchMethod) -> Result<Value, Str
 pub struct ResponsesRunner {
     client: Client,
     endpoint: Url,
+    provider: rig::providers::openai::OpenAIConfig,
     search: Search,
     timeout: Duration,
     offline: bool,
@@ -60,6 +57,8 @@ impl ResponsesRunner {
             return Err("runtime: API-adres is niet toegestaan.".into());
         }
         let key = validate_key(api_key)?;
+        let provider = rig::providers::openai::OpenAIConfig::new(key.clone())
+            .with_base_url(endpoint.as_str().trim_end_matches("/responses"));
         if offline && (!cfg!(debug_assertions) || key != MOCK_KEY) {
             return Err("runtime: Een lokale test accepteert uitsluitend de vaste testsleutel in een debugbuild.".into());
         }
@@ -78,6 +77,7 @@ impl ResponsesRunner {
         Ok(Self {
             client,
             endpoint,
+            provider,
             search,
             timeout: TIMEOUT,
             offline,
@@ -120,7 +120,7 @@ impl ResponsesRunner {
         Self::new(key, ENDPOINT, search)
     }
     pub fn configuration(&self) -> Value {
-        json!({"provider":"openai","transport":"responses_api","model":MODEL,"reasoning_effort":"low","store":false,"prompt_version":"responses-activity-v1","max_searches":4,"max_provider_requests":5,"max_output_tokens_per_request":MAX_OUTPUT_TOKENS,"timeout_ms":self.timeout.as_millis(),"offline_mock":self.offline})
+        json!({"provider":"openai","transport":"responses_api","runtime":"rig-0.46.0","model":MODEL,"reasoning_effort":"low","store":false,"prompt_version":"responses-activity-v1","max_searches":4,"max_provider_requests":5,"max_output_tokens_per_request":MAX_OUTPUT_TOKENS,"timeout_ms":self.timeout.as_millis(),"offline_mock":self.offline})
     }
     pub async fn run(
         &self,
@@ -148,180 +148,10 @@ impl ResponsesRunner {
         language: AnswerLanguage,
         method: DemoSearchMethod,
     ) -> Result<Value, String> {
-        let started = Instant::now();
-        // Reuse the established source/language/injection policy, with question data
-        // in a separate user item instead of appending it to the instructions.
-        let prompt =
-            crate::codex::generation_prompt_for_answer_language("", top_k, corpus, language);
-        let instructions = prompt
-            .split("\\n\\nUser question (data):")
-            .next()
-            .unwrap_or(&prompt)
-            .replace("coa.search_document", "search_document");
-        let tools = json!([{"type":"function","name":"search_document","description":"Search only the fictional activity corpus. Missing availability and transport stay unknown. At most four searches.","strict":true,"parameters":{"type":"object","properties":{"query":{"type":"string","minLength":1,"maxLength":1000},"top_k":{"type":"integer","minimum":1,"maximum":6}},"required":["query","top_k"],"additionalProperties":false}}]);
-        let mut history = vec![json!({"role":"user","content":query})];
-        let mut calls = Vec::new();
-        let mut ids = HashSet::new();
-        let mut usage = Some(TokenUsage {
-            input_tokens: 0,
-            output_tokens: 0,
-            cached_input_tokens: Some(0),
-            reasoning_output_tokens: Some(0),
-        });
-        for request_number in 1..=5 {
-            let body = json!({"model":MODEL,"store":false,"service_tier":"default","reasoning":{"effort":"low"},"include":["reasoning.encrypted_content"],"max_output_tokens":MAX_OUTPUT_TOKENS,"instructions":instructions,"input":history,"tools":tools,"tool_choice":if calls.is_empty(){"required"}else if calls.len()>=4{"none"}else{"auto"},"parallel_tool_calls":false,"text":{"format":{"type":"json_schema","name":"coa_answer","strict":true,"schema":crate::codex::output_schema()}}});
-            if serde_json::to_vec(&body)
-                .map_err(|_| "output: Ongeldige modelcontext.")?
-                .len()
-                > MAX_HISTORY_BYTES
-            {
-                return Err("output: De modelcontext is te groot.".into());
-            }
-            let response = self.request(&body).await?;
-            if response["status"] != "completed" {
-                return Err(
-                    "output: De antwoordservice heeft geen volledig antwoord geleverd.".into(),
-                );
-            }
-            add_usage(&mut usage, &response["usage"]);
-            let output = response["output"]
-                .as_array()
-                .filter(|items| !items.is_empty())
-                .ok_or("output: De antwoordservice heeft geen uitvoer geleverd.")?;
-            let mut tool = None;
-            let mut answer = None;
-            for item in output {
-                match item["type"].as_str() {
-                    Some("reasoning") => {} // Retained only in this transient history.
-                    Some("function_call") => {
-                        if tool.is_some() {
-                            return Err("tool: Onverwachte parallelle zoekacties.".into());
-                        }
-                        tool = Some(item);
-                    }
-                    Some("message") => {
-                        if item["role"] != "assistant" {
-                            return Err("output: Ongeldige antwoordrol.".into());
-                        }
-                        if item["phase"] == "commentary" {
-                            continue;
-                        }
-                        if !item["phase"].is_null() && item["phase"] != "final_answer" {
-                            return Err("output: Ongeldige antwoordfase.".into());
-                        }
-                        for content in item["content"]
-                            .as_array()
-                            .ok_or("output: Ongeldig antwoord.")?
-                        {
-                            if content["type"] != "output_text" || answer.is_some() {
-                                return Err("output: Het antwoord kan niet worden verwerkt.".into());
-                            }
-                            answer = Some(
-                                content["text"]
-                                    .as_str()
-                                    .ok_or("output: Ongeldige antwoordtekst.")?
-                                    .to_owned(),
-                            );
-                        }
-                    }
-                    _ => return Err("tool: Onbekend gereedschap is niet toegestaan.".into()),
-                }
-            }
-            if let Some(item) = tool {
-                if calls.len() >= 4 || item["name"] != "search_document" {
-                    return Err("tool: Alleen maximaal vier bronzoekacties zijn toegestaan.".into());
-                }
-                let id = item["call_id"]
-                    .as_str()
-                    .filter(|id| !id.is_empty() && id.len() <= 200)
-                    .ok_or("tool: Ongeldige zoekidentiteit.")?;
-                if !ids.insert(id.to_owned()) {
-                    return Err("tool: Dubbele zoekidentiteit.".into());
-                }
-                let arguments = item["arguments"]
-                    .as_str()
-                    .filter(|s| s.len() <= 16_384)
-                    .ok_or("tool: Ongeldige zoekinvoer.")?;
-                let arguments: SearchArguments =
-                    serde_json::from_str(arguments).map_err(|_| "tool: Ongeldige zoekinvoer.")?;
-                crate::validate_query(&arguments.query)
-                    .map_err(|_| "tool: Ongeldige zoekvraag.")?;
-                crate::ranking::validate_top_k(arguments.top_k)
-                    .map_err(|_| "tool: Ongeldig aantal bronpassages.")?;
-                let search = self.search.clone();
-                let query = arguments.query.clone();
-                let result =
-                    tokio::task::spawn_blocking(move || search(&query, arguments.top_k, method))
-                        .await
-                        .map_err(|_| "tool: De bronzoekfunctie is niet beschikbaar.")?
-                        .map_err(|_| "tool: De bronzoekfunctie is niet beschikbaar.")?;
-                if result["retrieval_method"] != json!(method) {
-                    return Err("tool: De zoekmethode is veranderd.".into());
-                }
-                history.extend(output.iter().cloned());
-                history.push(
-                    json!({"type":"function_call_output","call_id":id,"output":result.to_string()}),
-                );
-                calls.push(ToolCall {
-                    server: "local".into(),
-                    tool: "search_document".into(),
-                    query: arguments.query,
-                    top_k: arguments.top_k,
-                    status: "completed".into(),
-                    result: Some(result),
-                    error: None,
-                });
-            } else {
-                let mut result = crate::codex::validate_retrieved_answer(calls, answer)?;
-                result["question"] = json!(query);
-                result["id"] = json!(format!("api-{}", started.elapsed().as_nanos()));
-                result["model"] = json!(MODEL);
-                result["client_version"] = json!("responses-http-v1");
-                result["provider"] = json!("openai");
-                result["transport"] = json!("responses_api");
-                result["provider_requests"] = json!(request_number);
-                result["retrieval_method"] = json!(method);
-                result["elapsed_ms"] = json!(started.elapsed().as_millis() as u64);
-                result["usage"] = serde_json::to_value(usage)
-                    .map_err(|_| "output: Ongeldig gebruiksoverzicht.")?;
-                return Ok(result);
-            }
-        }
-        Err("tool: Het maximum aantal modelverzoeken is bereikt.".into())
-    }
-    async fn request(&self, body: &Value) -> Result<Value, String> {
-        let mut response = self
-            .client
-            .post(self.endpoint.clone())
-            .json(body)
-            .send()
-            .await
-            .map_err(|_| "runtime: De antwoordservice is tijdelijk niet bereikbaar.")?;
-        if !response.status().is_success() {
-            return Err(match response.status().as_u16() {
-                401 | 403 => "runtime: De antwoordservice is niet juist ingesteld.",
-                402 | 429 => {
-                    "runtime: De antwoordservice heeft tijdelijk geen capaciteit of tegoed."
-                }
-                _ => "runtime: De antwoordservice is tijdelijk niet beschikbaar.",
-            }
-            .into());
-        }
-        let mut bytes = Vec::new();
-        while let Some(chunk) = response
-            .chunk()
-            .await
-            .map_err(|_| "runtime: Het antwoord kon niet worden ontvangen.")?
-        {
-            if bytes.len() + chunk.len() > MAX_RESPONSE_BYTES {
-                return Err("output: Het antwoord bevat te veel gegevens.".into());
-            }
-            bytes.extend_from_slice(&chunk);
-        }
-        serde_json::from_slice(&bytes)
-            .map_err(|_| "output: De antwoordservice heeft ongeldige uitvoer geleverd.".into())
+        rig_runtime::run(self, query, top_k, corpus, language, method).await
     }
 }
+
 fn validate_key(key: String) -> Result<String, String> {
     let key = key.trim();
     if !(16..=4096).contains(&key.len()) || !key.bytes().all(|b| b.is_ascii_graphic()) {
@@ -460,6 +290,69 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn duplicate_tool_identity_is_rejected_before_a_second_search() {
+        let (url, seen, task) = mock(vec![
+            envelope(json!([call("same", "tuinieren")])),
+            envelope(json!([call("same", "tuinieren tijd")])),
+        ])
+        .await;
+        let count = Arc::new(AtomicUsize::new(0));
+        let calls = count.clone();
+        let runner = ResponsesRunner::new(
+            MOCK_KEY.into(),
+            &url,
+            Arc::new(move |_, _, method| {
+                calls.fetch_add(1, Ordering::SeqCst);
+                Ok(evidence(method))
+            }),
+        )
+        .unwrap();
+        assert!(run(&runner).await.unwrap_err().starts_with("tool:"));
+        assert_eq!(count.load(Ordering::SeqCst), 1);
+        assert_eq!(seen.lock().unwrap().len(), 2);
+        task.abort();
+    }
+    #[tokio::test]
+    async fn parallel_tool_response_is_rejected_before_any_search() {
+        let (url, seen, task) = mock(vec![envelope(json!([
+            call("one", "tuinieren"),
+            call("two", "tuinieren tijd")
+        ]))])
+        .await;
+        let count = Arc::new(AtomicUsize::new(0));
+        let calls = count.clone();
+        let runner = ResponsesRunner::new(
+            MOCK_KEY.into(),
+            &url,
+            Arc::new(move |_, _, method| {
+                calls.fetch_add(1, Ordering::SeqCst);
+                Ok(evidence(method))
+            }),
+        )
+        .unwrap();
+        assert!(run(&runner).await.unwrap_err().starts_with("tool:"));
+        assert_eq!(count.load(Ordering::SeqCst), 0);
+        assert_eq!(seen.lock().unwrap().len(), 1);
+        task.abort();
+    }
+    #[tokio::test]
+    async fn oversized_evidence_never_starts_another_provider_request() {
+        let (url, seen, task) = mock(vec![envelope(json!([call("one", "tuinieren")]))]).await;
+        let runner = ResponsesRunner::new(
+            MOCK_KEY.into(),
+            &url,
+            Arc::new(|_, _, method| {
+                let mut result = evidence(method);
+                result["synthetic_padding"] = json!("x".repeat(MAX_HISTORY_BYTES));
+                Ok(result)
+            }),
+        )
+        .unwrap();
+        assert!(run(&runner).await.unwrap_err().starts_with("output:"));
+        assert_eq!(seen.lock().unwrap().len(), 1);
+        task.abort();
+    }
+    #[tokio::test]
     async fn null_assistant_phase_is_a_valid_final_answer() {
         let mut answer = final_answer();
         answer["phase"] = Value::Null;
@@ -508,7 +401,7 @@ mod tests {
         let two = requests[2]["input"].as_array().unwrap();
         assert_eq!(&two[..one.len()], one.as_slice());
         assert_eq!(&two[one.len()..one.len() + 3], second.as_slice());
-        assert_eq!(two[0]["content"], "Wanneer tuinieren?");
+        assert_eq!(two[0]["content"][0]["text"], "Wanneer tuinieren?");
         assert!(
             !result.to_string().contains("private-encrypted")
                 && !result.to_string().contains("private-synthetic-summary")
@@ -574,6 +467,8 @@ mod tests {
         .await;
         let runner = ResponsesRunner::new(MOCK_KEY.into(), &url, search()).unwrap();
         let result = run(&runner).await.unwrap();
+        assert_eq!(runner.configuration()["runtime"], "rig-0.46.0");
+        assert_eq!(result["client_version"], "rig-0.46.0");
         assert_eq!(result["provider"], "openai");
         assert_eq!(result["transport"], "responses_api");
         assert_eq!(result["provider_requests"], 2);
@@ -636,11 +531,12 @@ mod tests {
             json!({"name":"shell","arguments":"{}"}),
             json!({"name":"search_document","arguments":"{\"query\":\"ok\",\"top_k\":3,\"path\":\"/etc/shadow\"}"}),
             json!({"name":"search_document","arguments":"{\"query\":\"\",\"top_k\":3}"}),
+            json!({"name":"search_document","arguments":"{\"query\":"}),
         ] {
             let mut item = call("one", "ok");
             item["name"] = bad["name"].clone();
             item["arguments"] = bad["arguments"].clone();
-            let (url, _, task) = mock(vec![envelope(json!([item]))]).await;
+            let (url, seen, task) = mock(vec![envelope(json!([item]))]).await;
             let calls = Arc::new(AtomicUsize::new(0));
             let count = calls.clone();
             let runner = ResponsesRunner::new(
@@ -654,6 +550,11 @@ mod tests {
             .unwrap();
             assert!(run(&runner).await.unwrap_err().starts_with("tool:"));
             assert_eq!(calls.load(Ordering::SeqCst), 0);
+            assert_eq!(
+                seen.lock().unwrap().len(),
+                1,
+                "invalid tools must not cause a retry"
+            );
             task.abort();
         }
     }
@@ -741,19 +642,24 @@ mod tests {
     #[tokio::test]
     async fn deadline_covers_the_whole_tool_loop() {
         let count = Arc::new(AtomicUsize::new(0));
+        let second_started = Arc::new(tokio::sync::Notify::new());
         let seen = count.clone();
+        let started = second_started.clone();
         let app = Router::new().route(
             "/v1/responses",
             post(move || {
                 let seen = seen.clone();
+                let started = started.clone();
                 async move {
-                    let round = seen.fetch_add(1, Ordering::SeqCst);
-                    tokio::time::sleep(Duration::from_millis(120)).await;
-                    Json(if round == 0 {
-                        envelope(json!([call("one", "tuinieren")]))
+                    if seen.fetch_add(1, Ordering::SeqCst) == 0 {
+                        Json(envelope(json!([call("one", "tuinieren")])))
                     } else {
-                        envelope(json!([final_answer()]))
-                    })
+                        started.notify_one();
+                        // A per-request HTTP timeout is 120 seconds. Only the
+                        // runner's one shared deadline can finish this run.
+                        std::future::pending::<()>().await;
+                        unreachable!()
+                    }
                 }
             }),
         );
@@ -761,16 +667,20 @@ mod tests {
         let url = format!("http://{}/v1/responses", listener.local_addr().unwrap());
         let task = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
         let mut runner = ResponsesRunner::new(MOCK_KEY.into(), &url, search()).unwrap();
-        runner.timeout = Duration::from_millis(200);
+        runner.timeout = Duration::from_secs(1);
+        let execution = tokio::spawn(async move { run(&runner).await });
+        tokio::time::timeout(Duration::from_secs(1), second_started.notified())
+            .await
+            .expect("the second request starts before the shared deadline");
+        let result = tokio::time::timeout(Duration::from_secs(2), execution)
+            .await
+            .expect("the shared deadline cancels the blocked second request")
+            .unwrap();
         assert_eq!(
-            run(&runner).await.unwrap_err(),
+            result.unwrap_err(),
             "runtime: De antwoordservice heeft te lang gewacht."
         );
-        assert_eq!(
-            count.load(Ordering::SeqCst),
-            2,
-            "the second round must start before the shared deadline expires"
-        );
+        assert_eq!(count.load(Ordering::SeqCst), 2);
         task.abort();
     }
 }

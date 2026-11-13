@@ -683,7 +683,7 @@ mod tests {
                 let reached=reached.clone(); let release=release.clone(); let active=active.clone(); let maximum=maximum.clone(); let requests=requests.clone();
                 async move {
                     requests.fetch_add(1,Ordering::SeqCst);
-                    let question=body["input"][0]["content"].as_str().unwrap();
+                    let question=body["input"][0]["content"][0]["text"].as_str().unwrap();
                     let output=if body["input"].as_array().unwrap().iter().any(|item| item["type"]=="function_call_output") {
                         json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":json!({"text":question,"citations":[{"source_id":"ACT-TUIN-001","source_date":"2026-10-20","section_id":"S2","quote":"Dinsdag 10 tot 12."}],"unknowns":[]}).to_string()}]}])
                     } else {

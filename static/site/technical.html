@@ -9,7 +9,7 @@
     <ol>
       <li><strong>De bronnen worden voorbereid.</strong> Twaalf verzonnen activiteitendocumenten zijn verdeeld in 72 tekststukjes. Elk stukje behoudt de activiteit, de sectie en de eigen brondatum.</li>
       <li><strong>De tekst wordt doorzoekbaar.</strong> Een lokaal MiniLM-model maakt van ieder stukje een lijst getallen: een <em>embedding</em>. De titel, tussenkop en tekst tellen mee. Woorden met een vergelijkbare betekenis kunnen zo bij elkaar uitkomen.</li>
-      <li><strong>Sol doet een zoekopdracht.</strong> Het model krijgt jouw vraag en kan onze zoekfunctie aanroepen. Voor zoeken op betekenis maakt het lokale model ook een embedding van die zoekopdracht. Rust vergelijkt die met de opgeslagen documentvectoren en kiest de meest gelijkende stukjes.</li>
+      <li><strong>Sol doet een zoekopdracht.</strong> Rig bestuurt de model- en toolstappen. Het model krijgt jouw vraag en kan onze bestaande zoekfunctie aanroepen. Voor zoeken op betekenis maakt het lokale model ook een embedding van die zoekopdracht. Rust vergelijkt die met de opgeslagen documentvectoren en kiest de meest gelijkende stukjes.</li>
       <li><strong>Sol krijgt gewone tekst terug.</strong> Het model ontvangt de gevonden passages met hun bron en datum, niet de vectoren. Het kan gerichter verderzoeken als bijvoorbeeld een tijdstip of adres ontbreekt.</li>
       <li><strong>Het antwoord wordt getoond.</strong> De applicatie controleert of citaten letterlijk voorkomen in de werkelijk aangeboden passages van de juiste bron. De demo laat ook de echte zoekopdrachten en gevonden tekst zien.</li>
     </ol>
@@ -18,7 +18,7 @@
       <summary>Waar staat dit in de code?</summary>
       <ul>
         <li><a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/d8080540b7a97c2fe6f4fd939b83ccc345b2576d/src/lib.rs#L109">Lokale index: teksten voorbereiden, embeddings maken en zoeken</a></li>
-        <li><a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/feature/sol-api-concurrency/src/responses.rs">De Responses API-loop met alleen onze lokale zoektool</a></li>
+        <li><a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/main/src/responses/rig_runtime.rs">De Rig-agent met alleen onze lokale zoektool</a></li>
         <li><a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/d8080540b7a97c2fe6f4fd939b83ccc345b2576d/docs/retrieval-codex.md">Historische Codex-verbinding voor CLI en evaluaties</a></li>
       </ul>
     </details>
@@ -58,7 +58,7 @@
     <h2 id="tech-evals">Wat controleren de tests?</h2>
     <p>Per testvraag ligt vooraf vast welke bronstukjes nodig zijn. Bijvoorbeeld de tijd én de locatie van één passende activiteit. Als meerdere activiteiten geldig zijn, blijven die alternatieven toegestaan; losse stukjes van verschillende activiteiten vormen niet zomaar één compleet antwoord.</p>
     <p>Na een sessie controleert vaste code welke verwachte stukjes daadwerkelijk aan het model zijn aangeboden. Die verwachtingen sturen de zoekvragen of het stoppen van de agent niet. We tellen ook de uitgevoerde zoekacties. Minder zoeken is pas nuttig als de benodigde informatie gevonden wordt.</p>
-    <p>De opgeslagen vergelijking gebruikte de eerdere Codex-route, niet de nieuwe Responses API-route. De API-route is ook met tien gelijktijdige echte vragen op die eerdere bronset gecontroleerd. De huidige twaalfbronnenset is lokaal op bronnen, retrieval en interface gecontroleerd; hiervoor is geen nieuwe betaalde modelproef uitgevoerd.</p>
+    <p>De opgeslagen vergelijking gebruikte de eerdere Codex-route, niet de nieuwe Responses API-route. De API-route is ook met tien gelijktijdige echte vragen op die eerdere bronset gecontroleerd. Vóór Rig was de twaalfbronnenset alleen lokaal gecontroleerd. De Rig-route is daarna op 13 november 2026 met drie echte fictieve vragen op twaalf bronnen gecontroleerd; alle drie voltooiden, met samen tien providerrequests. Dit is technische compatibiliteit, geen vergelijkende kwaliteitsmeting vóór en na de migratie.</p>
     <p>De laatste vergelijking gebruikte tien vragen, twee modellen en drie herhalingen: zestig sessies. Beide modellen gebruikten zoeken op betekenis met dezelfde instellingen. Deze proef vergelijkt dus niet tegelijk alle zoekmethodes. <a href="/resultaten/">Bekijk de resultaten en de drie herhalingen per vraag</a>.</p>
     <p>De inhoudelijke kwaliteit van de geschreven antwoorden is nog niet beoordeeld. Scores voor ruis en rangorde zijn hier evenmin actief: daarvoor moeten we vollediger vastleggen welke overige bronstukjes relevant zijn.</p>
     <details>
@@ -71,7 +71,7 @@
 
   <section aria-labelledby="tech-boundaries">
     <h2 id="tech-boundaries">Wat blijft lokaal?</h2>
-    <p>MiniLM draait lokaal via fastembed 7.1.2. De vraag en geselecteerde bronpassages gaan via de OpenAI Responses API naar Sol. De huidige webdemo start hiervoor geen Codex-processen. Lokale embeddings betekenen dus niet dat de hele verwerking lokaal blijft.</p>
+    <p>MiniLM draait lokaal via fastembed 7.1.2. De vraag en geselecteerde bronpassages gaan via Rig en de OpenAI Responses API naar Sol. De huidige webdemo start hiervoor geen Codex-processen. Lokale embeddings betekenen dus niet dat de hele verwerking lokaal blijft.</p>
     <p>Alle activiteitendata in dit prototype zijn verzonnen. De assistent schrijft niets naar dossiers, verstuurt geen berichten en meldt niemand aan. Het is een onafhankelijk leerproject, geen intern COA-systeem. De medewerker en bewoner houden de keuze over deelname.</p>
     <p><a href="/">Probeer de demo</a> of <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning">bekijk de broncode en bestaande documentatie</a>.</p>
   </section>
