@@ -1,0 +1,12 @@
+{
+  "name": "coa-evaluations",
+  "private": true,
+  "scripts": {
+    "eval:rag": "node evals/rag/scripts/run_promptfoo.mjs",
+    "eval:rag:live": "node evals/rag/scripts/run_promptfoo.mjs --live",
+    "test:rag": "python3 -m unittest discover -s evals/rag/promptfoo/tests -p 'test_*.py' && node --test evals/rag/promptfoo/tests/config.test.cjs evals/rag/scripts/test_promptfoo_export.mjs evals/rag/scripts/test_promptfoo_regrade.mjs evals/rag/scripts/test_promptfoo_runner.mjs"
+  },
+  "devDependencies": {
+    "promptfoo": "0.125.1"
+  }
+}

@@ -367,6 +367,34 @@ async fn api_cache_policy(
     }
     response
 }
+async fn rag_evaluation_results() -> Result<Json<Value>, ApiError> {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("evals/rag/site/promptfoo-results.json");
+    rag_results_from_path(&path)
+}
+fn rag_results_from_path(path: &std::path::Path) -> Result<Json<Value>, ApiError> {
+    let bytes = match std::fs::read(path) {
+        Ok(bytes) => bytes,
+        Err(cause) if cause.kind() == std::io::ErrorKind::NotFound => {
+            include_bytes!("../evals/rag/site/promptfoo-results.json").to_vec()
+        }
+        Err(_) => return Err(error("Evaluatieresultaten zijn nog niet beschikbaar.")),
+    };
+    if bytes.len() > 32 * 1024 * 1024 {
+        return Err(error("Evaluatieresultaten zijn te groot."));
+    }
+    let value: Value = serde_json::from_slice(&bytes)
+        .map_err(|_| error("Evaluatieresultaten kunnen niet worden gelezen."))?;
+    if value["schema_version"] != 1
+        || value["source"] != "promptfoo"
+        || !value["evaluations"].is_array()
+        || !value["sources"].is_object()
+    {
+        return Err(error("Evaluatieresultaten hebben een onbekend formaat."));
+    }
+    Ok(Json(value))
+}
+
 fn router(app: App) -> Router {
     Router::new().route("/",get(||async{Html(include_str!("../static/index.html"))}))
  .route("/demo",get(||async{Redirect::permanent("/")}))
@@ -376,6 +404,8 @@ fn router(app: App) -> Router {
  .route("/assets/site.css",get(||async{([(header::CONTENT_TYPE,"text/css; charset=utf-8")],include_str!("../static/site/site.css"))}))
  .route("/assets/language.js",get(||async{([(header::CONTENT_TYPE,"text/javascript; charset=utf-8")],include_str!("../static/site/language.js"))}))
  .route("/assets/demo.js",get(||async{([(header::CONTENT_TYPE,"text/javascript; charset=utf-8")],include_str!("../static/site/demo.js"))}))
+ .route("/api/evals/rag",get(rag_evaluation_results))
+ .route("/assets/promptfoo-results.js",get(||async{([(header::CONTENT_TYPE,"text/javascript; charset=utf-8")],include_str!("../evals/rag/site/promptfoo-results.js"))}))
  .route("/assets/results.js",get(||async{([(header::CONTENT_TYPE,"text/javascript; charset=utf-8")],include_str!("../evals/rag/site/results.js"))}))
  .route("/assets/results.json",get(||async{([(header::CONTENT_TYPE,"application/json; charset=utf-8")],include_str!("../evals/rag/site/results.json"))}))
  .route("/api/source",get({let app=app.clone();move||{let app=app.clone();async move{Json(json!({"sources":app.sources,"as_of":app.manifest["as_of"],"runtime_ready":app.runner.is_some(),"runtime_error":app.runner_error,"model_configuration":app.configuration}))}}}))
@@ -478,6 +508,60 @@ mod tests {
             .unwrap();
         (status, serde_json::from_slice(&bytes).unwrap())
     }
+    #[test]
+    fn bundled_rag_results_survive_an_unavailable_source_checkout() {
+        let missing =
+            std::env::temp_dir().join(format!("coa-no-source-results-{}.json", std::process::id()));
+        assert!(!missing.exists());
+        let result = rag_results_from_path(&missing).unwrap();
+        assert_eq!(result.0["source"], "promptfoo");
+        assert!(result.0["evaluations"].is_array());
+    }
+
+    #[test]
+    fn present_but_invalid_rag_results_never_fall_back_to_old_data() {
+        let file =
+            std::env::temp_dir().join(format!("coa-invalid-results-{}.json", std::process::id()));
+        std::fs::write(&file, b"invalid JSON").unwrap();
+        assert!(rag_results_from_path(&file).is_err());
+        std::fs::write(&file, vec![b' '; 32 * 1024 * 1024 + 1]).unwrap();
+        assert!(rag_results_from_path(&file).is_err());
+        std::fs::remove_file(file).unwrap();
+    }
+
+    #[tokio::test]
+    async fn promptfoo_results_are_available_without_starting_a_model() {
+        let app = Arc::new(WebState {
+            corpus: meedoen_retrieval::corpus::CorpusId::DemoTwelve,
+            store: Mutex::new(RunStore::new()),
+            limits: Mutex::new(DemoLimits::default()),
+            trusted_proxy: None,
+            capacity: Arc::new(Semaphore::new(10)),
+            runner: None,
+            runner_error: None,
+            manifest: json!({}),
+            sources: json!([]),
+            configuration: json!({}),
+        });
+        use tower::ServiceExt;
+        let response = router(app)
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/api/evals/rag")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 32 * 1024 * 1024)
+            .await
+            .unwrap();
+        let body: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(body["source"], "promptfoo");
+        assert!(body["evaluations"].is_array());
+    }
+
     #[tokio::test]
     async fn session_creation_spam_is_rejected_without_creating_more_sessions() {
         let app = Arc::new(WebState {

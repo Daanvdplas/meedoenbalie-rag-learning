@@ -1,5 +1,7 @@
 # Vergelijk zoeken over meerdere stappen
 
+**Actuele runner:** [promptfoo](../README.md) bestuurt de RAG-proeven. De native commando’s hieronder beschrijven de behouden uitvoeringsonderlaag of historische rapportage, niet een tweede actuele benchmark/scorer.
+
 Deze proef gebruikt voor tien vastgelegde vragen steeds dezelfde Codex-assistent met vier zoekmethodes. Alleen de zoekmethode verandert. Elke zoekactie geeft maximaal drie bronstukken terug; iedere sessie mag maximaal vier zoekpogingen doen en duurt maximaal 120 seconden. Een ongeldige of mislukte zoekpoging telt mee.
 
 De assistent krijgt de gebruikersvraag en de gevonden teksten. Hij bepaalt zelf of informatie ontbreekt en welke vervolgvraag nodig is. De beschermde bronverwachtingen worden uitsluitend achteraf geladen door `agent-assess` en `agent-report`; zij sturen de zoeklus niet.

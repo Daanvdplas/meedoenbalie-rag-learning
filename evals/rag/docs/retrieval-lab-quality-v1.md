@@ -1,5 +1,7 @@
 # Vastgelegde kwaliteitsvergelijking
 
+**Actuele runner:** [promptfoo](../README.md) bestuurt de RAG-proeven. De native commando’s hieronder beschrijven de behouden uitvoeringsonderlaag of historische rapportage, niet een tweede actuele benchmark/scorer.
+
 `lab` houdt zoekresultaten, beschermde verwachtingen en beoordelingen apart. Een
 opgeslagen zoekactie opnieuw beoordelen voert geen zoekactie of modelaanroep uit.
 De vrije AI-beoordelaar blijft gepauzeerd. Menselijke beoordelingen starten leeg.

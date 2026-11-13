@@ -1,5 +1,7 @@
 # Compact MCP, volledige lokale audit
 
+**Actuele runner:** [promptfoo](../README.md) bestuurt de RAG-proeven. De native commando’s hieronder beschrijven de behouden uitvoeringsonderlaag of historische rapportage, niet een tweede actuele benchmark/scorer.
+
 `lab ask --live` gebruikt standaard `--payload-mode compact`. Kies expliciet `full` om het oude modelzichtbare formaat te vergelijken. De keuze staat vast voor de hele sessie, naast dezelfde zoekmethode, opslagvorm, top-k en filters. De gewone demo en historische schema-1-bestanden behouden hun bestaande gedrag.
 
 Compact geeft Codex één kopie van de exact aangeboden bronsecties, met document-ID, titel, sectie-ID, brondatum en oorspronkelijke tekst. Vraag, top-k, referentiedatum, broncatalogus en het bestaande configuratie/corpusmanifest blijven beschikbaar. Rankscores, alle kandidaten, opstartmetingen en de tweede kopie van dezelfde hits gaan naar het lokale auditbestand. We gebruiken geen `_meta` of `structuredContent` als verondersteld verborgen kanaal.

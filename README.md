@@ -4,7 +4,7 @@ Een kleine Rust-leerproef met twaalf verzonnen activiteiten, echte lokale embedd
 
 Bekijk de [interactieve codegids](docs/code-tour.html) voor het systeemoverzicht, de route van één vraag en verwijzingen naar de echte functies. De HTML werkt ook lokaal zonder CDN.
 
-Alle evaluaties staan onder [evals/](evals/README.md): [RAG](evals/rag/README.md) en [de COA-assistent als geheel](evals/coa-assistent/README.md), met één gedeelde plek voor vraagsets. Wil je zelf evalueren? Volg de [korte reproduceerhandleiding](evals/coa-assistent/docs/reproduce.md): technische tests en een voorbeeldrapport zonder modelcalls, daarna optioneel begrensde generaties, afzonderlijke beoordelingen en een lokaal HTML-rapport. Bewijsdekking, voorlopige AI-oordelen en efficiëntie blijven apart; menselijke ijking is nog niet uitgevoerd.
+Alle evaluaties staan onder [evals/](evals/README.md). [RAG-evaluaties](evals/rag/README.md) draaien nu via promptfoo met de bestaande lokale zoekmotor en Codex voor modelproeven; onze eigen [resultaatpagina](http://127.0.0.1:8766/resultaten/) toont die uitkomsten. [De COA-assistent als geheel](evals/coa-assistent/README.md) behoudt zijn bestaande Codex-experimenten en afzonderlijke judge. Vraagsets en historische resultaten blijven bewaard; menselijke ijking is nog niet uitgevoerd.
 
 De [vastgelegde echte evaluatie van 23–26 oktober 2026](evals/coa-assistent/results/2026-10-26/README.md) bevat de bewaarde pogingen, voorlopige uitkomsten, fouten en reproduceercommando’s. Die kleine synthetische vergelijking is geen menselijke kwaliteitsvalidatie.
 
@@ -95,13 +95,13 @@ Op **13 november 2026** is op de eerdere bronset van tien activiteiten één ech
 ```sh
 cargo run --locked -- search 'Waar en wanneer is het tuinieren?'
 cargo run --locked -- ask 'Zijn er nog plekken vrij?'
-cargo run --locked -- eval > /tmp/meedoen-eval.json
+npm run eval:rag -- --suite garden
 cargo test --locked
 ```
 
 De interactieve demo gebruikt `demo-twelve`: twaalf documenten met elk zes secties, samen 72 bronstukken. De eerdere tien documenten zijn byte voor byte behouden; Schaken en Naaicafé zijn toegevoegd. Deze live-corpusversie heeft referentiedatum 13 november 2026; iedere bron behoudt zijn eigen publicatiedatum. De historische versie `expanded-ten` blijft tien documenten en 60 secties bevatten, met de oorspronkelijke bron- en evaluatiehashes.
 
-De oudere CLI-regressie (`eval` en `search`/`ask` zonder corpusoptie), datasets `legacy` en `independent-20261103`, en opgeslagen rapporten blijven de oorspronkelijke vijf documenten gebruiken. Kies de nieuwe versie expliciet bij losse CLI-zoekacties:
+De oudere CLI-regressie (`eval`, alleen voor historische compatibiliteit, en `search`/`ask` zonder corpusoptie), datasets `legacy` en `independent-20261103`, en opgeslagen rapporten blijven de oorspronkelijke vijf documenten gebruiken. Kies de nieuwe versie expliciet bij losse CLI-zoekacties:
 
 ```sh
 cargo run --locked -- search --corpus demo-twelve 'Wanneer kan ik schaken?'
@@ -146,19 +146,18 @@ cargo run --locked -- lab plan --dataset expanded-10-20261105 --methods bm25 --p
 Een lokale zoektest zonder antwoordmodel of AI-beoordelaar:
 
 ```sh
-cargo run --locked -- lab run --dataset expanded-10-20261105 --methods bm25 --profiles documents_sections --output /tmp/expanded-ten-bm25.jsonl
-cargo run --locked -- lab assess --dataset expanded-10-20261105 --input /tmp/expanded-ten-bm25.jsonl --types deterministic --output /tmp/expanded-ten-assessed.jsonl
+npm run eval:rag -- --suite retrieval --dataset expanded-10-20261105 --methods bm25 --profiles documents_sections
 ```
 
-Alle vier zoekmethoden en de bestaande document-/SQLite-structuren kunnen dezelfde versie kiezen via `--dataset expanded-10-20261105`. SQLite vereist `--features sqlite`. Nieuwe SQLite-caches krijgen een eigen map op basis van de corpus-hash, zodat oude en nieuwe metingen gescheiden blijven. Een agentvergelijking vereist bovendien expliciet `lab agent-run --live` en een nieuw begrensd ledger; de limiet blijft vier zoekacties en 120 seconden per sessie. Een volledige bronset vinden beoordeelt bronretrieval, niet automatisch de inhoud van het uiteindelijke antwoord.
+Alle vier zoekmethoden en de bestaande document-/SQLite-structuren kunnen dezelfde versie kiezen via `--dataset expanded-10-20261105`. SQLite vereist `--features sqlite`. Nieuwe SQLite-caches krijgen een eigen map op basis van de corpus-hash, zodat oude en nieuwe metingen gescheiden blijven. Een nieuwe agentvergelijking loopt via `npm run eval:rag:live -- --suite agentic`, met expliciete sessie-/tijdlimieten en een nieuw begrensd ledger; de limiet blijft vier zoekacties en 120 seconden per sessie. Een volledige bronset vinden beoordeelt bronretrieval, niet automatisch de inhoud van het uiteindelijke antwoord.
 
 ## Herhaalde modelvergelijking
 
 De aparte ontwikkelset `strengthened-10-20261106` bevat tien brongebaseerde vragen op hetzelfde corpus. Vier vragen zijn behouden en zes zijn nieuw of aangescherpt. De oude datasets en resultaten blijven afzonderlijk beschikbaar; een score op deze nieuwe vragen is geen verbetering ten opzichte van de eerdere 35/40-meting.
 
-`evals/rag/scripts/model_trials.py` voert een vooraf vastgelegde proef uit met `gpt-6.1-sol` en `gpt-6-luna`, de bestaande standaardzoekmethode `dense`, tien vragen en drie herhalingen: zestig pogingen. Modelvolgorde wisselt per vraag/herhaling. Beide gebruiken dezelfde gepinde runtime, bron- en embeddingidentiteit, `low` reasoning, top-3, contextlimiet 1200, maximaal vier zoekpogingen en 120 seconden per sessie. Dezelfde reasoningnaam betekent geen gegarandeerd gelijk rekenwerk.
+De historische `evals/rag/scripts/model_trials.py`-proef gebruikte `gpt-6.1-sol` en `gpt-6-luna`, de bestaande standaardzoekmethode `dense`, tien vragen en drie herhalingen: zestig pogingen. Modelvolgorde wisselt per vraag/herhaling. Beide gebruiken dezelfde gepinde runtime, bron- en embeddingidentiteit, `low` reasoning, top-3, contextlimiet 1200, maximaal vier zoekpogingen en 120 seconden per sessie. Dezelfde reasoningnaam betekent geen gegarandeerd gelijk rekenwerk.
 
-Het script heeft drie stappen: `plan` schrijft de volledige volgorde en hashes zonder modelcalls; `run --live --phase pilot` voert eerst vier vastgelegde pogingen uit; `run --live --phase remaining` vereist een onafhankelijke, hashgebonden `PILOT_APPROVED.json`. `assess` herberekent daarna zes afzonderlijke model/herhalingcohorten met de bestaande Rust-beoordeling. Gebruik `python3 evals/rag/scripts/model_trials.py --help` en de subcommando's voor alle expliciete paden. De globale limiet is zestig pogingen en 7200 seconden, met twee begrensde modelledgers van elk dertig; er zijn geen automatische herhalingen of alternatieve modellen bij fouten.
+Het historische script gebruikte drie stappen: `plan` schrijft de volledige volgorde en hashes zonder modelcalls; `run --live --phase pilot` voert eerst vier vastgelegde pogingen uit; `run --live --phase remaining` vereist een onafhankelijke, hashgebonden `PILOT_APPROVED.json`. `assess` herberekent daarna zes afzonderlijke model/herhalingcohorten met de bestaande Rust-beoordeling. Nieuwe uitvoeringen van deze RAG-modelvergelijking gebruiken nu `npm run eval:rag:live -- --suite models` met een expliciet begrensd ledger; zie de [actuele RAG-handleiding](evals/rag/README.md). De oude script-runner is uitgeschakeld; historische bestanden blijven leesbaar. De globale limiet is zestig pogingen en 7200 seconden, met twee begrensde modelledgers van elk dertig; er zijn geen automatische herhalingen of alternatieve modellen bij fouten.
 
 Een volledig ontvangen maar aantoonbaar ongeldig eindantwoord wordt bewaard als modelmislukking. Een specifieke ontvangen toolactie buiten het vaste contract kan eveneens een modelafwijking aantonen, ook zonder volledig eindantwoord. Brondekking blijft bij zulke mislukte uitvoeringen onbekend. Alleen begrensde veilige diagnostiek wordt bewaard: stage, exitstatus, terminaleventtypen, vaste reden- en toolcategorieën; geen rawreasoning, toolargumenten of modelteksten. Netwerk-, authenticatie-, runtime-, hash- en onduidelijke parserfouten stoppen de proef. Vrije antwoordkwaliteit wordt niet door een AI-beoordelaar geëvalueerd. Een kleiner model is niet vooraf beter of slechter: de vergelijking meet het model samen met deze harness.
 
