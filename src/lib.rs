@@ -1,9 +1,11 @@
 pub mod codex;
 pub mod corpus;
+pub mod demo_limits;
 pub mod experiment;
 pub mod manifest;
 pub mod mcp;
 pub mod ranking;
+pub mod responses;
 pub mod retrieval;
 pub mod retrieval_lab;
 pub mod runs;
@@ -93,6 +95,25 @@ pub struct SearchResult {
 
 pub const AS_OF: &str = "2026-10-20";
 pub const DEFAULT_TOP_K: usize = 3;
+
+/// The two methods exposed by the ordinary demo; lab-only hybrids are excluded.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DemoSearchMethod {
+    #[default]
+    Dense,
+    Bm25,
+}
+
+impl DemoSearchMethod {
+    pub fn id(self) -> &'static str {
+        match self {
+            Self::Dense => "dense",
+            Self::Bm25 => "bm25",
+        }
+    }
+}
+
 pub struct Index {
     corpus: corpus::CorpusId,
     model: fastembed::TextEmbedding,
@@ -173,6 +194,37 @@ impl Index {
     pub fn search(&mut self, question: &str) -> Result<SearchResult, String> {
         self.search_with_top_k(question, DEFAULT_TOP_K)
     }
+
+    /// Ordinary demo retrieval: the same corpus, whole sections and variable top-k.
+    /// BM25 reuses the shared scoring math, without importing lab selection limits.
+    pub fn search_for_method(
+        &mut self,
+        question: &str,
+        top_k: usize,
+        method: DemoSearchMethod,
+    ) -> Result<serde_json::Value, String> {
+        let mut result = match method {
+            DemoSearchMethod::Dense => {
+                serde_json::to_value(self.search_with_top_k(question, top_k)?)
+                    .map_err(|error| error.to_string())?
+            }
+            DemoSearchMethod::Bm25 => {
+                let question = validate_query(question)?;
+                let hits = bm25_hits(&self.sections, &question, top_k)?;
+                serde_json::json!({
+                    "question": question,
+                    "model": "BM25 (k1=1.2, b=0.75)",
+                    "sources": self.manifest.sources,
+                    "as_of": self.manifest.as_of,
+                    "manifest": self.manifest,
+                    "top_k": top_k,
+                    "hits": hits,
+                })
+            }
+        };
+        result["retrieval_method"] = serde_json::json!(method);
+        Ok(result)
+    }
     pub fn search_with_top_k(
         &mut self,
         question: &str,
@@ -206,6 +258,19 @@ impl Index {
     }
 }
 
+fn bm25_hits(
+    sections: &[Section],
+    question: &str,
+    top_k: usize,
+) -> Result<Vec<serde_json::Value>, String> {
+    let scores = retrieval::bm25_scores(sections, question);
+    Ok(ranking::rank(sections, &scores, top_k)?
+        .into_iter()
+        .filter(|hit| hit.similarity > 0.0)
+        .map(|hit| serde_json::json!({"section":hit.section,"bm25_score":hit.similarity}))
+        .collect())
+}
+
 pub fn keyword_search(
     sources: &[source::Source],
     question: &str,
@@ -237,6 +302,31 @@ pub fn keyword_search(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn ordinary_bm25_keeps_whole_sections_and_unbounded_lexical_scores() {
+        let sources = corpus::CorpusId::ExpandedTen.sources().unwrap();
+        let sections: Vec<_> = sources
+            .into_iter()
+            .flat_map(|source| source.sections)
+            .collect();
+        let hits = bm25_hits(&sections, "tuinieren fietsen taal koken wandelen creatief atelier parkonderhoud buurtbibliotheek muziekgroep digitale hulp", 6).unwrap();
+        assert_eq!(hits.len(), 6);
+        assert!(
+            hits.iter()
+                .any(|hit| hit["bm25_score"].as_f64().unwrap() > 1.0)
+        );
+        assert!(hits.iter().all(|hit| hit.get("similarity").is_none()));
+        let mut long = sections[0].clone();
+        long.text = "uniekzoekwoord ".repeat(2000);
+        let hits = bm25_hits(std::slice::from_ref(&long), "uniekzoekwoord", 6).unwrap();
+        assert_eq!(hits[0]["section"]["text"], long.text);
+        assert!(
+            bm25_hits(&sections, "volledigontbrekendzoekwoord", 3)
+                .unwrap()
+                .is_empty()
+        );
+        assert!(bm25_hits(&sections, "tuinieren", 7).is_err());
+    }
     #[test]
     #[ignore = "real embeddings; records a small title-context comparison, not a quality gate"]
     fn live_five_activity_evidence_and_title_context_comparison() {

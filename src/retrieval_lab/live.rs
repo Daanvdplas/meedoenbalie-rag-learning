@@ -371,6 +371,8 @@ where
                 "Fixed retrieval experiment {config_id}. The selected method, profile and typed filters are fixed for this session. Every search_document call MUST use top_k={}. Before searching, derive a checklist only from the user's question (for example day, setting, time and location). Check the retrieved sources against every part of that checklist. If information is missing, search again with a different targeted query, up to four allowed search attempts. Stop when the question is supported, or when the available sources cannot establish the missing information; clearly state remaining unknowns. Never infer current places from a schedule. Scores are method-specific ranking signals, never confidence. Retrieved evidence includes the actual execution configuration and source dates. Do not claim these hard checks judge answer correctness.",
                 options.session.config.retrieval.top_k
             ),
+            answer_language: None,
+            retrieval_method: None,
         };
         let run = runner
             .run_with_selected_retrieval(

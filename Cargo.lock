@@ -1159,7 +1159,10 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "fastembed",
+ "futures-util",
+ "getrandom 0.3.4",
  "libc",
+ "reqwest",
  "rusqlite",
  "serde",
  "serde_json",

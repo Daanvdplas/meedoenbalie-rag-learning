@@ -67,12 +67,22 @@ pub struct IsolatedRun {
     pub usage: Option<crate::experiment::types::TokenUsage>,
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AnswerLanguage {
+    #[default]
+    Nl,
+    En,
+}
+
 pub(crate) struct SelectedMcpLaunch {
     pub arguments: Vec<String>,
     pub instructions: String,
     pub corpus: crate::corpus::CorpusId,
     /// Only selected lab sessions constrain the tool to one exact top-k.
     pub fixed_top_k: Option<usize>,
+    pub answer_language: Option<AnswerLanguage>,
+    pub retrieval_method: Option<crate::DemoSearchMethod>,
 }
 
 fn usage_from_events(events: &str) -> Option<crate::experiment::types::TokenUsage> {
@@ -553,6 +563,14 @@ fn parse_events(events: &str) -> Result<Value, String> {
     if !completed {
         return Err("runtime: Incomplete Codex turn".into());
     }
+    validate_retrieved_answer(calls, last_answer)
+}
+
+/// Shared evidence validation; the caller owns its actual transport and tool execution.
+pub(crate) fn validate_retrieved_answer(
+    calls: Vec<ToolCall>,
+    last_answer: Option<String>,
+) -> Result<Value, String> {
     let successful: Vec<&Value> = calls
         .iter()
         .filter_map(|call| call.result.as_ref())
@@ -589,6 +607,12 @@ fn parse_events(events: &str) -> Result<Value, String> {
         .any(|result| result["manifest"] != source["manifest"])
     {
         return Err("tool: Index manifest changed during run".into());
+    }
+    if successful
+        .iter()
+        .any(|result| result["retrieval_method"] != source["retrieval_method"])
+    {
+        return Err("tool: Retrieval method changed during run".into());
     }
     let answer: GroundedAnswer =
         serde_json::from_str(&last_answer.ok_or("output: Missing final answer")?)
@@ -877,6 +901,49 @@ impl CodexRunner {
             instructions: "Use only the activity source corpus selected by the tool. Preserve document identity and source dates.".into(),
             corpus,
             fixed_top_k: None,
+            answer_language: None,
+            retrieval_method: None,
+        };
+        self.run_with_selected_retrieval(query, top_k, &launch, RUN_TIMEOUT)
+            .await
+    }
+
+    /// Web-only answer language; historical CLI and experiment entry points stay unchanged.
+    pub async fn run_for_corpus_in_language(
+        &self,
+        query: &str,
+        top_k: usize,
+        corpus: crate::corpus::CorpusId,
+        language: AnswerLanguage,
+    ) -> Result<CodexRun, String> {
+        let launch = SelectedMcpLaunch {
+            arguments: vec!["mcp".into(), "--corpus".into(), corpus.id().into()],
+            instructions: "Use only the activity source corpus selected by the tool. Preserve document identity and source dates.".into(),
+            corpus,
+            fixed_top_k: None,
+            answer_language: Some(language),
+            retrieval_method: None,
+        };
+        self.run_with_selected_retrieval(query, top_k, &launch, RUN_TIMEOUT)
+            .await
+    }
+
+    /// Fix the ordinary demo's retrieval method in its MCP process, not tool input.
+    pub async fn run_for_corpus_with_method(
+        &self,
+        query: &str,
+        top_k: usize,
+        corpus: crate::corpus::CorpusId,
+        language: AnswerLanguage,
+        method: crate::DemoSearchMethod,
+    ) -> Result<CodexRun, String> {
+        let launch = SelectedMcpLaunch {
+            arguments: vec!["mcp".into(), "--corpus".into(), corpus.id().into(), "--method".into(), method.id().into()],
+            instructions: "Use only the activity source corpus selected by the tool. Preserve document identity and source dates.".into(),
+            corpus,
+            fixed_top_k: None,
+            answer_language: Some(language),
+            retrieval_method: Some(method),
         };
         self.run_with_selected_retrieval(query, top_k, &launch, RUN_TIMEOUT)
             .await
@@ -1111,7 +1178,11 @@ impl CodexRunner {
             Some(launch) => format!(
                 "{}\n\n{}",
                 launch.instructions,
-                generation_prompt_for_corpus(query, top_k, launch.corpus)
+                match launch.answer_language {
+                    Some(language) =>
+                        generation_prompt_for_answer_language(query, top_k, launch.corpus, language),
+                    None => generation_prompt_for_corpus(query, top_k, launch.corpus),
+                }
             ),
             None => generation_prompt(query, top_k),
         };
@@ -1126,6 +1197,19 @@ impl CodexRunner {
                 launch.and_then(|selected| selected.fixed_top_k),
             )
         })?;
+        if let Some(method) = launch.and_then(|selected| selected.retrieval_method)
+            && parsed["tool_calls"].as_array().is_none_or(|calls| {
+                !calls.iter().any(|call| call["status"] == "completed")
+                    || calls
+                        .iter()
+                        .filter(|call| call["status"] == "completed")
+                        .any(|call| call["result"]["retrieval_method"] != json!(method))
+            })
+        {
+            return Err(
+                "tool: Search evidence does not match the selected retrieval method".into(),
+            );
+        }
         parsed["usage"] = serde_json::to_value(usage_from_events(&stdout))
             .map_err(|_| "output: Invalid usage")?;
         parsed["id"] = json!(id);
@@ -1161,8 +1245,96 @@ pub fn generation_prompt_for_corpus(
     }
 }
 
+pub(crate) fn generation_prompt_for_answer_language(
+    query: &str,
+    top_k: usize,
+    corpus: crate::corpus::CorpusId,
+    language: AnswerLanguage,
+) -> String {
+    let prompt = generation_prompt_for_corpus(query, top_k, corpus).replacen(
+        "Include source_id:section_id references in the text.",
+        "Keep answer.text limited to a direct answer to the user's question. Do not append source references, source IDs, section IDs or source publication dates as provenance to answer.text; store provenance only in citations. A date or identifier may appear when it is the fact explicitly asked for by the user, rather than a source reference. Do not append a list or summary of missing information to answer.text. If the question asks for a fact that evidence cannot establish, answer plainly that it is unknown; preserve uncertainty essential to the answer. Keep all unresolved facts in unknowns.",
+        1,
+    );
+    match language {
+        AnswerLanguage::Nl => prompt,
+        AnswerLanguage::En => prompt.replacen(
+            "Answer briefly in Dutch and address only the user question",
+            "Answer briefly in English (including unknowns); never translate citation quotes. Address only the user question",
+            1,
+        ),
+    }
+}
+
 #[cfg(test)]
 mod corpus_prompt_tests {
+    #[test]
+    fn web_answer_text_contract_separates_provenance_and_missing_information() {
+        for language in [super::AnswerLanguage::Nl, super::AnswerLanguage::En] {
+            let prompt = super::generation_prompt_for_answer_language(
+                "Are places available?",
+                3,
+                crate::corpus::CorpusId::ExpandedTen,
+                language,
+            );
+            assert!(prompt.contains("store provenance only in citations"));
+            assert!(prompt.contains("answer plainly that it is unknown"));
+            assert!(prompt.contains("Keep all unresolved facts in unknowns"));
+            assert!(!prompt.contains("Include source_id:section_id references in the text"));
+        }
+    }
+
+    #[test]
+    fn a_directly_requested_date_remains_an_answer_fact() {
+        let prompt = super::generation_prompt_for_answer_language(
+            "What is the source publication date?",
+            3,
+            crate::corpus::CorpusId::ExpandedTen,
+            super::AnswerLanguage::En,
+        );
+        assert!(prompt.contains("as provenance to answer.text"));
+        assert!(prompt.contains(
+            "A date or identifier may appear when it is the fact explicitly asked for by the user"
+        ));
+        assert!(prompt.contains("What is the source publication date?"));
+    }
+
+    #[test]
+    fn web_answer_style_and_language_leave_historical_generation_prompts_unchanged() {
+        use super::{
+            AnswerLanguage, generation_prompt_for_answer_language, generation_prompt_for_corpus,
+        };
+        for corpus in [
+            crate::corpus::CorpusId::BaselineFive,
+            crate::corpus::CorpusId::ExpandedTen,
+        ] {
+            let historical = generation_prompt_for_corpus("When can I join?", 3, corpus);
+            let dutch = generation_prompt_for_answer_language(
+                "When can I join?",
+                3,
+                corpus,
+                AnswerLanguage::Nl,
+            );
+            let english = generation_prompt_for_answer_language(
+                "When can I join?",
+                3,
+                corpus,
+                AnswerLanguage::En,
+            );
+            assert!(historical.contains("Include source_id:section_id references in the text."));
+            assert!(historical.contains("Answer briefly in Dutch"));
+            assert!(!dutch.contains("Include source_id:section_id references in the text."));
+            assert_eq!(english, dutch.replacen(
+                "Answer briefly in Dutch and address only the user question",
+                "Answer briefly in English (including unknowns); never translate citation quotes. Address only the user question", 1));
+            assert!(dutch.contains("include uncertainty only when relevant"));
+            assert!(
+                english
+                    .contains("exact nonempty quote copied from that same returned source section")
+            );
+        }
+    }
+
     #[test]
     fn expanded_prompt_uses_ten_while_historical_prompt_bytes_are_preserved() {
         let baseline = super::generation_prompt("Wanneer?", 3);
@@ -2014,6 +2186,158 @@ mod tests {
                     .any(|arg| arg.contains("permissions.coa-rag.filesystem")
                         && arg.contains("deny"))
             );
+        }
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn english_web_runner_sends_english_prompt_and_keeps_original_citations() {
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let directory =
+            RunDirectory(std::env::temp_dir().join(format!("coa-english-prompt-{suffix}")));
+        let prompt_path = directory.0.join("received-prompt.txt");
+        let events = stream(good_answer(), true);
+        let script = format!(
+            "#!/bin/sh\ncat >'{}'\ncat <<'COA_EVENTS'\n{events}\nCOA_EVENTS\n",
+            prompt_path.display()
+        );
+        let runner = fake_runner(&directory.0, &script);
+        let result = runner
+            .run_for_corpus_in_language(
+                "When can I join?",
+                3,
+                crate::corpus::CorpusId::BaselineFive,
+                AnswerLanguage::En,
+            )
+            .await
+            .unwrap();
+        let prompt = std::fs::read_to_string(prompt_path).unwrap();
+        assert!(prompt.contains("Answer briefly in English (including unknowns)"));
+        assert!(!prompt.contains("Answer briefly in Dutch"));
+        assert_eq!(
+            result.answer.citations[0].quote,
+            good_answer()["citations"][0]["quote"].as_str().unwrap()
+        );
+    }
+
+    #[test]
+    fn mixed_retrieval_methods_cannot_be_presented_as_one_answer() {
+        let events = stream(good_answer(), true);
+        let mut events: Vec<Value> = events
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        let mut first = events[0].clone();
+        let text = first["item"]["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap();
+        let mut evidence: Value = serde_json::from_str(text).unwrap();
+        evidence["retrieval_method"] = json!("bm25");
+        first["item"]["result"]["content"][0]["text"] = json!(evidence.to_string());
+        events.insert(0, first);
+        let encoded = events
+            .iter()
+            .map(Value::to_string)
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(
+            parse_events(&encoded).is_err(),
+            "Missing or changed method on follow-up evidence must be rejected"
+        );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn demo_method_is_fixed_in_mcp_launch_and_checked_on_every_successful_call() {
+        for method in [
+            crate::DemoSearchMethod::Dense,
+            crate::DemoSearchMethod::Bm25,
+        ] {
+            for actual in [None, Some(method)] {
+                let suffix = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos();
+                let directory =
+                    RunDirectory(std::env::temp_dir().join(format!("coa-demo-method-{suffix}")));
+                let args_path = directory.0.join("arguments.txt");
+                let prompt_path = directory.0.join("prompt.txt");
+                let mut events: Vec<Value> = stream(good_answer(), true)
+                    .lines()
+                    .map(|line| serde_json::from_str(line).unwrap())
+                    .collect();
+                let mut first = events[0].clone();
+                let mut evidence: Value = serde_json::from_str(
+                    first["item"]["result"]["content"][0]["text"]
+                        .as_str()
+                        .unwrap(),
+                )
+                .unwrap();
+                if let Some(actual) = actual {
+                    evidence["retrieval_method"] = json!(actual);
+                }
+                if method == crate::DemoSearchMethod::Bm25 {
+                    evidence["hits"][0]
+                        .as_object_mut()
+                        .unwrap()
+                        .remove("similarity");
+                    evidence["hits"][0]["bm25_score"] = json!(12.5);
+                }
+                first["item"]["result"]["content"][0]["text"] = json!(evidence.to_string());
+                first["item"]["arguments"]["top_k"] = json!(1);
+                events[0] = first.clone();
+                first["item"]["arguments"]["top_k"] = json!(6);
+                events.insert(1, first);
+                let encoded = events
+                    .iter()
+                    .map(Value::to_string)
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                let script = format!(
+                    "#!/bin/sh\nprintf '%s\\n' \"$@\" >'{}'\ncat >'{}'\ncat <<'COA_EVENTS'\n{encoded}\nCOA_EVENTS\n",
+                    args_path.display(),
+                    prompt_path.display()
+                );
+                let runner = fake_runner(&directory.0, &script);
+                let result = runner
+                    .run_for_corpus_with_method(
+                        "Wanneer?",
+                        3,
+                        crate::corpus::CorpusId::BaselineFive,
+                        AnswerLanguage::En,
+                        method,
+                    )
+                    .await;
+                if actual.is_none() {
+                    assert!(result.unwrap_err().contains("selected retrieval method"));
+                    continue;
+                }
+                let result = result.unwrap();
+                let args = std::fs::read_to_string(args_path).unwrap();
+                assert!(args.contains(&format!(
+                    "mcp_servers.coa.args={}",
+                    json!(["mcp", "--corpus", "baseline-five", "--method", method.id()])
+                )));
+                let prompt = std::fs::read_to_string(prompt_path).unwrap();
+                assert!(prompt.contains("store provenance only in citations"));
+                assert!(prompt.contains("Answer briefly in English"));
+                assert_eq!(
+                    result
+                        .tool_calls
+                        .iter()
+                        .map(|call| call.top_k)
+                        .collect::<Vec<_>>(),
+                    [1, 6]
+                );
+                if method == crate::DemoSearchMethod::Bm25 {
+                    let hit = &result.tool_calls[0].result.as_ref().unwrap()["hits"][0];
+                    assert_eq!(hit["bm25_score"], 12.5);
+                    assert!(hit.get("similarity").is_none());
+                }
+            }
         }
     }
 
