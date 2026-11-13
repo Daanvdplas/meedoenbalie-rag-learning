@@ -1,5 +1,6 @@
 pub mod codex;
 pub mod corpus;
+pub mod demo_limits;
 pub mod experiment;
 pub mod manifest;
 pub mod mcp;

@@ -1,6 +1,6 @@
 use axum::{
     Json, Router,
-    extract::{DefaultBodyLimit, Path, State},
+    extract::{ConnectInfo, DefaultBodyLimit, Path, State},
     http::{HeaderMap, StatusCode, header},
     response::{Html, IntoResponse, Redirect},
     routing::{get, post},
@@ -8,18 +8,45 @@ use axum::{
 use meedoen_retrieval::{
     DemoSearchMethod, Index,
     codex::AnswerLanguage,
+    demo_limits::{Blocked, DemoLimits, client_ip},
     responses::{ResponsesRunner, Search},
     runs::{RunStore, Verdict},
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::sync::{Arc, Mutex};
+use std::{
+    net::{IpAddr, SocketAddr},
+    sync::{Arc, Mutex},
+    time::Instant,
+};
 use tokio::sync::Semaphore;
 type App = Arc<WebState>;
-type ApiError = (StatusCode, Json<Value>);
+#[derive(Debug)]
+struct ApiError {
+    status: StatusCode,
+    body: Value,
+    retry_after: Option<u64>,
+}
+impl IntoResponse for ApiError {
+    fn into_response(self) -> axum::response::Response {
+        let mut response = (self.status, Json(self.body)).into_response();
+        if let Some(seconds) = self.retry_after {
+            response
+                .headers_mut()
+                .insert(header::RETRY_AFTER, seconds.into());
+        }
+        response
+    }
+}
+struct Visitor {
+    ip: IpAddr,
+    session: String,
+}
 struct WebState {
     corpus: meedoen_retrieval::corpus::CorpusId,
     store: Mutex<RunStore>,
+    limits: Mutex<DemoLimits>,
+    trusted_proxy: Option<IpAddr>,
     runner: Option<ResponsesRunner>,
     capacity: Arc<Semaphore>,
     runner_error: Option<String>,
@@ -34,7 +61,37 @@ fn error(message: impl Into<String>) -> ApiError {
     } else {
         StatusCode::BAD_REQUEST
     };
-    (status, Json(json!({"error":message})))
+    ApiError {
+        status,
+        body: json!({"error":message}),
+        retry_after: None,
+    }
+}
+fn rate_error(blocked: Blocked) -> ApiError {
+    ApiError {
+        status: StatusCode::TOO_MANY_REQUESTS,
+        body: json!({"error":blocked.message,"code":blocked.code,"retry_after_seconds":blocked.retry_after_seconds}),
+        retry_after: Some(blocked.retry_after_seconds),
+    }
+}
+fn visitor_ip(app: &App, headers: &HeaderMap, peer: SocketAddr) -> Result<IpAddr, ApiError> {
+    let values = headers.get_all("x-real-ip");
+    if app.trusted_proxy == Some(peer.ip()) && values.iter().count() != 1 {
+        return Err(error("Ongeldig bezoekersadres van de proxy."));
+    }
+    client_ip(
+        peer.ip(),
+        app.trusted_proxy,
+        headers
+            .get("x-real-ip")
+            .and_then(|value| value.to_str().ok()),
+    )
+    .map_err(error)
+}
+fn limits_locked(app: &App) -> Result<std::sync::MutexGuard<'_, DemoLimits>, ApiError> {
+    app.limits
+        .lock()
+        .map_err(|_| error("De demo is tijdelijk niet beschikbaar."))
 }
 fn session(headers: &HeaderMap) -> Result<String, ApiError> {
     headers
@@ -65,10 +122,17 @@ struct SessionRequest {
 }
 async fn new_session(
     State(app): State<App>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
     Json(input): Json<SessionRequest>,
 ) -> Result<Json<Value>, ApiError> {
+    let ip = visitor_ip(&app, &headers, peer)?;
+    let now = Instant::now();
+    let mut limits = limits_locked(&app)?;
+    limits.check_session(ip, now).map_err(rate_error)?;
     let mut store = locked(&app)?;
     let id = store.session(&input.seen_question_ids).map_err(error)?;
+    limits.record_session(ip, now);
     Ok(Json(
         json!({"session_id":id,"summary":store.summary(&id).map_err(error)?}),
     ))
@@ -91,21 +155,28 @@ struct RunRequest {
 }
 fn start(
     app: App,
-    session: String,
+    visitor: Visitor,
     question: String,
     top_k: usize,
     parent: Option<String>,
     language: AnswerLanguage,
     method: DemoSearchMethod,
 ) -> Result<Json<Value>, ApiError> {
-    let permit = app.capacity.clone().try_acquire_owned().map_err(|_| (
-        StatusCode::TOO_MANY_REQUESTS,
-        Json(json!({"error":"Er worden al tien vragen verwerkt. Probeer het straks opnieuw.","code":"capacity"})),
-    ))?;
+    let Visitor { ip, session } = visitor;
+    let permit = app.capacity.clone().try_acquire_owned().map_err(|_| ApiError {
+        status: StatusCode::TOO_MANY_REQUESTS,
+        body: json!({"error":"Er worden al tien vragen verwerkt. Probeer het straks opnieuw.","code":"capacity"}),
+        retry_after: None,
+    })?;
     let snapshot = context(&app, top_k, language, method);
+    let now = Instant::now();
+    let mut limits = limits_locked(&app)?;
+    limits.check_run(ip, &session, now).map_err(rate_error)?;
     let run = locked(&app)?
         .begin(&session, &question, top_k, snapshot.clone(), parent)
         .map_err(error)?;
+    limits.record_run(ip, &session, now);
+    drop(limits);
     let pending = json!(&run);
     let id = run.id.clone();
     tokio::spawn(async move {
@@ -149,12 +220,17 @@ fn start(
 }
 async fn run(
     State(app): State<App>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
     Json(input): Json<RunRequest>,
 ) -> Result<Json<Value>, ApiError> {
+    let ip = visitor_ip(&app, &headers, peer)?;
     start(
         app,
-        session(&headers)?,
+        Visitor {
+            ip,
+            session: session(&headers)?,
+        },
         input.question,
         input.top_k.unwrap_or(3),
         None,
@@ -173,6 +249,7 @@ async fn get_run(
 }
 async fn replay(
     State(app): State<App>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
     Path(id): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
@@ -181,6 +258,7 @@ async fn replay(
             "Opnieuw uitvoeren kan niet: de antwoordservice is nog niet ingesteld.",
         ));
     }
+    let ip = visitor_ip(&app, &headers, peer)?;
     let session = session(&headers)?;
     let original = locked(&app)?.get(&session, &id).map_err(error)?;
     let language = serde_json::from_value(original.context["answer_language"].clone())
@@ -196,7 +274,7 @@ async fn replay(
         .map_err(error)?;
     start(
         app,
-        session,
+        Visitor { ip, session },
         original.question,
         original.top_k,
         Some(id),
@@ -334,6 +412,11 @@ pub async fn serve(index: Index) -> Result<(), Box<dyn std::error::Error>> {
     let app = Arc::new(WebState {
         corpus,
         store: Mutex::new(RunStore::new()),
+        limits: Mutex::new(DemoLimits::default()),
+        trusted_proxy: std::env::var("COA_TRUSTED_PROXY_IP")
+            .ok()
+            .map(|value| value.parse::<IpAddr>())
+            .transpose()?,
         capacity: Arc::new(Semaphore::new(10)),
         runner,
         runner_error,
@@ -351,7 +434,11 @@ pub async fn serve(index: Index) -> Result<(), Box<dyn std::error::Error>> {
             "Antwoordservice niet ingesteld: gebruik OPENAI_API_KEY of COA_OPENAI_API_KEY_FILE buiten de repository."
         );
     }
-    axum::serve(listener, router(app)).await?;
+    axum::serve(
+        listener,
+        router(app).into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
     Ok(())
 }
 #[cfg(test)]
@@ -369,6 +456,9 @@ mod tests {
         let response = router(app)
             .oneshot(
                 axum::http::Request::builder()
+                    .extension(ConnectInfo(
+                        "127.0.0.1:43210".parse::<SocketAddr>().unwrap(),
+                    ))
                     .method(method)
                     .uri(path)
                     .header("content-type", "application/json")
@@ -389,11 +479,67 @@ mod tests {
         (status, serde_json::from_slice(&bytes).unwrap())
     }
     #[tokio::test]
+    async fn session_creation_spam_is_rejected_without_creating_more_sessions() {
+        let app = Arc::new(WebState {
+            corpus: meedoen_retrieval::corpus::CorpusId::ExpandedTen,
+            store: Mutex::new(RunStore::new()),
+            limits: Mutex::new(DemoLimits::default()),
+            trusted_proxy: None,
+            capacity: Arc::new(Semaphore::new(10)),
+            runner: None,
+            runner_error: None,
+            manifest: json!({}),
+            sources: json!([]),
+            configuration: json!({}),
+        });
+        for _ in 0..30 {
+            let (status, _) =
+                request_json(app.clone(), "POST", "/api/session", "", json!({})).await;
+            assert_eq!(status, StatusCode::OK);
+        }
+        let (status, body) = request_json(app, "POST", "/api/session", "", json!({})).await;
+        assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
+        assert_eq!(body["code"], "session_limit");
+    }
+    #[test]
+    fn duplicate_proxy_headers_are_rejected_and_untrusted_headers_are_ignored() {
+        let mut state = WebState {
+            corpus: meedoen_retrieval::corpus::CorpusId::ExpandedTen,
+            store: Mutex::new(RunStore::new()),
+            limits: Mutex::new(DemoLimits::default()),
+            trusted_proxy: Some("127.0.0.1".parse().unwrap()),
+            capacity: Arc::new(Semaphore::new(10)),
+            runner: None,
+            runner_error: None,
+            manifest: json!({}),
+            sources: json!([]),
+            configuration: json!({}),
+        };
+        let mut headers = HeaderMap::new();
+        headers.append("x-real-ip", "203.0.113.1".parse().unwrap());
+        headers.append("x-real-ip", "203.0.113.2".parse().unwrap());
+        let app = Arc::new(state);
+        assert!(visitor_ip(&app, &headers, "127.0.0.1:1234".parse().unwrap()).is_err());
+        state = Arc::try_unwrap(app).ok().unwrap();
+        state.trusted_proxy = None;
+        assert_eq!(
+            visitor_ip(
+                &Arc::new(state),
+                &headers,
+                "127.0.0.1:1234".parse().unwrap()
+            )
+            .unwrap(),
+            "127.0.0.1".parse::<IpAddr>().unwrap()
+        );
+    }
+    #[tokio::test]
     async fn api_responses_and_session_errors_must_not_be_cached() {
         use tower::ServiceExt;
         let app = Arc::new(WebState {
             corpus: meedoen_retrieval::corpus::CorpusId::ExpandedTen,
             store: Mutex::new(RunStore::new()),
+            limits: Mutex::new(DemoLimits::default()),
+            trusted_proxy: None,
             capacity: Arc::new(Semaphore::new(10)),
             runner: None,
             runner_error: None,
@@ -410,6 +556,9 @@ mod tests {
             let response = router(app.clone())
                 .oneshot(
                     axum::http::Request::builder()
+                        .extension(ConnectInfo(
+                            "127.0.0.1:43210".parse::<SocketAddr>().unwrap(),
+                        ))
                         .uri(path)
                         .body(axum::body::Body::empty())
                         .unwrap(),
@@ -434,6 +583,7 @@ mod tests {
         let release = Arc::new(Notify::new());
         let active = Arc::new(AtomicUsize::new(0));
         let maximum = Arc::new(AtomicUsize::new(0));
+        let requests = Arc::new(AtomicUsize::new(0));
         let manifest = json!({"sources":[{"id":"ACT-TUIN-001","date":"2026-10-20"}],"as_of":"2026-11-05","corpus":"synthetic"});
         let callback = {
             let manifest = manifest.clone();
@@ -444,10 +594,11 @@ mod tests {
             })
         };
         let provider = Router::new().route("/v1/responses",post({
-            let reached=reached.clone(); let release=release.clone(); let active=active.clone(); let maximum=maximum.clone();
+            let reached=reached.clone(); let release=release.clone(); let active=active.clone(); let maximum=maximum.clone(); let requests=requests.clone();
             move |Json(body): Json<Value>| {
-                let reached=reached.clone(); let release=release.clone(); let active=active.clone(); let maximum=maximum.clone();
+                let reached=reached.clone(); let release=release.clone(); let active=active.clone(); let maximum=maximum.clone(); let requests=requests.clone();
                 async move {
+                    requests.fetch_add(1,Ordering::SeqCst);
                     let question=body["input"][0]["content"].as_str().unwrap();
                     let output=if body["input"].as_array().unwrap().iter().any(|item| item["type"]=="function_call_output") {
                         json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":json!({"text":question,"citations":[{"source_id":"ACT-TUIN-001","source_date":"2026-10-20","section_id":"S2","quote":"Dinsdag 10 tot 12."}],"unknowns":[]}).to_string()}]}])
@@ -471,6 +622,8 @@ mod tests {
         let app = Arc::new(WebState {
             corpus: meedoen_retrieval::corpus::CorpusId::ExpandedTen,
             store: Mutex::new(RunStore::new()),
+            limits: Mutex::new(DemoLimits::default()),
+            trusted_proxy: None,
             capacity: Arc::new(Semaphore::new(10)),
             configuration: runner.configuration(),
             runner: Some(runner),
@@ -544,6 +697,52 @@ mod tests {
             .await;
             assert_ne!(foreign, StatusCode::OK);
         }
+        // Slots are free again, but neither a new session, forged forwarding
+        // identity nor the legacy replay endpoint may bypass the hourly quota.
+        let (_, fresh) = request_json(app.clone(), "POST", "/api/session", "", json!({})).await;
+        use tower::ServiceExt;
+        let response = router(app.clone())
+            .oneshot(
+                axum::http::Request::builder()
+                    .extension(ConnectInfo(
+                        "127.0.0.1:43210".parse::<SocketAddr>().unwrap(),
+                    ))
+                    .method("POST")
+                    .uri("/api/runs")
+                    .header("content-type", "application/json")
+                    .header("x-test-session", fresh["session_id"].as_str().unwrap())
+                    .header("x-real-ip", "203.0.113.42")
+                    .header("x-forwarded-for", "203.0.113.43")
+                    .body(axum::body::Body::from(
+                        json!({"question":"Quota bypass attempt"}).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+        assert!(response.headers().contains_key(header::RETRY_AFTER));
+        let bytes = axum::body::to_bytes(response.into_body(), 8192)
+            .await
+            .unwrap();
+        let body: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(body["code"], "rate_limit");
+        assert!(body["retry_after_seconds"].as_u64().unwrap() <= 3600);
+        let (status, body) = request_json(
+            app.clone(),
+            "POST",
+            &format!("/api/runs/{}/replay", visitors[0].1),
+            &visitors[0].0,
+            json!({}),
+        )
+        .await;
+        assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
+        assert_eq!(body["code"], "rate_limit");
+        assert_eq!(
+            requests.load(Ordering::SeqCst),
+            20,
+            "rejections must never contact the provider"
+        );
         provider.abort();
     }
     #[tokio::test]
@@ -553,6 +752,8 @@ mod tests {
         let app = Arc::new(WebState {
             corpus,
             store: Mutex::new(RunStore::new()),
+            limits: Mutex::new(DemoLimits::default()),
+            trusted_proxy: None,
             capacity: Arc::new(Semaphore::new(10)),
             runner: None,
             runner_error: None,
@@ -573,6 +774,9 @@ mod tests {
             let response = router(app.clone())
                 .oneshot(
                     axum::http::Request::builder()
+                        .extension(ConnectInfo(
+                            "127.0.0.1:43210".parse::<SocketAddr>().unwrap(),
+                        ))
                         .uri(path)
                         .body(axum::body::Body::empty())
                         .unwrap(),
@@ -613,6 +817,9 @@ mod tests {
             let response = router(app.clone())
                 .oneshot(
                     axum::http::Request::builder()
+                        .extension(ConnectInfo(
+                            "127.0.0.1:43210".parse::<SocketAddr>().unwrap(),
+                        ))
                         .uri(alias)
                         .body(axum::body::Body::empty())
                         .unwrap(),
@@ -625,6 +832,9 @@ mod tests {
         let response = router(app)
             .oneshot(
                 axum::http::Request::builder()
+                    .extension(ConnectInfo(
+                        "127.0.0.1:43210".parse::<SocketAddr>().unwrap(),
+                    ))
                     .uri("/assets/PREREGISTRATION.json")
                     .body(axum::body::Body::empty())
                     .unwrap(),
@@ -640,6 +850,8 @@ mod tests {
         let app = Arc::new(WebState {
             corpus,
             store: Mutex::new(RunStore::new()),
+            limits: Mutex::new(DemoLimits::default()),
+            trusted_proxy: None,
             capacity: Arc::new(Semaphore::new(10)),
             runner: None,
             runner_error: None,
@@ -650,6 +862,9 @@ mod tests {
         let response = router(app)
             .oneshot(
                 axum::http::Request::builder()
+                    .extension(ConnectInfo(
+                        "127.0.0.1:43210".parse::<SocketAddr>().unwrap(),
+                    ))
                     .uri("/api/source")
                     .body(axum::body::Body::empty())
                     .unwrap(),
@@ -682,6 +897,8 @@ mod tests {
         let app = Arc::new(WebState {
             corpus: meedoen_retrieval::corpus::CorpusId::BaselineFive,
             store: Mutex::new(RunStore::new()),
+            limits: Mutex::new(DemoLimits::default()),
+            trusted_proxy: None,
             capacity: Arc::new(Semaphore::new(10)),
             runner: None,
             runner_error: None,
@@ -692,6 +909,9 @@ mod tests {
         let response = router(app)
             .oneshot(
                 axum::http::Request::builder()
+                    .extension(ConnectInfo(
+                        "127.0.0.1:43210".parse::<SocketAddr>().unwrap(),
+                    ))
                     .uri("/api/source")
                     .body(axum::body::Body::empty())
                     .unwrap(),
@@ -715,6 +935,8 @@ mod tests {
         let app = Arc::new(WebState {
             corpus: meedoen_retrieval::corpus::CorpusId::BaselineFive,
             store: Mutex::new(RunStore::new()),
+            limits: Mutex::new(DemoLimits::default()),
+            trusted_proxy: None,
             capacity: Arc::new(Semaphore::new(10)),
             runner: None,
             runner_error: None,
@@ -765,6 +987,9 @@ mod tests {
             let response = router(app.clone())
                 .oneshot(
                     axum::http::Request::builder()
+                        .extension(ConnectInfo(
+                            "127.0.0.1:43210".parse::<SocketAddr>().unwrap(),
+                        ))
                         .uri(&path)
                         .header("x-test-session", &session)
                         .body(axum::body::Body::empty())
@@ -802,6 +1027,8 @@ mod tests {
             let app = Arc::new(WebState {
                 corpus: meedoen_retrieval::corpus::CorpusId::ExpandedTen,
                 store: Mutex::new(RunStore::new()),
+                limits: Mutex::new(DemoLimits::default()),
+                trusted_proxy: None,
                 capacity: Arc::new(Semaphore::new(10)),
                 runner: None,
                 runner_error: None,
@@ -817,6 +1044,9 @@ mod tests {
             let response = router(app.clone())
                 .oneshot(
                     axum::http::Request::builder()
+                        .extension(ConnectInfo(
+                            "127.0.0.1:43210".parse::<SocketAddr>().unwrap(),
+                        ))
                         .method("POST")
                         .uri("/api/runs")
                         .header("content-type", "application/json")
@@ -939,6 +1169,8 @@ mod tests {
             let app = Arc::new(WebState {
                 corpus: meedoen_retrieval::corpus::CorpusId::ExpandedTen,
                 store: Mutex::new(RunStore::new()),
+                limits: Mutex::new(DemoLimits::default()),
+                trusted_proxy: None,
                 capacity: Arc::new(Semaphore::new(10)),
                 runner: None,
                 runner_error: None,
@@ -954,6 +1186,9 @@ mod tests {
             let response = router(app.clone())
                 .oneshot(
                     axum::http::Request::builder()
+                        .extension(ConnectInfo(
+                            "127.0.0.1:43210".parse::<SocketAddr>().unwrap(),
+                        ))
                         .method("POST")
                         .uri("/api/runs")
                         .header("content-type", "application/json")
