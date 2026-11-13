@@ -186,6 +186,7 @@ def call_api(prompt, options, context):
         if not isinstance(settings['top_k'],int) or not 1<=settings['top_k']<=6:raise ValueError('Invalid top-k')
         if context.get('test',{}).get('metadata',{}).get('suite')=='models':
             if mode!='codex':raise ValueError('Models require the canonical Codex execution mode')
+            if os.environ.get('COA_PROMPTFOO_ALLOW_CODEX')!='1':raise ValueError('Models require explicit Codex opt-in before protocol reservation')
             controls=_model_controls();model_token=controls.authorize_model({**variables,**settings})
         if mode in ('codex','compact-live'):
             reservation=_reserve(dataset,case_id,settings['model'])
