@@ -162,15 +162,29 @@ impl Index {
             .flatten()
             .flat_map(|v| v.to_le_bytes())
             .collect();
+        let (scope, filter) = match corpus {
+            corpus::CorpusId::BaselineFive => (
+                "five-documents",
+                "five fictional activity documents; no eligibility inference",
+            ),
+            corpus::CorpusId::ExpandedTen => (
+                "ten-documents",
+                "ten fictional activity documents; no eligibility inference",
+            ),
+            corpus::CorpusId::DemoTwelve => (
+                "twelve-documents",
+                "twelve fictional activity documents; no eligibility inference",
+            ),
+        };
         let manifest = manifest::Manifest {
             source_sha256: corpus.sha256(),
             sources: sources.iter().zip(documents).map(|(s, text)| manifest::SourceFingerprint { id:s.id.clone(), title:s.title.clone(), date:s.date.clone(), sha256:manifest::hash(text.as_bytes()) }).collect(),
             embedding_inputs_sha256,
             document_vectors_sha256: manifest::hash(&vector_bytes),
             model: MODEL, dimensions:384, sdk:"fastembed 7.1.2",
-            settings_sha256: manifest::hash(format!("{MODEL}|384|512|fastembed7.1.2|sections-v2|unprefixed-title-heading-text|cosine|{}|{as_of}", if corpus.is_baseline() {"five-documents"} else {"ten-documents"}).as_bytes()),
+            settings_sha256: manifest::hash(format!("{MODEL}|384|512|fastembed7.1.2|sections-v2|unprefixed-title-heading-text|cosine|{}|{as_of}", scope).as_bytes()),
             chunking:"document-title-section-headings-v2",encoding:"unprefixed sentence transformer; document title + newline + heading + newline + exact text",max_tokens:512,
-            filter:if corpus.is_baseline() {"five fictional activity documents; no eligibility inference"} else {"ten fictional activity documents; no eligibility inference"},as_of,
+            filter,as_of,
             platform:format!("{}-{}",std::env::consts::OS,std::env::consts::ARCH),
         };
         Ok(Self {

@@ -41,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let method = parse_mcp_method(&mut args).map_err(std::io::Error::other)?;
             if !args.is_empty() {
                 return Err(
-                    "Usage: mcp [--corpus baseline-five|expanded-ten] [--method dense|bm25]".into(),
+                    "Usage: mcp [--corpus baseline-five|expanded-ten|demo-twelve] [--method dense|bm25]".into(),
                 );
             }
             let mut index: Option<Index> = None;
@@ -119,7 +119,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
     }
-    let index = Index::load_for_corpus(meedoen_retrieval::corpus::CorpusId::ExpandedTen)
+    let index = Index::load_for_corpus(meedoen_retrieval::corpus::CorpusId::DemoTwelve)
         .map_err(std::io::Error::other)?;
     web::serve(index).await
 }
@@ -133,7 +133,7 @@ fn parse_corpus(args: &mut Vec<String>) -> Result<meedoen_retrieval::corpus::Cor
     };
     let id = args.get(position + 1).ok_or("Missing --corpus value")?;
     let corpus = serde_json::from_value(serde_json::Value::String(id.clone()))
-        .map_err(|_| "Select --corpus baseline-five or expanded-ten")?;
+        .map_err(|_| "Select --corpus baseline-five, expanded-ten or demo-twelve")?;
     args.drain(position..=position + 1);
     Ok(corpus)
 }

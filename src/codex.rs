@@ -880,7 +880,12 @@ impl CodexRunner {
     pub fn configuration_for_corpus(&self, corpus: crate::corpus::CorpusId) -> Value {
         let mut configuration = self.configuration();
         if !corpus.is_baseline() {
-            configuration["prompt_version"] = json!("ten-activity-grounding-v1");
+            configuration["prompt_version"] =
+                json!(if corpus == crate::corpus::CorpusId::DemoTwelve {
+                    "twelve-activity-grounding-v1"
+                } else {
+                    "ten-activity-grounding-v1"
+                });
             configuration["corpus_id"] = json!(corpus.id());
             configuration["corpus_sha256"] = json!(corpus.sha256());
         }
@@ -1239,7 +1244,11 @@ pub fn generation_prompt_for_corpus(
     } else {
         prompt.replacen(
             "FIVE fictional Dutch activity documents",
-            "TEN fictional Dutch activity documents",
+            if corpus == crate::corpus::CorpusId::DemoTwelve {
+                "TWELVE fictional Dutch activity documents"
+            } else {
+                "TEN fictional Dutch activity documents"
+            },
             1,
         )
     }

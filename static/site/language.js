@@ -66,6 +66,8 @@
     library: ["Buurtbibliotheek", "Community library"],
     music: ["Muziekgroep", "Music group"],
     digital: ["Digitale hulp", "Digital support"],
+    chess: ["Schaken", "Chess"],
+    sewing: ["Naaicafé", "Sewing café"],
     what: ["Wat doen we?", "What do we do?"],
     when: ["Wanneer?", "When?"],
     where: ["Waar?", "Where?"],
@@ -78,6 +80,7 @@
     "ACT-TUIN-001": "gardening", "ACT-FIETS-002": "bicycles", "ACT-TAAL-003": "languageCafe",
     "ACT-KOKEN-004": "cooking", "ACT-WANDEL-005": "walking", "ACT-MAAK-006": "creative",
     "ACT-PARK-007": "park", "ACT-BIEB-008": "library", "ACT-MUZIEK-009": "music", "ACT-DIGI-010": "digital",
+    "ACT-SCHAAK-011": "chess", "ACT-NAAI-012": "sewing",
   };
   const headingKeys = {
     "Wat doen we?": "what", "Wanneer?": "when", "Waar?": "where", "Taal en hulp": "support",

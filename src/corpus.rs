@@ -7,6 +7,7 @@ pub enum CorpusId {
     #[default]
     BaselineFive,
     ExpandedTen,
+    DemoTwelve,
 }
 
 impl CorpusId {
@@ -18,6 +19,7 @@ impl CorpusId {
         match self {
             Self::BaselineFive => crate::DOCUMENTS,
             Self::ExpandedTen => &EXPANDED_DOCUMENTS,
+            Self::DemoTwelve => &DEMO_DOCUMENTS,
         }
     }
 
@@ -25,6 +27,7 @@ impl CorpusId {
         match self {
             Self::BaselineFive => crate::AS_OF,
             Self::ExpandedTen => "2026-11-05",
+            Self::DemoTwelve => "2026-11-13",
         }
     }
 
@@ -32,6 +35,7 @@ impl CorpusId {
         match self {
             Self::BaselineFive => "baseline-five",
             Self::ExpandedTen => "expanded-ten",
+            Self::DemoTwelve => "demo-twelve",
         }
     }
 
@@ -57,9 +61,54 @@ const EXPANDED_DOCUMENTS: [&str; 10] = [
     include_str!("../fixtures/expanded-10-20261105/activity-010.md"),
 ];
 
+const DEMO_DOCUMENTS: [&str; 12] = [
+    EXPANDED_DOCUMENTS[0],
+    EXPANDED_DOCUMENTS[1],
+    EXPANDED_DOCUMENTS[2],
+    EXPANDED_DOCUMENTS[3],
+    EXPANDED_DOCUMENTS[4],
+    EXPANDED_DOCUMENTS[5],
+    EXPANDED_DOCUMENTS[6],
+    EXPANDED_DOCUMENTS[7],
+    EXPANDED_DOCUMENTS[8],
+    EXPANDED_DOCUMENTS[9],
+    include_str!("../fixtures/demo-12-20261113/activity-011.md"),
+    include_str!("../fixtures/demo-12-20261113/activity-012.md"),
+];
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn twelve_document_live_corpus_preserves_frozen_sources_and_correct_prompt() {
+        let live: CorpusId = serde_json::from_str("\"demo-twelve\"")
+            .expect("the live demo needs its own source version");
+        let historical = CorpusId::ExpandedTen;
+        assert_eq!(&live.documents()[..10], historical.documents());
+        let freeze: serde_json::Value = serde_json::from_str(include_str!(
+            "../fixtures/experiments/expanded-10-20261105/FROZEN.json"
+        ))
+        .unwrap();
+        assert_eq!(historical.sha256(), freeze["integrity"]["corpus_sha256"]);
+        assert_ne!(live.sha256(), historical.sha256());
+        let sources = live.sources().unwrap();
+        assert!(
+            sources[10..]
+                .iter()
+                .all(|source| source.date == live.as_of()
+                    && source.sections.len() == 6
+                    && source
+                        .sections
+                        .iter()
+                        .all(|section| section.source_id == source.id
+                            && section.source_date == source.date))
+        );
+        assert!(
+            crate::codex::generation_prompt_for_corpus("Welke activiteit?", 3, live)
+                .contains("TWELVE fictional Dutch activity documents")
+        );
+    }
 
     #[test]
     fn expanded_sources_preserve_baseline_bytes_and_keep_distinct_identity() {
