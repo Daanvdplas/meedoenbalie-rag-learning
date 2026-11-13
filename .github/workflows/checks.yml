@@ -25,14 +25,14 @@ jobs:
         with:
           persist-credentials: false
       - name: Install Rust
-        run: rustup toolchain install 1.94.1 --profile minimal --component rustfmt --component clippy
+        run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
       - name: Formatting
-        run: cargo +1.94.1 fmt --all --check
+        run: cargo +1.97.1 fmt --all --check
       - name: Lints
-        run: cargo +1.94.1 clippy --locked --all-targets ${{ matrix.flags }} -- -D warnings
+        run: cargo +1.97.1 clippy --locked --all-targets ${{ matrix.flags }} -- -D warnings
       - name: Deterministic tests (no embedding model download)
-        run: cargo +1.94.1 test --locked ${{ matrix.flags }}
+        run: cargo +1.97.1 test --locked ${{ matrix.flags }}
       - name: Build
-        run: cargo +1.94.1 build --locked ${{ matrix.flags }}
+        run: cargo +1.97.1 build --locked ${{ matrix.flags }}
       - name: Python budget and public-export checks (no model calls)
         run: python3 -m unittest discover -s scripts -p 'test_*.py'

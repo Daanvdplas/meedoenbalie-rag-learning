@@ -2,12 +2,14 @@
 name = "meedoen-retrieval"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.97.1"
 
 [features]
 default = []
 sqlite = ["dep:rusqlite"]
 
 [dependencies]
+rig = { version = "=0.46.0", default-features = false, features = ["agent"] }
 axum = "0.8.8"
 fastembed = { version = "=7.1.2", default-features = false, features = ["hf-hub-native-tls", "ort-download-binaries-native-tls"] }
 serde = { version = "1", features = ["derive"] }

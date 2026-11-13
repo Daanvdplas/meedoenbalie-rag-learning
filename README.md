@@ -1,6 +1,6 @@
 # COA Assistent
 
-Een kleine Rust-leerproef met twaalf verzonnen activiteiten, echte lokale embeddings en OpenAI Sol via de Responses API. De CLI- en evaluatieroutes blijven Codex gebruiken. Je stelt een vraag en kunt de gebruikte bronpassages controleren. Dit is een eigen prototype, geen intern COA-plan.
+Een kleine Rust-leerproef met twaalf verzonnen activiteiten, echte lokale embeddings en OpenAI Sol via Rig en de Responses API. De CLI- en evaluatieroutes blijven Codex gebruiken. Je stelt een vraag en kunt de gebruikte bronpassages controleren. Dit is een eigen prototype, geen intern COA-plan.
 
 Bekijk de [interactieve codegids](docs/code-tour.html) voor het systeemoverzicht, de route van één vraag en verwijzingen naar de echte functies. De HTML werkt ook lokaal zonder CDN.
 
@@ -10,7 +10,7 @@ De [vastgelegde echte evaluatie van 23–26 oktober 2026](docs/evaluation/result
 
 ## Starten
 
-Benodigd: Rust 1.94.1. De webdemo gebruikt rechtstreeks `gpt-6.1-sol` via de OpenAI Responses API met reasoning `low`. Hiervoor is een **OpenAI API-sleutel** nodig; een Codex-aanmelding wordt door de webdemo niet gebruikt.
+Benodigd: Rust 1.97.1, vastgelegd in `rust-toolchain.toml`. De webdemo gebruikt de Rig-agentruntime met `gpt-6.1-sol` via de OpenAI Responses API met reasoning `low`. Hiervoor is een **OpenAI API-sleutel** nodig; een Codex-aanmelding wordt door de webdemo niet gebruikt.
 
 ```sh
 cargo run --locked
@@ -25,6 +25,8 @@ COA_OPENAI_API_KEY_FILE="$HOME/.config/coa/openai-api-key" cargo run --locked
 ```
 
 De creditclaimdialoog, gecontroleerd op 10 november 2026, waarschuwt dat activering van het Pro-API-voordeel Codex via API-keys van de gekozen organisatie uitschakelt, ook bij gekocht tegoed. Gewone Responses API-calls en Codex via het abonnement blijven volgens die dialoog werken. Dit project gebruikt de gewone API; activatie en saldo zijn niet door deze implementatie gecontroleerd.
+
+Rig 0.46.0 bestuurt de model- en toolstappen. De bestaande lokale zoekfunctie, broncontrole en bezoekersgrenzen blijven van deze applicatie. De CLI- en evaluatieroutes behouden hun Codex-runtime. Zie de [Rig-release van 31 oktober 2026](https://github.com/0xPlaygrounds/rig/releases/tag/v0.46.0) en de [codegids](docs/CODEBASE_GUIDE.md) voor deze scheiding.
 
 Een andere lokale poort kan met `COA_PORT=8767`. De eerste start downloadt ongeveer 235 MB modelbestanden naar `.model-cache/` in de werkmap; de server start nadat MiniLM is geladen. Embeddings en beide zoekmethoden draaien lokaal. De vraag en gevonden passages gaan voor het antwoord naar OpenAI. `store: false` schakelt Responses-opslag uit, maar is geen belofte van Zero Data Retention of afwezigheid van veiligheidslogs. Gebruik alleen verzonnen gegevens.
 
@@ -88,7 +90,9 @@ Dit zijn lokale HTTP-mocktests, zonder OpenAI-sleutel of betaalde calls. De over
 
 Voor een expliciete offline browsertest kan een **debugbuild** `COA_RESPONSES_TEST_URL=http://127.0.0.1:8891/v1/responses` gebruiken, eventueel met `COA_RESPONSES_TEST_TIMEOUT_MS` (1–120000). Alleen loopback is toegestaan, redirects staan uit en uitsluitend de vaste testsleutel `coa-local-test-key` wordt verstuurd; echte sleutelinstellingen worden in deze mode niet gelezen. De interface en `/api/source` markeren dit als lokale mock. Een releasebuild weigert deze override. Laat een mockpreview niet als echte modeldemo achter.
 
-Op **13 november 2026** is op de eerdere bronset van tien activiteiten één echte batch uitgevoerd met tien korte fictieve vragen: vijf Nederlands/vijf Engels en beide zoekmethoden. Alle tien uitvoeringen overlapten en eindigden succesvol, samen in 9,74 seconden; hiervoor waren 24 providerrequests nodig. De onafhankelijke browser-/API-controle omvatte 98 checks en 18 checks voor de Nederlandse/Engelse limietmeldingen. Zie [integratie en verificatie in PR #114](https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/114). Dit is een eenmalige technische rookproef, geen capaciteitsgarantie, inhoudelijke kwaliteitsbeoordeling of factuurcontrole. De nieuwe twaalfbronnendemo is alleen lokaal op bronnen, retrieval en interface gecontroleerd; hiervoor is geen nieuwe betaalde modelproef uitgevoerd. De zestig historische Codex-runs blijven retrievalbewijs voor hun eigen harness, geen kwaliteitsmeting van deze nieuwe API-route. Usage op geslaagde API-runs telt alle providerrequests op; fouten na een modelronde kunnen ook kosten veroorzaken en ontbreken in dat succesoverzicht. Dit is geen facturatieledger of hard dollarbudget. Een lokale time-out geeft de bezoekersplek vrij, maar garandeert niet dat de provider geen werk of kosten meer maakt.
+Op **13 november 2026** is op de eerdere bronset van tien activiteiten één echte batch uitgevoerd met tien korte fictieve vragen: vijf Nederlands/vijf Engels en beide zoekmethoden. Alle tien uitvoeringen overlapten en eindigden succesvol, samen in 9,74 seconden; hiervoor waren 24 providerrequests nodig. De onafhankelijke browser-/API-controle omvatte 98 checks en 18 checks voor de Nederlandse/Engelse limietmeldingen. Zie [integratie en verificatie in PR #114](https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/114). Dit is een eenmalige technische rookproef, geen capaciteitsgarantie, inhoudelijke kwaliteitsbeoordeling of factuurcontrole. Vóór de Rig-migratie was de twaalfbronnendemo alleen lokaal op bronnen, retrieval en interface gecontroleerd, zonder nieuwe betaalde modelproef. De zestig historische Codex-runs blijven retrievalbewijs voor hun eigen harness, geen kwaliteitsmeting van deze nieuwe API-route. Usage op geslaagde API-runs telt alle providerrequests op; fouten na een modelronde kunnen ook kosten veroorzaken en ontbreken in dat succesoverzicht. Dit is geen facturatieledger of hard dollarbudget. Een lokale time-out geeft de bezoekersplek vrij, maar garandeert niet dat de provider geen werk of kosten meer maakt.
+
+De Rig-route is op **13 november 2026** aanvullend met drie echte fictieve vragen op de twaalf bronnen gecontroleerd: dense/Nederlands, BM25/Engels en onbekende actuele beschikbaarheid. Alle drie uitvoeringen voltooiden binnen de bestaande grenzen, samen met tien providerrequests; de onafhankelijke controle omvatte 38 checks. Dit is een technische compatibiliteitsproef. Bij de dense-tuinvraag werd de locatiepassage niet gevonden en bleef het precieze adres onbekend, hoewel het in de bron staat. Er is geen gemeten verbetering van retrieval- of antwoordkwaliteit.
 
 ## Rust-zoekfunctie en evaluatie
 
