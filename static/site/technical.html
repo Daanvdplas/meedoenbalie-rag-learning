@@ -7,7 +7,7 @@
   <section aria-labelledby="tech-question">
     <h2 id="tech-question">Van vraag naar gevonden tekst</h2>
     <ol>
-      <li><strong>De bronnen worden voorbereid.</strong> Tien verzonnen activiteitendocumenten zijn verdeeld in zestig tekststukjes. Elk stukje behoudt de activiteit, de sectie en de eigen brondatum.</li>
+      <li><strong>De bronnen worden voorbereid.</strong> Twaalf verzonnen activiteitendocumenten zijn verdeeld in 72 tekststukjes. Elk stukje behoudt de activiteit, de sectie en de eigen brondatum.</li>
       <li><strong>De tekst wordt doorzoekbaar.</strong> Een lokaal MiniLM-model maakt van ieder stukje een lijst getallen: een <em>embedding</em>. De titel, tussenkop en tekst tellen mee. Woorden met een vergelijkbare betekenis kunnen zo bij elkaar uitkomen.</li>
       <li><strong>Sol doet een zoekopdracht.</strong> Het model krijgt jouw vraag en kan onze zoekfunctie aanroepen. Voor zoeken op betekenis maakt het lokale model ook een embedding van die zoekopdracht. Rust vergelijkt die met de opgeslagen documentvectoren en kiest de meest gelijkende stukjes.</li>
       <li><strong>Sol krijgt gewone tekst terug.</strong> Het model ontvangt de gevonden passages met hun bron en datum, niet de vectoren. Het kan gerichter verderzoeken als bijvoorbeeld een tijdstip of adres ontbreekt.</li>
@@ -47,7 +47,7 @@
     <h2 id="tech-storage">Waar staan de gegevens?</h2>
     <p>De gewone demo laadt de bronstukjes en hun vectoren in het geheugen. De bronbestanden zijn onderdeel van het programma. De lokale map met modelbestanden bevat het MiniLM-model; dat is iets anders dan de documentvectoren.</p>
     <p>Het experimentgedeelte ondersteunt daarnaast SQLite. Daar kunnen secties apart worden opgeslagen, of aan een activiteit worden gekoppeld. Opslag en zoeken zijn afzonderlijke keuzes: gegevens anders bewaren verandert niet vanzelf welke tekst de zoekfunctie vergelijkt.</p>
-    <p>Als alle varianten dezelfde zestig secties met dezelfde zoekberekening gebruiken, kunnen ze exact dezelfde resultaten geven. Dat bewijst niet dat zoeken in hele activiteiten hetzelfde werkt als zoeken in losse secties.</p>
+    <p>De opgeslagen experimenten gebruiken de eerdere bronset van tien activiteiten. Als alle varianten daarin dezelfde zestig secties met dezelfde zoekberekening gebruiken, kunnen ze exact dezelfde resultaten geven. Dat bewijst niet dat zoeken in hele activiteiten hetzelfde werkt als zoeken in losse secties.</p>
     <details>
       <summary>De opslagvarianten bekijken</summary>
       <p><a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/d8080540b7a97c2fe6f4fd939b83ccc345b2576d/src/storage/mod.rs#L70">Opslagstructuren en profielen</a> zijn los gedefinieerd van <a href="https://github.com/Daanvdplas/meedoenbalie-rag-learning/blob/d8080540b7a97c2fe6f4fd939b83ccc345b2576d/src/retrieval/config.rs#L15">de selectie van tekststukjes of een activiteit</a>.</p>
@@ -58,7 +58,7 @@
     <h2 id="tech-evals">Wat controleren de tests?</h2>
     <p>Per testvraag ligt vooraf vast welke bronstukjes nodig zijn. Bijvoorbeeld de tijd én de locatie van één passende activiteit. Als meerdere activiteiten geldig zijn, blijven die alternatieven toegestaan; losse stukjes van verschillende activiteiten vormen niet zomaar één compleet antwoord.</p>
     <p>Na een sessie controleert vaste code welke verwachte stukjes daadwerkelijk aan het model zijn aangeboden. Die verwachtingen sturen de zoekvragen of het stoppen van de agent niet. We tellen ook de uitgevoerde zoekacties. Minder zoeken is pas nuttig als de benodigde informatie gevonden wordt.</p>
-    <p>De opgeslagen vergelijking gebruikte de eerdere Codex-route, niet de nieuwe Responses API-route. Die nieuwe route is lokaal met een HTTP-testprovider op tien gelijktijdige vragen gecontroleerd; tien echte Sol-aanvragen zijn nog niet gemeten.</p>
+    <p>De opgeslagen vergelijking gebruikte de eerdere Codex-route, niet de nieuwe Responses API-route. De API-route is ook met tien gelijktijdige echte vragen op die eerdere bronset gecontroleerd. De huidige twaalfbronnenset is lokaal op bronnen, retrieval en interface gecontroleerd; hiervoor is geen nieuwe betaalde modelproef uitgevoerd.</p>
     <p>De laatste vergelijking gebruikte tien vragen, twee modellen en drie herhalingen: zestig sessies. Beide modellen gebruikten zoeken op betekenis met dezelfde instellingen. Deze proef vergelijkt dus niet tegelijk alle zoekmethodes. <a href="/resultaten/">Bekijk de resultaten en de drie herhalingen per vraag</a>.</p>
     <p>De inhoudelijke kwaliteit van de geschreven antwoorden is nog niet beoordeeld. Scores voor ruis en rangorde zijn hier evenmin actief: daarvoor moeten we vollediger vastleggen welke overige bronstukjes relevant zijn.</p>
     <details>

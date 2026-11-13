@@ -48,8 +48,8 @@ pub fn parse_source(text: &str) -> Result<Source, String> {
     })
 }
 pub fn parse_sources(documents: &[&str]) -> Result<Vec<Source>, String> {
-    if documents.len() > 10 {
-        return Err("This experiment supports at most ten activity documents".into());
+    if documents.len() > 12 {
+        return Err("This experiment supports at most twelve activity documents".into());
     }
     let mut sources = Vec::new();
     for document in documents {
@@ -105,18 +105,18 @@ mod tests {
     use super::*;
     const VALID: &str = "# Title\nID: DOC-A\nBrondatum: 2026-10-20\n\n## S1 — When\nEvery Tuesday.\n\nAn exact second paragraph.\n\n## S6 — Places\nTwo places on 2026-09-01; not checked since.\n";
     #[test]
-    fn expanded_corpus_accepts_ten_distinct_documents() {
-        let texts: Vec<_> = (0..10)
+    fn expanded_corpus_accepts_twelve_distinct_documents() {
+        let texts: Vec<_> = (0..12)
             .map(|n| VALID.replace("DOC-A", &format!("DOC-{n}")))
             .collect();
         let refs: Vec<_> = texts.iter().map(String::as_str).collect();
         let sources = parse_sources(&refs).unwrap();
-        assert_eq!(sources.len(), 10);
-        assert_eq!(sources[9].id, "DOC-9");
+        assert_eq!(sources.len(), 12);
+        assert_eq!(sources[11].id, "DOC-11");
     }
     #[test]
-    fn small_corpus_rejects_more_than_ten_documents_before_indexing() {
-        let texts: Vec<_> = (0..11)
+    fn small_corpus_rejects_more_than_twelve_documents_before_indexing() {
+        let texts: Vec<_> = (0..13)
             .map(|n| VALID.replace("DOC-A", &format!("DOC-{n}")))
             .collect();
         let refs: Vec<_> = texts.iter().map(String::as_str).collect();

@@ -1,6 +1,6 @@
 # COA Assistent
 
-Een kleine Rust-leerproef met tien verzonnen activiteiten, echte lokale embeddings en OpenAI Sol via de Responses API. De CLI- en evaluatieroutes blijven Codex gebruiken. Je stelt een vraag en kunt de gebruikte bronpassages controleren. Dit is een eigen prototype, geen intern COA-plan.
+Een kleine Rust-leerproef met twaalf verzonnen activiteiten, echte lokale embeddings en OpenAI Sol via de Responses API. De CLI- en evaluatieroutes blijven Codex gebruiken. Je stelt een vraag en kunt de gebruikte bronpassages controleren. Dit is een eigen prototype, geen intern COA-plan.
 
 Bekijk de [interactieve codegids](docs/code-tour.html) voor het systeemoverzicht, de route van één vraag en verwijzingen naar de echte functies. De HTML werkt ook lokaal zonder CDN.
 
@@ -16,7 +16,7 @@ Benodigd: Rust 1.94.1. De webdemo gebruikt rechtstreeks `gpt-6.1-sol` via de Ope
 cargo run --locked
 ```
 
-Open **http://127.0.0.1:8766/**. Zonder sleutel starten de website en de tien fictieve bronnen wel; het vraagveld meldt dat de antwoordservice nog niet is ingesteld. Er worden dan geen modelcalls gestart en er is geen Codex-fallback. `/demo` en `/demo/` verwijzen door naar `/`; [technische uitleg](http://127.0.0.1:8766/techniek/) en de opgeslagen [tests en resultaten](http://127.0.0.1:8766/resultaten/) blijven bereikbaar.
+Open **http://127.0.0.1:8766/**. Zonder sleutel starten de website en de twaalf fictieve bronnen wel; het vraagveld meldt dat de antwoordservice nog niet is ingesteld. Er worden dan geen modelcalls gestart en er is geen Codex-fallback. `/demo` en `/demo/` verwijzen door naar `/`; [technische uitleg](http://127.0.0.1:8766/techniek/) en de opgeslagen [tests en resultaten](http://127.0.0.1:8766/resultaten/) blijven bereikbaar.
 
 Voor antwoorden: gebruik `OPENAI_API_KEY` in de serveromgeving, of zet de sleutel zelf in een **extern** bestand, bijvoorbeeld `~/.config/coa/openai-api-key`. Dat moet een regulier bestand van de huidige gebruiker zijn met rechten `0600`, zonder symlink of hardlink. Plak geen sleutel in chat, broncode, opdrachtargumenten of rapporten. De applicatie leest geen `.env` automatisch.
 
@@ -63,7 +63,7 @@ python3 -m unittest discover -s scripts -p 'test_export_site_results.py'
 
 ## Zelf testen
 
-1. Bovenaan staan tien compacte activiteiten, waaronder **Tuinieren**, **Fietsen opknappen**, **Creatief atelier** en **Parkonderhoud**. Klik een titel om het volledige fictieve document met bron en datum te lezen. Er staat steeds maximaal één activiteit open.
+1. Bovenaan staan twaalf compacte activiteiten, waaronder **Tuinieren**, **Fietsen opknappen**, **Creatief atelier** en **Parkonderhoud**. Klik een titel om het volledige fictieve document met bron en datum te lezen. Er staat steeds maximaal één activiteit open.
 2. Open bovenaan de huidige vlag en kies **🇳🇱 Nederlands** of **🇬🇧 English**. Schrijf daarna één eigen vraag. Kies **Op betekenis** (de bestaande dense-zoekmethode) of **Op woorden**. De taalkeuze blijft bij vernieuwen bewaard. De interface en nieuwe antwoorden volgen de gekozen taal; de vraag die je al typt en bestaande antwoorden blijven staan. Alle documenten beschrijven vrijwillige activiteiten, geen betaalde banen.
 3. Sol maakt één direct antwoord zonder toegevoegde bronverwijzingen of aparte lijst met onbekende informatie. Bij een rechtstreeks onbeantwoordbare vraag blijft het antwoord eerlijk onbekend. Onder **Bekijk de resultaten** staat elke echte zoekactie afzonderlijk: de zoekvraag en de gevonden passages. De volgorde en eventuele herhaalde passages blijven behouden; dit zijn geen extra gebruikersvragen.
 4. Exact geciteerde tekst is gemarkeerd in de werkelijk gevonden passages. Activiteit, menselijk sectiekopje en één brondatum staan erbij; de volledige activiteiten blijven bovenaan leesbaar. Er is geen afzonderlijk bewijsblok of beoordelingsflow.
@@ -88,7 +88,7 @@ Dit zijn lokale HTTP-mocktests, zonder OpenAI-sleutel of betaalde calls. De over
 
 Voor een expliciete offline browsertest kan een **debugbuild** `COA_RESPONSES_TEST_URL=http://127.0.0.1:8891/v1/responses` gebruiken, eventueel met `COA_RESPONSES_TEST_TIMEOUT_MS` (1–120000). Alleen loopback is toegestaan, redirects staan uit en uitsluitend de vaste testsleutel `coa-local-test-key` wordt verstuurd; echte sleutelinstellingen worden in deze mode niet gelezen. De interface en `/api/source` markeren dit als lokale mock. Een releasebuild weigert deze override. Laat een mockpreview niet als echte modeldemo achter.
 
-Op **13 november 2026** is daarnaast één echte batch uitgevoerd met tien korte fictieve vragen: vijf Nederlands/vijf Engels en beide zoekmethoden. Alle tien uitvoeringen overlapten en eindigden succesvol, samen in 9,74 seconden; hiervoor waren 24 providerrequests nodig. De onafhankelijke browser-/API-controle omvatte 98 checks en 18 checks voor de Nederlandse/Engelse limietmeldingen. Zie [integratie en verificatie in PR #114](https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/114). Dit is een eenmalige technische rookproef, geen capaciteitsgarantie, inhoudelijke kwaliteitsbeoordeling of factuurcontrole. De zestig historische Codex-runs blijven retrievalbewijs voor hun eigen harness, geen kwaliteitsmeting van deze nieuwe API-route. Usage op geslaagde API-runs telt alle providerrequests op; fouten na een modelronde kunnen ook kosten veroorzaken en ontbreken in dat succesoverzicht. Dit is geen facturatieledger of hard dollarbudget. Een lokale time-out geeft de bezoekersplek vrij, maar garandeert niet dat de provider geen werk of kosten meer maakt.
+Op **13 november 2026** is op de eerdere bronset van tien activiteiten één echte batch uitgevoerd met tien korte fictieve vragen: vijf Nederlands/vijf Engels en beide zoekmethoden. Alle tien uitvoeringen overlapten en eindigden succesvol, samen in 9,74 seconden; hiervoor waren 24 providerrequests nodig. De onafhankelijke browser-/API-controle omvatte 98 checks en 18 checks voor de Nederlandse/Engelse limietmeldingen. Zie [integratie en verificatie in PR #114](https://github.com/Daanvdplas/meedoenbalie-rag-learning/pull/114). Dit is een eenmalige technische rookproef, geen capaciteitsgarantie, inhoudelijke kwaliteitsbeoordeling of factuurcontrole. De nieuwe twaalfbronnendemo is alleen lokaal op bronnen, retrieval en interface gecontroleerd; hiervoor is geen nieuwe betaalde modelproef uitgevoerd. De zestig historische Codex-runs blijven retrievalbewijs voor hun eigen harness, geen kwaliteitsmeting van deze nieuwe API-route. Usage op geslaagde API-runs telt alle providerrequests op; fouten na een modelronde kunnen ook kosten veroorzaken en ontbreken in dat succesoverzicht. Dit is geen facturatieledger of hard dollarbudget. Een lokale time-out geeft de bezoekersplek vrij, maar garandeert niet dat de provider geen werk of kosten meer maakt.
 
 ## Rust-zoekfunctie en evaluatie
 
@@ -99,15 +99,15 @@ cargo run --locked -- eval > /tmp/meedoen-eval.json
 cargo test --locked
 ```
 
-De interactieve demo gebruikt tien documenten met elk zes secties: 60 bronstukken. De oorspronkelijke vijf documenten zijn byte voor byte behouden. De nieuwe corpusversie heeft referentiedatum 5 november 2026; iedere bron behoudt ook zijn eigen publicatiedatum.
+De interactieve demo gebruikt `demo-twelve`: twaalf documenten met elk zes secties, samen 72 bronstukken. De eerdere tien documenten zijn byte voor byte behouden; Schaken en Naaicafé zijn toegevoegd. Deze live-corpusversie heeft referentiedatum 13 november 2026; iedere bron behoudt zijn eigen publicatiedatum. De historische versie `expanded-ten` blijft tien documenten en 60 secties bevatten, met de oorspronkelijke bron- en evaluatiehashes.
 
 De oudere CLI-regressie (`eval` en `search`/`ask` zonder corpusoptie), datasets `legacy` en `independent-20261103`, en opgeslagen rapporten blijven de oorspronkelijke vijf documenten gebruiken. Kies de nieuwe versie expliciet bij losse CLI-zoekacties:
 
 ```sh
-cargo run --locked -- search --corpus expanded-ten 'Wat kan ik op dinsdag binnen doen?'
+cargo run --locked -- search --corpus demo-twelve 'Wanneer kan ik schaken?'
 ```
 
-De tien activiteitendocumenten:
+De twaalf activiteitendocumenten:
 
 | Bestand | Activiteit | Brondatum | Moment |
 | --- | --- | --- | --- |
@@ -121,8 +121,10 @@ De tien activiteitendocumenten:
 | `fixtures/expanded-10-20261105/activity-008.md` | Buurtbibliotheek | 2026-11-05 | woensdag 10–12 |
 | `fixtures/expanded-10-20261105/activity-009.md` | Muziekgroep | 2026-11-05 | zaterdag 10–11.30 |
 | `fixtures/expanded-10-20261105/activity-010.md` | Digitale hulp | 2026-11-05 | maandag 15–16 |
+| `fixtures/demo-12-20261113/activity-011.md` | Schaken | 2026-11-13 | woensdag 16–17 |
+| `fixtures/demo-12-20261113/activity-012.md` | Naaicafé | 2026-11-13 | donderdag 13–15 |
 
-De parser accepteert maximaal tien documenten. De secties van de gekozen corpusversie krijgen lokale meertalige MiniLM-embeddings via fastembed 7.1.2: documenttitel, sectiekop en exacte tekst. CLI en MCP delen dezelfde Rust-zoekfunctie. Iedere hit en ieder citaat behouden document-ID, sectie-ID en eigen brondatum. De manifest bevat per-documenthashes, corpus- en embeddinginvoerhashes. Standaard top-k is 3, instelbaar van 1 tot 6 per zoekactie; de webassistent en de Codex-CLI kunnen maximaal vier gerichte zoekacties doen. Dit garandeert geen volledige lijst of volledig antwoord. Cosinusovereenkomst is geen zekerheid; een grens voor “geen match” is niet gekalibreerd.
+De parser accepteert maximaal twaalf documenten. De secties van de gekozen corpusversie krijgen lokale meertalige MiniLM-embeddings via fastembed 7.1.2: documenttitel, sectiekop en exacte tekst. CLI en MCP delen dezelfde Rust-zoekfunctie. Iedere hit en ieder citaat behouden document-ID, sectie-ID en eigen brondatum. De manifest bevat per-documenthashes, corpus- en embeddinginvoerhashes. Standaard top-k is 3, instelbaar van 1 tot 6 per zoekactie; de webassistent en de Codex-CLI kunnen maximaal vier gerichte zoekacties doen. Dit garandeert geen volledige lijst of volledig antwoord. Cosinusovereenkomst is geen zekerheid; een grens voor “geen match” is niet gekalibreerd.
 
 De oudere [zoekevaluatie met vijf activiteiten](reports/five-activity-eval.json) vergelijkt echte embeddings met woordoverlap op dezelfde titel/kop/tekst. De vijf vaste tuinvragen en beschermde verwachtingen blijven uitsluitend intern beschikbaar voor regressie en menselijke evaluatie via `fixtures/questions.json`, `fixtures/expectations.json` en de bestaande server-API. De demo toont deze reeks niet. Gold wordt nooit geïndexeerd of naar Codex/zoekresultaten gestuurd. Gemiddelde bronsectiedekking op de vier gelabelde tuinvragen is in dit snapshot 0,625 voor beide methoden. Dit is geen antwoordnauwkeurigheid; actuele plekken en ontbrekend vervoer blijven onbekend.
 
@@ -176,7 +178,7 @@ Alle gegevens zijn verzonnen. Suggesties behouden bron en datum; ontbrekende of 
 
 Alle codewijzigingen gaan via branches en pull requests, met onafhankelijke beoordeling. Niet rechtstreeks naar `main` committen; alleen mergen met toestemming van de gebruiker.
 
-Bron: [fastembed 7.1.2](https://github.com/anush008/fastembed-rs/releases/tag/v7.1.2), gepubliceerd **19 oktober 2026**. Zie verder [projectinstructies](AGENTS.md), [use case](user_journey.md) en [2026-oriëntatie](agent-harness-landscape.md). Het langetermijndoel blijft een kleine, uitlegbare agent harness; de interactieve demo gebruikt tien activiteiten en vrije vragen. De oorspronkelijke vijf activiteiten en interne tuinvragen blijven een afzonderlijke regressieset.
+Bron: [fastembed 7.1.2](https://github.com/anush008/fastembed-rs/releases/tag/v7.1.2), gepubliceerd **19 oktober 2026**. Zie verder [projectinstructies](AGENTS.md), [use case](user_journey.md) en [2026-oriëntatie](agent-harness-landscape.md). Het langetermijndoel blijft een kleine, uitlegbare agent harness; de interactieve demo gebruikt twaalf activiteiten en vrije vragen. De oorspronkelijke vijf activiteiten en interne tuinvragen blijven een afzonderlijke regressieset.
 
 ## Reproduceerbare experimenten
 
