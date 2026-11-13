@@ -317,8 +317,8 @@ pub fn validate_record(record: &ExperimentRecord) -> Result<(), String> {
 pub fn pinned_criteria(record: &ExperimentRecord) -> Result<super::dataset::CaseCriteria, String> {
     let pilot = super::dataset::validate_bundled()?;
     let heldout = super::dataset::parse(
-        include_str!("../../fixtures/experiments/heldout-questions.json"),
-        include_str!("../../fixtures/experiments/heldout-expectations.json"),
+        include_str!("../../shared/datasets/legacy/heldout-questions.json"),
+        include_str!("../../shared/datasets/legacy/heldout-expectations.json"),
     )?;
     for (questions, labels) in [pilot, heldout] {
         if super::dataset::questions_hash(&questions)? != record.manifest.questions_sha256

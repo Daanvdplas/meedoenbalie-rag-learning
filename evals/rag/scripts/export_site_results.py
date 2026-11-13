@@ -6,8 +6,8 @@ import json
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-DATASET = ROOT / 'fixtures/experiments/strengthened-10-20261106'
+ROOT = Path(__file__).resolve().parents[3]
+DATASET = ROOT / 'evals/shared/datasets/strengthened-10-20261106'
 SOURCE_FILES = ['document.md', 'bicycle-workshop.md', 'language-cafe.md', 'community-cooking.md', 'walking.md'] + [f'expanded-10-20261105/activity-{n:03}.md' for n in range(6, 11)]
 MODELS = {'gpt-6.1-sol': 'Sol', 'gpt-6-luna': 'Luna'}
 EXPECTED_MANIFEST_SHA256 = 'c1385fc9aac9d6c59671971cc8a09e14d9628bc131dc75e26ca20800579e1157'
@@ -152,7 +152,7 @@ def export(experiment_dir):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--experiment-dir', type=Path, required=True)
-    parser.add_argument('--output', type=Path, default=ROOT / 'static/site/results.json')
+    parser.add_argument('--output', type=Path, default=ROOT / 'evals/rag/site/results.json')
     args = parser.parse_args()
     data = export(args.experiment_dir)
     args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -115,7 +115,7 @@ pub struct CalibrationReport {
 }
 
 fn worksheet() -> Result<(Worksheet, String), String> {
-    let bytes = include_bytes!("../../fixtures/experiments/human-review.json");
+    let bytes = include_bytes!("../fixtures/human-review.json");
     let sheet: Worksheet =
         serde_json::from_slice(bytes).map_err(|_| "Invalid frozen review worksheet")?;
     if sheet.schema_version != "1"
@@ -142,7 +142,7 @@ fn load_reference(
         }
         bytes
     } else {
-        include_bytes!("../../fixtures/experiments/ai-reference.json").to_vec()
+        include_bytes!("../fixtures/ai-reference.json").to_vec()
     };
     let reference: ReferenceSet =
         serde_json::from_slice(&bytes).map_err(|_| "Invalid reference artifact schema")?;

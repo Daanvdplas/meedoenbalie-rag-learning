@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
 pub const QUESTION_INPUTS: [&str; 2] = [
-    include_str!("../../fixtures/experiments/questions.json"),
-    include_str!("../../fixtures/experiments/heldout-questions.json"),
+    include_str!("../../shared/datasets/legacy/questions.json"),
+    include_str!("../../shared/datasets/legacy/heldout-questions.json"),
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -91,37 +91,36 @@ pub fn bundled_questions() -> Result<QuestionCatalog, String> {
 }
 
 pub const INDEPENDENT_QUESTIONS: &str =
-    include_str!("../../fixtures/experiments/independent-20261103/questions.json");
+    include_str!("../../shared/datasets/independent-20261103/questions.json");
 pub const INDEPENDENT_EXPECTATIONS: &str =
-    include_str!("../../fixtures/experiments/independent-20261103/expectations.json");
-pub const FROZEN: &str =
-    include_str!("../../fixtures/experiments/independent-20261103/FROZEN.json");
+    include_str!("../../shared/datasets/independent-20261103/expectations.json");
+pub const FROZEN: &str = include_str!("../../shared/datasets/independent-20261103/FROZEN.json");
 pub const FROZEN_SHA256: &str = "351a7df4d85e5295e36d3fbbb31c62948619425158b038bd8370a11c982e2fe6";
 pub const EXPANDED_ID: &str = "expanded-10-20261105";
 pub const EXPANDED_QUESTIONS: &str =
-    include_str!("../../fixtures/experiments/expanded-10-20261105/questions.json");
+    include_str!("../../shared/datasets/expanded-10-20261105/questions.json");
 pub const EXPANDED_EXPECTATIONS: &str =
-    include_str!("../../fixtures/experiments/expanded-10-20261105/expectations.json");
+    include_str!("../../shared/datasets/expanded-10-20261105/expectations.json");
 pub const EXPANDED_DETAILS: &str =
-    include_str!("../../fixtures/experiments/expanded-10-20261105/reference-details.json");
+    include_str!("../../shared/datasets/expanded-10-20261105/reference-details.json");
 pub const EXPANDED_SELECTION: &str =
-    include_str!("../../fixtures/experiments/expanded-10-20261105/presentation-selection.json");
+    include_str!("../../shared/datasets/expanded-10-20261105/presentation-selection.json");
 const EXPANDED_FROZEN: &str =
-    include_str!("../../fixtures/experiments/expanded-10-20261105/FROZEN.json");
+    include_str!("../../shared/datasets/expanded-10-20261105/FROZEN.json");
 // Independently approved exact source-reference freeze, before measurement.
 const EXPANDED_FROZEN_SHA256: &str =
     "48d09a54102b9cbb75d9bbe4c6436e746cfb8290b323d284a26a4b900436e394";
 pub const STRENGTHENED_ID: &str = "strengthened-10-20261106";
 pub const STRENGTHENED_QUESTIONS: &str =
-    include_str!("../../fixtures/experiments/strengthened-10-20261106/questions.json");
+    include_str!("../../shared/datasets/strengthened-10-20261106/questions.json");
 pub const STRENGTHENED_EXPECTATIONS: &str =
-    include_str!("../../fixtures/experiments/strengthened-10-20261106/expectations.json");
+    include_str!("../../shared/datasets/strengthened-10-20261106/expectations.json");
 pub const STRENGTHENED_DETAILS: &str =
-    include_str!("../../fixtures/experiments/strengthened-10-20261106/reference-details.json");
+    include_str!("../../shared/datasets/strengthened-10-20261106/reference-details.json");
 pub const STRENGTHENED_SELECTION: &str =
-    include_str!("../../fixtures/experiments/strengthened-10-20261106/presentation-selection.json");
+    include_str!("../../shared/datasets/strengthened-10-20261106/presentation-selection.json");
 const STRENGTHENED_FROZEN: &str =
-    include_str!("../../fixtures/experiments/strengthened-10-20261106/FROZEN.json");
+    include_str!("../../shared/datasets/strengthened-10-20261106/FROZEN.json");
 const STRENGTHENED_FROZEN_SHA256: &str =
     "08e4febda02e92237b03966c285f086eb9e2b5c1623e84ee6463edee4e9626b0";
 
@@ -154,6 +153,7 @@ pub(super) fn verify_ten_source_artifact(id: &str, name: &str, text: &str) -> Re
             "Expanded source/reference freeze is not independently approved or has changed".into(),
         );
     }
+    // Frozen manifests retain their historical logical paths; file locations moved to evals/.
     let path = format!("fixtures/experiments/{id}/{name}");
     let expected = crate::manifest::hash(text.as_bytes());
     let matches = freeze["integrity"]["artifacts"]
@@ -171,11 +171,11 @@ pub(super) fn verify_ten_source_artifact(id: &str, name: &str, text: &str) -> Re
     Ok(())
 }
 const APPROVED_INPUTS: &str =
-    include_str!("../../fixtures/experiments/independent-20261103/INPUTS_FROZEN.json");
+    include_str!("../../shared/datasets/independent-20261103/INPUTS_FROZEN.json");
 const APPROVED_INPUTS_SHA256: &str =
     "9ac437b814e19a967036297310c013e0d6fce342f5af4d966a68cff8a38dc04b";
 const USER_INPUTS: &str =
-    include_str!("../../fixtures/experiments/independent-20261103/user-query-inputs.json");
+    include_str!("../../shared/datasets/independent-20261103/user-query-inputs.json");
 
 #[derive(Debug, Clone)]
 pub struct QuestionDataset {

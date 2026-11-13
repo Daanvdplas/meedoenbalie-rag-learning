@@ -6,7 +6,7 @@ Het rapport is voor de maker en mensen die zonder technische logs willen begrijp
 
 `experiment report --input resultaten.jsonl --output rapport.html` maakt één zelfstandig HTML-bestand. Meerdere JSONL-bestanden kunnen als kommagescheiden lijst mee. Deze opdracht gebruikt geen model of netwerk. Open het HTML-bestand daarna rechtstreeks in je browser. Voor een preview kun je alleen de map met HTML serveren; budgetregistraties en logs horen buiten die map.
 
-`fixtures/experiments/report-example.jsonl` bevat zes handgemaakte rendererchecks, geen gemeten RAG-resultaten. De banner blijft zichtbaar. De echte generatie- en beoordelaarstatus en hun herkomst blijven afzonderlijk zichtbaar. Een voorbeeldbeoordeling telt nooit als een echt positief kwaliteitsoordeel. Menselijke ijking is voor nu uitgesteld.
+`evals/coa-assistent/fixtures/report-example.jsonl` bevat zes handgemaakte rendererchecks, geen gemeten RAG-resultaten. De banner blijft zichtbaar. De echte generatie- en beoordelaarstatus en hun herkomst blijven afzonderlijk zichtbaar. Een voorbeeldbeoordeling telt nooit als een echt positief kwaliteitsoordeel. Menselijke ijking is voor nu uitgesteld.
 
 Bewijsdekking, voorlopig AI-oordeel en efficiëntie blijven apart. `1 van 2 (0,50)` betekent dat bewijs voor één van twee benodigde feiten aanwezig is. De antwoordbeoordelaar controleert of de feiten ook juist gebruikt worden. Zijn oordeel kan een harde fout niet herstellen. Bij onbesliste criteria toont het rapport zowel de beoordeelde noemer als het aantal onbesliste criteria.
 

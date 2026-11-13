@@ -235,7 +235,7 @@ mod tests {
     fn relevance_only_sections_do_not_become_goal_support() {
         // Actual saved dense search: the first seed is relevant exclusion
         // evidence; bicycle time appears second, but its location is missing.
-        let raw = include_str!("../../fixtures/experiments/regressions/t02-dense-search.json");
+        let raw = include_str!("../fixtures/regressions/t02-dense-search.json");
         let record: RetrievalRecord = serde_json::from_str(raw).unwrap();
         let stored = StoredRecord {
             record: record.clone(),

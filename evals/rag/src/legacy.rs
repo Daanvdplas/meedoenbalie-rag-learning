@@ -2,8 +2,8 @@ use meedoen_retrieval::{Index, keyword_search, manifest::hash, source::Source};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::HashSet;
-const QUESTIONS: &str = include_str!("../fixtures/questions.json");
-const EXPECTATIONS: &str = include_str!("../fixtures/expectations.json");
+const QUESTIONS: &str = include_str!("../datasets/garden/questions.json");
+const EXPECTATIONS: &str = include_str!("../datasets/garden/expectations.json");
 #[derive(Deserialize)]
 struct Question {
     id: String,

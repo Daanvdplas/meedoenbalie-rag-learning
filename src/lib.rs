@@ -1,12 +1,14 @@
 pub mod codex;
 pub mod corpus;
 pub mod demo_limits;
+#[path = "../evals/coa-assistent/src/mod.rs"]
 pub mod experiment;
 pub mod manifest;
 pub mod mcp;
 pub mod ranking;
 pub mod responses;
 pub mod retrieval;
+#[path = "../evals/rag/src/mod.rs"]
 pub mod retrieval_lab;
 pub mod runs;
 pub mod source;
